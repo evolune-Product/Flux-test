@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(chmod:*)",
+      "Bash(awk:*)",
+      "Bash($env:PYTHONIOENCODING=\"utf-8\")",
+      "Bash(set:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(find:*)",
+      "Bash(timeout:*)",
+      "Bash(nul)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix deployment error by adding itsdangerous dependency\n\nAdded missing itsdangerous package to requirements.txt which is required\nby Starlette''s SessionMiddleware. This resolves the ModuleNotFoundError\nthat was causing deployment failures on Render.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(git rm:*)",
+      "Bash(git restore:*)",
+      "Bash(git checkout:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(test:*)",
+      "Bash(ls:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(exit 0)",
+      "Bash(grep:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

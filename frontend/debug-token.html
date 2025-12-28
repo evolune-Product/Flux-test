@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Token</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .danger {
+            background: #f44336;
+        }
+        .danger:hover {
+            background: #da190b;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Token Debug Tool</h1>
+
+    <div class="card">
+        <h2>Current Token</h2>
+        <pre id="tokenDisplay">Loading...</pre>
+        <button onclick="copyToken()">📋 Copy Token</button>
+        <button onclick="clearToken()" class="danger">🗑️ Clear Token</button>
+    </div>
+
+    <div class="card">
+        <h2>Current User Data</h2>
+        <pre id="userDisplay">Loading...</pre>
+        <button onclick="copyUser()">📋 Copy User Data</button>
+    </div>
+
+    <div class="card">
+        <h2>Test Authentication</h2>
+        <button onclick="testAuth()">🧪 Test Token</button>
+        <div id="authResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>Create Test Team</h2>
+        <button onclick="testCreateTeam()">🧪 Test Create Team</button>
+        <div id="teamResult"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+
+        function displayToken() {
+            const token = localStorage.getItem('token');
+            document.getElementById('tokenDisplay').textContent = token || 'No token found';
+        }
+
+        function displayUser() {
+            const user = localStorage.getItem('user');
+            if (user) {
+                document.getElementById('userDisplay').textContent = JSON.stringify(JSON.parse(user), null, 2);
+            } else {
+                document.getElementById('userDisplay').textContent = 'No user data found';
+            }
+        }
+
+        function copyToken() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                navigator.clipboard.writeText(token);
+                alert('Token copied to clipboard!');
+            } else {
+                alert('No token to copy');
+            }
+        }
+
+        function copyUser() {
+            const user = localStorage.getItem('user');
+            if (user) {
+                navigator.clipboard.writeText(user);
+                alert('User data copied to clipboard!');
+            } else {
+                alert('No user data to copy');
+            }
+        }
+
+        function clearToken() {
+            if (confirm('Are you sure you want to clear the token?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                displayToken();
+                displayUser();
+                alert('Token and user data cleared!');
+            }
+        }
+
+        async function testAuth() {
+            const resultDiv = document.getElementById('authResult');
+            resultDiv.innerHTML = '<div class="status">Testing...</div>';
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                resultDiv.innerHTML = '<div class="status error">❌ No token found! Please login first.</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/test-auth`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Token is valid!<br>
+                            Username: ${data.username}<br>
+                            User ID: ${data.user_id}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Token is invalid!<br>
+                            Error: ${data.detail || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testCreateTeam() {
+            const resultDiv = document.getElementById('teamResult');
+            resultDiv.innerHTML = '<div class="status">Testing...</div>';
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                resultDiv.innerHTML = '<div class="status error">❌ No token found! Please login first.</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/teams/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        team_name: 'Debug Test Team ' + Date.now()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Team created successfully!<br>
+                            Team ID: ${data.team_id}<br>
+                            Team Name: ${data.team_name}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Failed to create team!<br>
+                            Error: ${data.detail || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Display on page load
+        displayToken();
+        displayUser();
+    </script>
+</body>
+</html>
