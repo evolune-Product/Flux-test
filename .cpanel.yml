@@ -1,0 +1,13 @@
+
+  deployment:
+    tasks:
+      - export DEPLOYPATH=/home/evolunei/public_html/Flux-test/
+      - /bin/mkdir -p $DEPLOYPATH
+      - /bin/cp -R frontend/dist/* $DEPLOYPATH
+
+      - export BACKENDPATH=/home/evolunei/Flux-test-backend/
+      - /bin/mkdir -p $BACKENDPATH
+      - /bin/cp -R backend/* $BACKENDPATH
+
+      - /bin/mkdir -p $BACKENDPATH/tmp
+      - /bin/touch $BACKENDPATH/tmp/restart.txt
