@@ -675,7 +675,8 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
 @app.get("/auth/google")
 async def google_login(request: Request):
     """Initiate Google OAuth login"""
-    redirect_uri = request.url_for('google_callback')
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:8000')
+    redirect_uri = f"{backend_url}/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/google/callback")
@@ -720,7 +721,8 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 @app.get("/auth/github")
 async def github_login(request: Request):
     """Initiate GitHub OAuth login"""
-    redirect_uri = request.url_for('github_callback')
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:8000')
+    redirect_uri = f"{backend_url}/auth/github/callback"
     return await oauth.github.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/github/callback")
@@ -2033,7 +2035,8 @@ async def connect_github_repo(request: Request, username: str = Depends(verify_t
         state = secrets.token_urlsafe(32)
 
         # Build the full callback URL
-        callback_url = f"{request.base_url}github/callback"
+        backend_url = os.getenv('BACKEND_URL', 'http://localhost:8000')
+        callback_url = f"{backend_url}/github/callback"
 
         # Use separate GitHub OAuth app for repo access with 'repo' scope
         github_client_id = os.getenv('GITHUB_REPO_CLIENT_ID')
