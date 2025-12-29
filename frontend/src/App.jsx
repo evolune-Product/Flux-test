@@ -389,7 +389,6 @@ function App({ user, onLogout }) {
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           base_url: apiUrl,
           auth_config: authConfig,
