@@ -368,9 +368,21 @@ app = FastAPI(title="AI API Tester Backend", version="1.0.0")
 
 # IMPORTANT: Add middlewares in reverse order (last added = first executed)
 # CORS should be added AFTER SessionMiddleware
+
+# Get allowed origins from environment variable or use defaults
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://fluxtest.evolune.in",
+    FRONTEND_URL
+]
+allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+
+print(f"CORS Allowed Origins: {allowed_origins}")  # Debug log
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.evolune\.in",  # Allow all evolune.in subdomains
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
