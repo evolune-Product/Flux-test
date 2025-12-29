@@ -374,6 +374,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:5173",
         "https://evo-tfx.vercel.app",
+        "https://fluxtest.evolune.in",
         FRONTEND_URL
     ],
     allow_credentials=True,
