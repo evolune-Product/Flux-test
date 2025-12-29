@@ -370,13 +370,7 @@ app = FastAPI(title="AI API Tester Backend", version="1.0.0")
 # CORS should be added AFTER SessionMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://evo-tfx.vercel.app",
-        "https://fluxtest.evolune.in",
-        FRONTEND_URL
-    ],
+    allow_origin_regex=r"https://.*\.evolune\.in",  # Allow all evolune.in subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
