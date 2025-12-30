@@ -19,6 +19,8 @@ import {
   Download
 } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 const FuzzTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();
 
@@ -52,7 +54,7 @@ const FuzzTestingApp = ({ user, onLogout }) => {
       setIsRunning(true);
       setProgress(20);
 
-      const response = await fetch('http://localhost:8000/generate-tests', {
+      const response = await fetch(`${API_BASE_URL}/generate-tests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -101,7 +103,7 @@ const FuzzTestingApp = ({ user, onLogout }) => {
       setIsRunning(true);
       setProgress(20);
 
-      const response = await fetch('http://localhost:8000/run-tests', {
+      const response = await fetch(`${API_BASE_URL}/run-tests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

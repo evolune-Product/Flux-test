@@ -49,8 +49,6 @@ const RegressionTestingApp = ({ user, onLogout }) => {
   const [nlTestInput, setNlTestInput] = useState('');
   const [nlGenerating, setNlGenerating] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:8000';
-
   const handleGenerateFromNL = async () => {
     if (!nlTestInput.trim()) return;
     setNlGenerating(true);

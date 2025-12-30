@@ -51,7 +51,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
   const [nlTestInput, setNlTestInput] = useState('');
   const [nlGenerating, setNlGenerating] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:8000';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
   const handleGenerateFromNL = async () => {
     if (!nlTestInput.trim()) return;
