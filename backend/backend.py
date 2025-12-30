@@ -382,8 +382,6 @@ allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLO
 ]
 allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
 
-print(f"CORS Allowed Origins: {allowed_origins}")  # Debug log
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -896,9 +894,6 @@ async def generate_tests(request: GenerateTestsRequest):
         openai_api_key = os.getenv('OPENAI_API_KEY')
 
         if not openai_api_key:
-            print("\n" + "="*80)
-            print("🔴 TEST GENERATION SOURCE: PURE FALLBACK (No API Key)")
-            print("="*80 + "\n")
             generator = OpenAITestGenerator("dummy_key")
             test_cases = generator._generate_fallback_tests(
                 api_url=request.api_url,
@@ -906,7 +901,6 @@ async def generate_tests(request: GenerateTestsRequest):
                 num=request.num_tests,
                 has_auth=request.has_auth
             )
-            print(f"✅ Generated {len(test_cases)} test cases using FALLBACK templates\n")
 
             return {
                 "success": True,
@@ -915,14 +909,8 @@ async def generate_tests(request: GenerateTestsRequest):
                 "count": len(test_cases),
                 "message": f"Generated {len(test_cases)} test cases using fallback"
             }
-        
-        try:
-            # Debug: Print API key status (first/last 4 chars only for security)
-            if len(openai_api_key) > 8:
-                print(f"\n🔑 OpenAI API Key detected: {openai_api_key[:7]}...{openai_api_key[-4:]}")
-            else:
-                print(f"\n⚠️  OpenAI API Key seems too short: {len(openai_api_key)} characters")
 
+        try:
             generator = OpenAITestGenerator(openai_api_key)
 
             test_cases, used_fallback = generator.generate_test_cases(
@@ -934,23 +922,6 @@ async def generate_tests(request: GenerateTestsRequest):
                 status_container=None
             )
 
-            # Print generation source to terminal
-            if not used_fallback:
-                print("\n" + "="*80)
-                print("🟢 TEST GENERATION SOURCE: PURE AI (OpenAI GPT-4o)")
-                print("="*80)
-                print(f"✅ Generated {len(test_cases)} EXPERT-LEVEL test cases")
-                print("   Quality: Senior QA Architect with 30+ years experience")
-                print("   Model: GPT-4o (OpenAI's most advanced model)")
-                print("="*80 + "\n")
-            else:
-                print("\n" + "="*80)
-                print("🔴 TEST GENERATION SOURCE: PURE FALLBACK")
-                print("="*80)
-                print(f"⚠️  AI generation failed - using template-based fallback")
-                print(f"✅ Generated {len(test_cases)} test cases from fallback templates")
-                print("="*80 + "\n")
-
             return {
                 "success": True,
                 "test_cases": test_cases,
@@ -959,15 +930,8 @@ async def generate_tests(request: GenerateTestsRequest):
                 "message": f"Generated {len(test_cases)} test cases" +
                           (" using fallback" if used_fallback else " using AI")
             }
-        
-        except Exception as ai_error:
-            print("\n" + "="*80)
-            print("🔴 TEST GENERATION SOURCE: PURE FALLBACK (OpenAI Error)")
-            print("="*80)
-            print(f"⚠️  OpenAI API Error: {str(ai_error)}")
-            print("🔄 Switching to fallback template generation...")
-            print("="*80 + "\n")
 
+        except Exception as ai_error:
             generator = OpenAITestGenerator(openai_api_key)
             test_cases = generator._generate_fallback_tests(
                 api_url=request.api_url,
@@ -975,7 +939,6 @@ async def generate_tests(request: GenerateTestsRequest):
                 num=request.num_tests,
                 has_auth=request.has_auth
             )
-            print(f"✅ Generated {len(test_cases)} test cases using FALLBACK templates\n")
 
             return {
                 "success": True,
@@ -2083,9 +2046,6 @@ async def connect_github_repo(request: Request, username: str = Depends(verify_t
 
         db.add(oauth_state)
         db.commit()
-
-        print(f"GitHub OAuth initiated for user: {username}")
-        print(f"OAuth URL: {github_auth_url}")
 
         # Return the URL as JSON instead of redirecting
         return JSONResponse({
@@ -3346,31 +3306,17 @@ async def discover_graphql_schema(
     db: Session = Depends(get_db)
 ):
     """Discover GraphQL schema using introspection query"""
-    print(f"=== GraphQL Discover Schema Request ===")
-    print(f"Username from token: {username}")
-
     try:
-        # Parse request body
-        try:
-            body = await request.json()
-            print(f"Request body received: {body}")
-        except Exception as e:
-            print(f"Error parsing request body: {e}")
-            raise HTTPException(status_code=400, detail="Invalid JSON in request body")
+        body = await request.json()
 
         if body is None:
-            print("ERROR: Request body is None")
             raise HTTPException(status_code=400, detail="Request body is required")
 
         if not isinstance(body, dict):
-            print(f"ERROR: Request body is not a dict, it's: {type(body)}")
             raise HTTPException(status_code=400, detail="Request body must be a JSON object")
 
         endpoint = body.get('endpoint')
         auth_config = body.get('auth_config', {})
-
-        print(f"Endpoint: {endpoint}")
-        print(f"Auth config: {auth_config}")
 
         if not endpoint:
             raise HTTPException(status_code=400, detail="GraphQL endpoint is required")
@@ -3451,8 +3397,6 @@ async def discover_graphql_schema(
             )
 
         if response.status_code != 200:
-            print(f"GraphQL endpoint returned status {response.status_code}")
-            print(f"Response: {response.text[:500]}")
             raise HTTPException(
                 status_code=400,
                 detail=f"Failed to fetch schema: HTTP {response.status_code}"
@@ -3461,22 +3405,18 @@ async def discover_graphql_schema(
         try:
             data = response.json()
         except Exception as e:
-            print(f"Failed to parse GraphQL response as JSON: {e}")
-            print(f"Response text: {response.text[:500]}")
             raise HTTPException(
                 status_code=400,
                 detail="GraphQL endpoint returned invalid JSON"
             )
 
         if 'errors' in data:
-            print(f"GraphQL returned errors: {data['errors']}")
             raise HTTPException(
                 status_code=400,
                 detail=f"GraphQL errors: {data['errors']}"
             )
 
         if 'data' not in data:
-            print(f"GraphQL response missing 'data' field: {data}")
             raise HTTPException(
                 status_code=400,
                 detail="GraphQL response is missing 'data' field. The endpoint may not support introspection."
@@ -3485,7 +3425,6 @@ async def discover_graphql_schema(
         schema_data = data.get('data', {}).get('__schema', {})
 
         if not schema_data:
-            print("GraphQL response missing '__schema' field")
             raise HTTPException(
                 status_code=400,
                 detail="GraphQL endpoint does not support introspection or returned empty schema"
@@ -3894,9 +3833,6 @@ async def natural_language_to_graphql(
     db: Session = Depends(get_db)
 ):
     """Convert natural language description to GraphQL query using AI"""
-    print(f"=== Natural Language to GraphQL Request ===")
-    print(f"Username: {username}")
-
     try:
         body = await request.json()
 
@@ -3905,9 +3841,6 @@ async def natural_language_to_graphql(
 
         nl_description = body.get('description', '')
         schema = body.get('schema', {})
-
-        print(f"NL Description: {nl_description}")
-        print(f"Schema available: {bool(schema)}")
 
         if not nl_description or not nl_description.strip():
             raise HTTPException(status_code=400, detail="Description is required")
@@ -3952,8 +3885,6 @@ IMPORTANT RULES:
 Return ONLY the GraphQL query without any explanation or markdown formatting.
 """
 
-        print("Sending request to OpenAI...")
-
         # Call OpenAI
         from openai import OpenAI
         client = OpenAI(api_key=OPENAI_API_KEY)
@@ -3964,13 +3895,11 @@ Return ONLY the GraphQL query without any explanation or markdown formatting.
                 {"role": "system", "content": "You are a GraphQL query expert. Generate only valid GraphQL queries without any additional text or markdown formatting."},
                 {"role": "user", "content": ai_prompt}
             ],
-            temperature=0.3,  # Lower temperature for more consistent output
+            temperature=0.3,
             max_tokens=500
         )
 
         generated_query = response.choices[0].message.content.strip()
-
-        print(f"Generated query: {generated_query[:100]}...")
 
         # Clean up the query (remove markdown code blocks if present)
         if '```graphql' in generated_query:
@@ -4538,9 +4467,5 @@ if __name__ == "__main__":
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-    print("Starting AI API Tester Backend with OAuth...")
-    print(f"Database: {DATABASE_URL}")
-    print(f"Google OAuth: {'Configured' if os.getenv('GOOGLE_CLIENT_ID') else 'Not Configured'}")
-    print(f"GitHub OAuth: {'Configured' if os.getenv('GITHUB_CLIENT_ID') else 'Not Configured'}")
-    print(f"GitHub Repo OAuth: {'Configured' if os.getenv('GITHUB_REPO_CLIENT_ID') else 'Not Configured'}")
+    print("Starting AI API Tester Backend")
     uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
