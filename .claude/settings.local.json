@@ -30,7 +30,8 @@
       "Bash(taskkill:*)",
       "Bash(curl:*)",
       "Bash(exit 0)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
