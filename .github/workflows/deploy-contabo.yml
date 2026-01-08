@@ -1,0 +1,52 @@
+name: Deploy to Contabo
+
+on:
+  push:
+    branches:
+      - master  # Triggers on push to master branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Contabo Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.CONTABO_HOST }}
+          username: ${{ secrets.CONTABO_USERNAME }}
+          key: ${{ secrets.CONTABO_SSH_KEY }}
+          port: ${{ secrets.CONTABO_SSH_PORT }}
+          script: |
+            echo "=== Starting Deployment ==="
+
+            # Navigate to app directory
+            cd /home/appuser/app
+
+            # Pull latest changes from GitHub
+            echo "Pulling latest code from GitHub..."
+            git pull origin master
+
+            # Update backend dependencies
+            echo "Updating backend..."
+            cd /home/appuser/app/backend
+            source venv/bin/activate
+            pip install -r requirements.txt
+            cd ..
+
+            # Update frontend
+            echo "Updating frontend..."
+            cd /home/appuser/app/frontend
+            npm install
+            npm run build
+            cd ..
+
+            # Restart backend service
+            echo "Restarting backend service..."
+            sudo systemctl restart evo-tfx-backend
+
+            # Check service status
+            echo "Checking service status..."
+            sudo systemctl status evo-tfx-backend --no-pager
+
+            echo "=== Deployment Completed Successfully ==="

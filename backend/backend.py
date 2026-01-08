@@ -392,11 +392,11 @@ app.add_middleware(
 
 # SessionMiddleware MUST be added last (so it executes first)
 app.add_middleware(
-    SessionMiddleware, 
+    SessionMiddleware,
     secret_key=SECRET_KEY,
     max_age=3600,  # Session expires after 1 hour
-    same_site="lax",
-    https_only=False  # Set to True in production with HTTPS
+    same_site="none",  # Changed from "lax" to "none" for cross-domain OAuth
+    https_only=True  # IMPORTANT: Must be True for HTTPS in production
 )
 
 # ============================================
