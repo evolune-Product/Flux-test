@@ -26,8 +26,32 @@ if [ "$USER" != "appuser" ]; then
     exit 1
 fi
 
-# Navigate to app directory
-cd /home/appuser/app || { echo -e "${RED}Failed to navigate to app directory${NC}"; exit 1; }
+# Navigate to app directory (handle both /app and /app/Flux-test)
+if [ -d "/home/appuser/app/backend" ]; then
+    cd /home/appuser/app
+elif [ -d "/home/appuser/app/Flux-test/backend" ]; then
+    cd /home/appuser/app/Flux-test
+else
+    echo -e "${RED}Failed to find app directory${NC}"
+    echo "Looking in:"
+    echo "  /home/appuser/app"
+    echo "  /home/appuser/app/Flux-test"
+    exit 1
+fi
+
+echo "Working directory: $(pwd)"
+echo ""
+
+echo -e "${YELLOW}Step 1: Checking for .env file...${NC}"
+if [ ! -f backend/.env ]; then
+    echo -e "${RED}✗${NC} .env file not found!"
+    echo ""
+    echo "You need to create the .env file first."
+    echo "Run this command:"
+    echo "  ./setup_env.sh"
+    echo ""
+    exit 1
+fi
 
 echo -e "${YELLOW}Step 1: Backing up current configuration...${NC}"
 cp backend/.env backend/.env.backup.$(date +%Y%m%d_%H%M%S)
