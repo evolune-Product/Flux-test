@@ -53,9 +53,9 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
   // Animate stats counting up
   useEffect(() => {
     const targetStats = {
-      users: 2547,
-      testsRun: 150000,
-      apisSecured: 1200,
+      users: 15,
+      testsRun: 1000,
+      apisSecured: 10,
       uptime: 99.9
     };
 
