@@ -814,16 +814,16 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             <div>
               <h3 className="font-bold mb-4">Connect</h3>
               <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all">
+                <a href="https://github.com/EvoluneEdgeTech" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all hover:scale-110 transform">
                   <Github size={20} />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all">
+                <a href="https://x.com/EvoluneEdgeTech" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all hover:scale-110 transform">
                   <Twitter size={20} />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all">
+                <a href="https://www.linkedin.com/in/evolune-edgetech-546640389/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all hover:scale-110 transform">
                   <Linkedin size={20} />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all">
+                <a href="mailto:contact@evolune.in" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all hover:scale-110 transform">
                   <Mail size={20} />
                 </a>
               </div>
