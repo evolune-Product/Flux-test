@@ -18,6 +18,7 @@ function AppWrapper() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // Check if user is already logged in on mount AND handle OAuth callbacks
   useEffect(() => {
@@ -118,18 +119,29 @@ function AppWrapper() {
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    setLoggingOut(true);
+
+    // Show logout animation for 1.5 seconds
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Call backend logout endpoint
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+
+    // Clear user data
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-
-    // Optional: Call backend logout endpoint
-    fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    }).catch(err => console.error('Logout error:', err));
+    setLoggingOut(false);
   };
 
   // Loading screen
@@ -148,6 +160,26 @@ function AppWrapper() {
           {isOAuthCallback && (
             <p className="text-white/80 text-sm mt-2">Please wait while we set up your workspace</p>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // Logout loading screen
+  if (loggingOut) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-400 mx-auto mb-4"></div>
+            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-purple-400/20 mx-auto animate-pulse"></div>
+          </div>
+          <p className="text-white text-xl font-semibold mb-2">
+            👋 Logging out...
+          </p>
+          <p className="text-gray-300 text-sm">
+            See you soon!
+          </p>
         </div>
       </div>
     );
