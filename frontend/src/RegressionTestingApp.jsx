@@ -156,6 +156,9 @@ const RegressionTestingApp = ({ user, onLogout }) => {
         is_shared: false
       };
 
+      addLog(`Sending request to: ${API_BASE_URL}/regression/create-baseline`, 'info');
+      addLog(`Payload: ${JSON.stringify(payload, null, 2)}`, 'info');
+
       const response = await fetch(`${API_BASE_URL}/regression/create-baseline`, {
         method: 'POST',
         headers: {
@@ -165,9 +168,12 @@ const RegressionTestingApp = ({ user, onLogout }) => {
         body: JSON.stringify(payload)
       });
 
+      addLog(`Response status: ${response.status}`, 'info');
+
       if (response.ok) {
         const data = await response.json();
         addLog(`Baseline "${data.baseline_name}" created successfully!`, 'success');
+        addLog(`Baseline ID: ${data.baseline_id}`, 'success');
 
         // Reset form
         setBaselineForm({
@@ -187,11 +193,18 @@ const RegressionTestingApp = ({ user, onLogout }) => {
         // Switch to baselines tab
         setActiveTab('baselines');
       } else {
-        const error = await response.json();
-        addLog(`Failed to create baseline: ${error.detail}`, 'error');
+        let errorDetail = 'Unknown error';
+        try {
+          const error = await response.json();
+          errorDetail = error.detail || JSON.stringify(error);
+        } catch (e) {
+          errorDetail = await response.text();
+        }
+        addLog(`Failed to create baseline (${response.status}): ${errorDetail}`, 'error');
       }
     } catch (error) {
-      addLog(`Error creating baseline: ${error.message}`, 'error');
+      addLog(`Network/Error creating baseline: ${error.message}`, 'error');
+      console.error('Baseline creation error:', error);
     } finally {
       setIsCreatingBaseline(false);
     }

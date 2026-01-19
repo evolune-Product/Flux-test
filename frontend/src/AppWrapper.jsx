@@ -11,6 +11,7 @@ import ContractTestingApp from './ContractTestingApp.jsx';
 import GraphQLTestingApp from './GraphQLTestingApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
 import LandingPage from './LandingPage.jsx';
+import MobileBlocker from './MobileBlocker.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -187,25 +188,31 @@ function AppWrapper() {
 
   // If not logged in, show Landing Page
   if (!user) {
-    return <LandingPage onLoginSuccess={handleLogin} authError={authError} />;
+    return (
+      <MobileBlocker>
+        <LandingPage onLoginSuccess={handleLogin} authError={authError} />
+      </MobileBlocker>
+    );
   }
 
   // If logged in, show Router with routes
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<TestingTypesLanding user={user} onLogout={handleLogout} />} />
-        <Route path="/functional" element={<App user={user} onLogout={handleLogout} />} />
-        <Route path="/smoke" element={<SmokeTestingApp user={user} onLogout={handleLogout} />} />
-        <Route path="/performance" element={<PerformanceTestingApp user={user} onLogout={handleLogout} />} />
-        <Route path="/chaos" element={<ChaosTestingApp user={user} onLogout={handleLogout} />} />
-        <Route path="/fuzz" element={<FuzzTestingApp user={user} onLogout={handleLogout} />} />
-        <Route path="/regression" element={<RegressionTestingApp user={user} onLogout={handleLogout} />} />
-        <Route path="/contract" element={<ContractTestingApp user={user} onLogout={handleLogout} />} />
-        <Route path="/graphql" element={<GraphQLTestingApp user={user} onLogout={handleLogout} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <MobileBlocker>
+      <Router>
+        <Routes>
+          <Route path="/" element={<TestingTypesLanding user={user} onLogout={handleLogout} />} />
+          <Route path="/functional" element={<App user={user} onLogout={handleLogout} />} />
+          <Route path="/smoke" element={<SmokeTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="/performance" element={<PerformanceTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="/chaos" element={<ChaosTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="/fuzz" element={<FuzzTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="/regression" element={<RegressionTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="/contract" element={<ContractTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="/graphql" element={<GraphQLTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </MobileBlocker>
   );
 }
 

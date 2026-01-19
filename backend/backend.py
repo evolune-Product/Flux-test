@@ -2297,73 +2297,91 @@ async def get_my_github_results(
 
 @app.post("/regression/create-baseline")
 async def create_baseline(
-    request: CreateBaselineRequest,
+    baseline_request: CreateBaselineRequest,
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
     """Create a new regression baseline by capturing current API response"""
+    import requests as http_requests  # Renamed to avoid collision
+
+    print(f"📝 Creating baseline for user: {username}")
+    print(f"   Baseline name: {baseline_request.baseline_name}")
+    print(f"   API URL: {baseline_request.api_url}")
+    print(f"   HTTP Method: {baseline_request.http_method}")
+
     user = db.query(UserDB).filter(UserDB.username == username).first()
     if not user:
+        print(f"❌ User not found: {username}")
         raise HTTPException(status_code=404, detail="User not found")
 
     try:
         # Make the API call to capture baseline response
-        headers = request.custom_headers or {}
-        headers['Content-Type'] = 'application/json'
+        headers = baseline_request.custom_headers.copy() if baseline_request.custom_headers else {}
+        if 'Content-Type' not in headers:
+            headers['Content-Type'] = 'application/json'
 
-        # Prepare request
-        request_kwargs = {
-            'method': request.http_method,
-            'url': request.api_url,
+        # Prepare request kwargs
+        http_kwargs = {
+            'method': baseline_request.http_method,
+            'url': baseline_request.api_url,
             'headers': headers,
-            'timeout': 30
+            'timeout': 30,
+            'verify': True  # SSL verification
         }
 
-        if request.request_body and request.http_method in ['POST', 'PUT', 'PATCH']:
-            request_kwargs['json'] = request.request_body
+        if baseline_request.request_body and baseline_request.http_method in ['POST', 'PUT', 'PATCH']:
+            http_kwargs['json'] = baseline_request.request_body
 
-        # Execute request
-        import requests
+        print(f"🌐 Making API call to: {baseline_request.api_url}")
+
+        # Execute the HTTP request to capture baseline
         start_time = datetime.utcnow()
-        response = requests.request(**request_kwargs)
+        api_response = http_requests.request(**http_kwargs)
         end_time = datetime.utcnow()
         response_time_ms = int((end_time - start_time).total_seconds() * 1000)
 
-        # Parse response
+        print(f"✅ API call successful: Status {api_response.status_code}, Time {response_time_ms}ms")
+
+        # Parse response body
         try:
-            response_data = response.json()
-        except:
-            response_data = {"raw_content": response.text}
+            response_data = api_response.json()
+        except Exception:
+            response_data = {"raw_content": api_response.text[:5000] if api_response.text else ""}
 
         baseline_response = {
-            "status_code": response.status_code,
+            "status_code": api_response.status_code,
             "response_time_ms": response_time_ms,
-            "headers": dict(response.headers),
+            "headers": dict(api_response.headers),
             "body": response_data
         }
 
         # Create baseline record
         baseline_id = secrets.token_urlsafe(16)
+        print(f"💾 Creating database record with ID: {baseline_id}")
+
         new_baseline = RegressionBaselineDB(
             baseline_id=baseline_id,
-            baseline_name=request.baseline_name,
-            description=request.description,
-            api_url=request.api_url,
-            http_method=request.http_method,
-            request_body=request.request_body,
-            custom_headers=request.custom_headers,
+            baseline_name=baseline_request.baseline_name,
+            description=baseline_request.description,
+            api_url=baseline_request.api_url,
+            http_method=baseline_request.http_method,
+            request_body=baseline_request.request_body,
+            custom_headers=baseline_request.custom_headers,
             baseline_response=baseline_response,
-            expected_status=request.expected_status,
-            expected_response_time_ms=request.expected_response_time_ms,
+            expected_status=baseline_request.expected_status,
+            expected_response_time_ms=baseline_request.expected_response_time_ms,
             created_by=user.user_id,
-            team_id=request.team_id,
-            is_shared=request.is_shared,
-            created_at=datetime.utcnow()
+            team_id=baseline_request.team_id,
+            is_shared=baseline_request.is_shared,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
         )
 
         db.add(new_baseline)
         db.commit()
         db.refresh(new_baseline)
+
+        print(f"✅ Baseline created successfully: {baseline_id}")
 
         return {
             "baseline_id": new_baseline.baseline_id,
@@ -2372,9 +2390,20 @@ async def create_baseline(
             "message": "Baseline created successfully"
         }
 
-    except requests.exceptions.RequestException as e:
+    except http_requests.exceptions.Timeout:
+        print(f"❌ API call timed out: {baseline_request.api_url}")
+        raise HTTPException(status_code=408, detail=f"API call timed out after 30 seconds. The target API at {baseline_request.api_url} did not respond in time.")
+    except http_requests.exceptions.ConnectionError as e:
+        print(f"❌ Connection error: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Could not connect to {baseline_request.api_url}. Please check if the URL is correct and accessible.")
+    except http_requests.exceptions.RequestException as e:
+        print(f"❌ Request error: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to capture baseline: {str(e)}")
     except Exception as e:
+        print(f"❌ Unexpected error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating baseline: {str(e)}")
 
 @app.get("/regression/my-baselines")
@@ -2479,59 +2508,72 @@ async def delete_baseline(
 
 @app.post("/regression/run-test")
 async def run_regression_test(
-    request: RunRegressionTestRequest,
+    test_request: RunRegressionTestRequest,
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
     """Run a regression test against a baseline"""
+    import requests as http_requests  # Renamed to avoid collision
+
+    print(f"🧪 Running regression test for user: {username}")
+    print(f"   Baseline ID: {test_request.baseline_id}")
+
     user = db.query(UserDB).filter(UserDB.username == username).first()
     if not user:
+        print(f"❌ User not found: {username}")
         raise HTTPException(status_code=404, detail="User not found")
 
     # Get baseline
     baseline = db.query(RegressionBaselineDB).filter(
-        RegressionBaselineDB.baseline_id == request.baseline_id
+        RegressionBaselineDB.baseline_id == test_request.baseline_id
     ).first()
 
     if not baseline:
+        print(f"❌ Baseline not found: {test_request.baseline_id}")
         raise HTTPException(status_code=404, detail="Baseline not found")
 
     # Check access
     if baseline.created_by != user.user_id and not baseline.is_shared:
+        print(f"❌ Access denied for user {username} to baseline {test_request.baseline_id}")
         raise HTTPException(status_code=403, detail="Access denied")
 
     try:
         # Make the API call
-        import requests
-        headers = baseline.custom_headers or {}
-        headers['Content-Type'] = 'application/json'
+        headers = baseline.custom_headers.copy() if baseline.custom_headers else {}
+        if 'Content-Type' not in headers:
+            headers['Content-Type'] = 'application/json'
 
-        request_kwargs = {
+        http_kwargs = {
             'method': baseline.http_method,
             'url': baseline.api_url,
             'headers': headers,
-            'timeout': request.timeout
+            'timeout': test_request.timeout,
+            'verify': True
         }
 
         if baseline.request_body and baseline.http_method in ['POST', 'PUT', 'PATCH']:
-            request_kwargs['json'] = baseline.request_body
+            http_kwargs['json'] = baseline.request_body
+
+        print(f"🌐 Making API call to: {baseline.api_url}")
 
         # Execute request
         start_time = datetime.utcnow()
-        response = requests.request(**request_kwargs)
+        api_response = http_requests.request(**http_kwargs)
         end_time = datetime.utcnow()
         response_time_ms = int((end_time - start_time).total_seconds() * 1000)
 
+        print(f"✅ API response: Status {api_response.status_code}, Time {response_time_ms}ms")
+
         # Parse response
         try:
-            response_data = response.json()
-        except:
-            response_data = {"raw_content": response.text}
+            response_data = api_response.json()
+        except Exception:
+            response_data = {"raw_content": api_response.text[:5000] if api_response.text else ""}
 
         test_response = {
-            "status_code": response.status_code,
+            "status_code": api_response.status_code,
             "response_time_ms": response_time_ms,
-            "headers": dict(response.headers),
+            "headers": dict(api_response.headers),
             "body": response_data
         }
 
@@ -2541,12 +2583,12 @@ async def run_regression_test(
         error_message = None
 
         # Check status code
-        if response.status_code != baseline.expected_status:
+        if api_response.status_code != baseline.expected_status:
             differences.append({
                 "type": "status_code",
                 "expected": baseline.expected_status,
-                "actual": response.status_code,
-                "message": f"Status code mismatch: expected {baseline.expected_status}, got {response.status_code}"
+                "actual": api_response.status_code,
+                "message": f"Status code mismatch: expected {baseline.expected_status}, got {api_response.status_code}"
             })
             passed = False
 
@@ -2581,7 +2623,7 @@ async def run_regression_test(
             baseline_id=baseline.baseline_id,
             user_id=user.user_id,
             test_response=test_response,
-            status_code=response.status_code,
+            status_code=api_response.status_code,
             response_time_ms=response_time_ms,
             passed=passed,
             differences={"differences": differences} if differences else None,
@@ -2592,6 +2634,8 @@ async def run_regression_test(
         db.add(test_result)
         db.commit()
         db.refresh(test_result)
+
+        print(f"✅ Test completed: {'PASS' if passed else 'FAIL'} ({len(differences)} differences)")
 
         return {
             "result_id": test_result.result_id,
@@ -2606,10 +2650,11 @@ async def run_regression_test(
             }
         }
 
-    except requests.exceptions.RequestException as e:
+    except http_requests.exceptions.Timeout:
+        print(f"❌ API call timed out: {baseline.api_url}")
+        error_msg = f"Request timed out after {test_request.timeout} seconds"
         # Save failed test result
         result_id = secrets.token_urlsafe(16)
-        error_msg = f"Request failed: {str(e)}"
         test_result = RegressionTestResultDB(
             result_id=result_id,
             baseline_id=baseline.baseline_id,
@@ -2622,12 +2667,55 @@ async def run_regression_test(
             error_message=error_msg,
             created_at=datetime.utcnow()
         )
-
         db.add(test_result)
         db.commit()
+        raise HTTPException(status_code=408, detail=error_msg)
 
+    except http_requests.exceptions.ConnectionError as e:
+        print(f"❌ Connection error: {str(e)}")
+        error_msg = f"Could not connect to {baseline.api_url}"
+        result_id = secrets.token_urlsafe(16)
+        test_result = RegressionTestResultDB(
+            result_id=result_id,
+            baseline_id=baseline.baseline_id,
+            user_id=user.user_id,
+            test_response={"error": error_msg},
+            status_code=0,
+            response_time_ms=0,
+            passed=False,
+            differences=None,
+            error_message=error_msg,
+            created_at=datetime.utcnow()
+        )
+        db.add(test_result)
+        db.commit()
+        raise HTTPException(status_code=502, detail=error_msg)
+
+    except http_requests.exceptions.RequestException as e:
+        print(f"❌ Request error: {str(e)}")
+        error_msg = f"Request failed: {str(e)}"
+        result_id = secrets.token_urlsafe(16)
+        test_result = RegressionTestResultDB(
+            result_id=result_id,
+            baseline_id=baseline.baseline_id,
+            user_id=user.user_id,
+            test_response={"error": error_msg},
+            status_code=0,
+            response_time_ms=0,
+            passed=False,
+            differences=None,
+            error_message=error_msg,
+            created_at=datetime.utcnow()
+        )
+        db.add(test_result)
+        db.commit()
         raise HTTPException(status_code=400, detail=error_msg)
+
     except Exception as e:
+        print(f"❌ Unexpected error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Error running regression test: {str(e)}")
 
 @app.get("/regression/results/{baseline_id}")

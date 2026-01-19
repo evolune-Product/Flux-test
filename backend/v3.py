@@ -768,18 +768,27 @@ class OpenAITestGenerator:
 
         return all_tests[:num]
     
-    def generate_test_cases(self, api_url: str, sample_data: Dict, num_tests: int = 50, 
-                           test_types: List[str] = None, has_auth: bool = False, 
+    def generate_test_cases(self, api_url: str, sample_data: Dict, num_tests: int = 50,
+                           test_types: List[str] = None, has_auth: bool = False,
                            status_container=None) -> tuple:
-        """Generate test cases using OpenAI GPT-4o - Returns (test_cases, used_fallback)"""
-        
+        """Generate test cases using OpenAI GPT-4o - Returns (test_cases, used_fallback)
+
+        For large numbers (>50), uses batching to ensure we get all requested tests.
+        """
+
         if test_types is None:
             test_types = ["happy_path", "edge_cases", "negative_tests", "security_tests"]
-        
+
         def update_status(message):
             """Helper to update status if container provided"""
             if status_container:
                 status_container.update(label=message)
+
+        # For large test counts (>50), use batching to ensure we get all tests
+        if num_tests > 50:
+            return self._generate_test_cases_batched(
+                api_url, sample_data, num_tests, test_types, has_auth, status_container
+            )
         
         auth_note = "Note: API requires authentication." if has_auth else ""
         
@@ -1047,6 +1056,138 @@ Return ONLY valid JSON format. Be meticulous and thorough like a senior QA lead 
         # Final fallback
         update_status("Using fallback generation...")
         return self._generate_fallback_tests(api_url, sample_data, num_tests, has_auth), True
+
+    def _generate_test_cases_batched(self, api_url: str, sample_data: Dict, num_tests: int,
+                                     test_types: List[str], has_auth: bool,
+                                     status_container=None) -> tuple:
+        """Generate large numbers of test cases using batching to avoid token limits.
+
+        Splits the request into batches of 40 tests each for reliable generation.
+        """
+        def update_status(message):
+            if status_container:
+                status_container.update(label=message)
+
+        all_tests = []
+        used_fallback = False
+        batch_size = 40  # Optimal batch size for GPT-4o
+        total_batches = (num_tests + batch_size - 1) // batch_size
+
+        print(f"\n🚀 Batched generation requested: {num_tests} tests in {total_batches} batches\n")
+        update_status(f"Generating {num_tests} tests in {total_batches} batches...")
+
+        # Distribute test types across batches
+        tests_per_batch = []
+        remaining = num_tests
+        for i in range(total_batches):
+            batch_count = min(batch_size, remaining)
+            tests_per_batch.append(batch_count)
+            remaining -= batch_count
+
+        for batch_idx in range(total_batches):
+            batch_num = batch_idx + 1
+            batch_test_count = tests_per_batch[batch_idx]
+
+            print(f"\n📦 Batch {batch_num}/{total_batches}: Generating {batch_test_count} tests...")
+            update_status(f"Batch {batch_num}/{total_batches}: Generating {batch_test_count} tests...")
+
+            # Generate this batch (recursive call with smaller num_tests)
+            # Use the original method for single batch (num_tests <= 50)
+            batch_tests, batch_fallback = self._generate_single_batch(
+                api_url, sample_data, batch_test_count, test_types, has_auth, batch_num, total_batches
+            )
+
+            if batch_fallback:
+                used_fallback = True
+
+            all_tests.extend(batch_tests)
+            print(f"   ✅ Batch {batch_num} complete: {len(batch_tests)} tests (Total so far: {len(all_tests)})")
+
+            # Small delay between batches to avoid rate limiting
+            if batch_idx < total_batches - 1:
+                time.sleep(1)
+
+        # If we still don't have enough tests, supplement with fallback
+        if len(all_tests) < num_tests:
+            shortfall = num_tests - len(all_tests)
+            print(f"\n⚠️ Shortfall of {shortfall} tests, supplementing with fallback...")
+            update_status(f"Supplementing with {shortfall} additional tests...")
+            extra_tests = self._generate_fallback_tests(api_url, sample_data, shortfall, has_auth)
+            all_tests.extend(extra_tests)
+            used_fallback = True
+
+        final_tests = all_tests[:num_tests]
+        print(f"\n🎉 Batched generation complete: {len(final_tests)} tests generated")
+        update_status(f"Successfully generated {len(final_tests)} test cases!")
+
+        return final_tests, used_fallback
+
+    def _generate_single_batch(self, api_url: str, sample_data: Dict, num_tests: int,
+                               test_types: List[str], has_auth: bool,
+                               batch_num: int, total_batches: int) -> tuple:
+        """Generate a single batch of tests. Similar to generate_test_cases but simpler."""
+
+        if self.client is None:
+            return self._generate_fallback_tests(api_url, sample_data, num_tests, has_auth), True
+
+        auth_note = "Note: API requires authentication." if has_auth else ""
+
+        # Simpler prompt for batched generation
+        prompt = f"""Generate EXACTLY {num_tests} API test cases for batch {batch_num}/{total_batches}.
+
+API: {api_url}
+{auth_note}
+
+Sample data: {json.dumps(sample_data, indent=2)}
+
+Categories: {', '.join(test_types)}
+
+Return JSON: {{"tests": [{{"method": "...", "endpoint": "...", "data": ..., "params": ..., "expected_status": ..., "description": "...", "category": "...", "validate_body": false}}, ...]}}
+
+Generate EXACTLY {num_tests} diverse, production-ready tests."""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are a senior QA engineer. Generate exact number of API test cases requested."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                response_format={"type": "json_object"}
+            )
+
+            response_text = response.choices[0].message.content.strip()
+            cleaned_text = self._clean_json_response(response_text)
+            parsed = json.loads(cleaned_text)
+
+            if isinstance(parsed, dict) and 'tests' in parsed:
+                test_cases = parsed['tests']
+            elif isinstance(parsed, list):
+                test_cases = parsed
+            else:
+                return self._generate_fallback_tests(api_url, sample_data, num_tests, has_auth), True
+
+            valid_cases = []
+            for tc in test_cases:
+                if isinstance(tc, dict):
+                    try:
+                        valid_cases.append(self._validate_and_fix_test_case(tc))
+                    except:
+                        pass
+
+            if len(valid_cases) >= num_tests * 0.7:  # Accept 70%+ for batches
+                return valid_cases, False
+            else:
+                # Supplement with fallback
+                shortfall = num_tests - len(valid_cases)
+                extra = self._generate_fallback_tests(api_url, sample_data, shortfall, has_auth)
+                return valid_cases + extra, True
+
+        except Exception as e:
+            print(f"   ❌ Batch generation error: {str(e)}")
+            return self._generate_fallback_tests(api_url, sample_data, num_tests, has_auth), True
 
 
 def generate_pdf_report(tester: APITester, api_url: str, auth_enabled: bool = False):

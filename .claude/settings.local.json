@@ -31,7 +31,8 @@
       "Bash(curl:*)",
       "Bash(exit 0)",
       "Bash(grep:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
