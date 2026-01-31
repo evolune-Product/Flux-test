@@ -67,6 +67,38 @@ const PerformanceTestingApp = () => {
     }
   };
 
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('performanceTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.apiEndpoint) setApiEndpoint(state.apiEndpoint);
+        if (state.testType) setTestType(state.testType);
+        if (state.httpMethod) setHttpMethod(state.httpMethod);
+        if (state.requestBody) setRequestBody(state.requestBody);
+        if (state.customHeaders) setCustomHeaders(state.customHeaders);
+        if (state.results) setResults(state.results);
+      } catch (e) {
+        console.error('Failed to load saved Performance Testing state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever important data changes
+  useEffect(() => {
+    const stateToSave = {
+      apiEndpoint,
+      testType,
+      httpMethod,
+      requestBody,
+      customHeaders,
+      results,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('performanceTestingState', JSON.stringify(stateToSave));
+  }, [apiEndpoint, testType, httpMethod, requestBody, customHeaders, results]);
+
   const addLog = (message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, { timestamp, message, type }]);

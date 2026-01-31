@@ -62,9 +62,35 @@ const ContractTestingApp = ({ user, onLogout }) => {
     setLogs(prev => [...prev, { timestamp, message, type }]);
   };
 
+  // Load saved state from localStorage on mount
   useEffect(() => {
+    const savedState = localStorage.getItem('contractTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.contractForm) setContractForm(state.contractForm);
+        if (state.providerForm) setProviderForm(state.providerForm);
+        if (state.verificationResult) setVerificationResult(state.verificationResult);
+        if (state.selectedContract) setSelectedContract(state.selectedContract);
+      } catch (e) {
+        console.error('Failed to load saved Contract Testing state:', e);
+      }
+    }
+    // Fetch contracts from backend
     fetchContracts();
   }, []);
+
+  // Save state to localStorage whenever important data changes
+  useEffect(() => {
+    const stateToSave = {
+      contractForm,
+      providerForm,
+      verificationResult,
+      selectedContract,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('contractTestingState', JSON.stringify(stateToSave));
+  }, [contractForm, providerForm, verificationResult, selectedContract]);
 
   const fetchContracts = async () => {
     try {

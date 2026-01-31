@@ -134,6 +134,66 @@ function App({ user, onLogout }) {
     { num: 5, icon: '📊', title: 'Results', desc: 'Download reports' }
   ];
 
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    // First check for discovery data (from Auto-Discovery navigation)
+    const discoveryDataStr = localStorage.getItem('discoveryData');
+    if (discoveryDataStr) {
+      try {
+        const discoveryData = JSON.parse(discoveryDataStr);
+        if (discoveryData.targetUrl) {
+          setApiUrl(discoveryData.targetUrl);
+          setStatusMessage(`Loaded API URL from Auto-Discovery: ${discoveryData.targetUrl}`);
+          // Clear the discovery data after loading
+          localStorage.removeItem('discoveryData');
+          return; // Don't load saved state if we got discovery data
+        }
+      } catch (e) {
+        console.error('Failed to parse discovery data:', e);
+      }
+    }
+
+    // Load saved functional testing state
+    const savedState = localStorage.getItem('functionalTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.apiUrl) setApiUrl(state.apiUrl);
+        if (state.sampleData) setSampleData(state.sampleData);
+        if (state.timeout) setTimeout(state.timeout);
+        if (state.authType) setAuthType(state.authType);
+        if (state.authConfig) setAuthConfig(state.authConfig);
+        if (state.numTests) setNumTests(state.numTests);
+        if (state.testTypes) setTestTypes(state.testTypes);
+        if (state.testResults) setTestResults(state.testResults);
+        if (state.customTests) setCustomTests(state.customTests);
+        if (state.generatedTests) setGeneratedTests(state.generatedTests);
+        if (state.currentStep) setCurrentStep(state.currentStep);
+      } catch (e) {
+        console.error('Failed to load saved Functional Testing state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever important data changes
+  useEffect(() => {
+    const stateToSave = {
+      apiUrl,
+      sampleData,
+      timeout,
+      authType,
+      authConfig,
+      numTests,
+      testTypes,
+      testResults,
+      customTests,
+      generatedTests,
+      currentStep,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('functionalTestingState', JSON.stringify(stateToSave));
+  }, [apiUrl, sampleData, timeout, authType, authConfig, numTests, testTypes, testResults, customTests, generatedTests, currentStep]);
+
   // Reset preview when any configuration changes
   const handleConfigChange = (configType, value) => {
     // Clear preview when configuration changes

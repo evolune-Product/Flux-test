@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -96,6 +96,46 @@ const ChaosTestingApp = () => {
 
   // Get user from localStorage for GitHub integration
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('chaosTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.apiEndpoint) setApiEndpoint(state.apiEndpoint);
+        if (state.selectedChaos) setSelectedChaos(state.selectedChaos);
+        if (state.chaosRate) setChaosRate(state.chaosRate);
+        if (state.totalRequests) setTotalRequests(state.totalRequests);
+        if (state.concurrency) setConcurrency(state.concurrency);
+        if (state.httpMethod) setHttpMethod(state.httpMethod);
+        if (state.requestBody) setRequestBody(state.requestBody);
+        if (state.customHeaders) setCustomHeaders(state.customHeaders);
+        if (state.customTimeout) setCustomTimeout(state.customTimeout);
+        if (state.results) setResults(state.results);
+      } catch (e) {
+        console.error('Failed to load saved Chaos Testing state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever important data changes
+  useEffect(() => {
+    const stateToSave = {
+      apiEndpoint,
+      selectedChaos,
+      chaosRate,
+      totalRequests,
+      concurrency,
+      httpMethod,
+      requestBody,
+      customHeaders,
+      customTimeout,
+      results,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('chaosTestingState', JSON.stringify(stateToSave));
+  }, [apiEndpoint, selectedChaos, chaosRate, totalRequests, concurrency, httpMethod, requestBody, customHeaders, customTimeout, results]);
 
   // Logging function
   const addLog = (message, type = 'info') => {

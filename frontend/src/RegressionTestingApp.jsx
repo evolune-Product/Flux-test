@@ -77,6 +77,32 @@ const RegressionTestingApp = ({ user, onLogout }) => {
     }
   };
 
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('regressionTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.baselineForm) setBaselineForm(state.baselineForm);
+        if (state.testResults) setTestResults(state.testResults);
+        if (state.selectedBaseline) setSelectedBaseline(state.selectedBaseline);
+      } catch (e) {
+        console.error('Failed to load saved Regression Testing state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever important data changes
+  useEffect(() => {
+    const stateToSave = {
+      baselineForm,
+      testResults,
+      selectedBaseline,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('regressionTestingState', JSON.stringify(stateToSave));
+  }, [baselineForm, testResults, selectedBaseline]);
+
   // Logging function
   const addLog = (message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString();

@@ -9,6 +9,7 @@ import FuzzTestingApp from './FuzzTestingApp.jsx';
 import RegressionTestingApp from './RegressionTestingApp.jsx';
 import ContractTestingApp from './ContractTestingApp.jsx';
 import GraphQLTestingApp from './GraphQLTestingApp.jsx';
+import AutoDiscoveryApp from './AutoDiscoveryApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
 import LandingPage from './LandingPage.jsx';
 import MobileBlocker from './MobileBlocker.jsx';
@@ -209,6 +210,7 @@ function AppWrapper() {
           <Route path="/regression" element={<RegressionTestingApp user={user} onLogout={handleLogout} />} />
           <Route path="/contract" element={<ContractTestingApp user={user} onLogout={handleLogout} />} />
           <Route path="/graphql" element={<GraphQLTestingApp user={user} onLogout={handleLogout} />} />
+          <Route path="/auto-discovery" element={<AutoDiscoveryApp user={user} onLogout={handleLogout} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

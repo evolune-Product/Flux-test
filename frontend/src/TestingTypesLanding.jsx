@@ -14,7 +14,8 @@ import {
   Bug,
   GitCompare,
   FileText,
-  Database
+  Database,
+  Search
 } from 'lucide-react';
 
 function TestingTypesLanding({ user, onLogout }) {
@@ -148,6 +149,22 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: '/graphql',
       color: 'indigo'
+    },
+    {
+      id: 'auto-discovery',
+      title: 'Auto-Discovery',
+      description: 'Zero-config API discovery. Enter a URL and instantly discover endpoints, get security scores, and generate tests automatically.',
+      icon: Search,
+      gradient: 'from-emerald-600 via-teal-600 to-cyan-600',
+      features: [
+        'OpenAPI/Swagger Detection',
+        'Common Path Crawling',
+        'Auth Pattern Detection',
+        'Instant Security Score',
+        'Auto Test Generation'
+      ],
+      route: '/auto-discovery',
+      color: 'emerald'
     }
   ];
 

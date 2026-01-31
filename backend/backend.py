@@ -400,6 +400,15 @@ app.add_middleware(
 )
 
 # ============================================
+# AUTO-DISCOVERY MODULE (Optional - fully isolated)
+# ============================================
+try:
+    from auto_discovery import auto_discovery_router
+    app.include_router(auto_discovery_router, prefix="/discovery", tags=["Auto-Discovery"])
+except ImportError:
+    pass  # Feature disabled if module missing
+
+# ============================================
 # AUTHENTICATION HELPER FUNCTIONS
 # ============================================
 

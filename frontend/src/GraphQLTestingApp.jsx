@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp } from 'lucide-react';
 import Toast from './Toast';
 
@@ -32,6 +32,42 @@ const GraphQLTestingApp = () => {
   };
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('graphqlTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.graphqlEndpoint) setGraphqlEndpoint(state.graphqlEndpoint);
+        if (state.authConfig) setAuthConfig(state.authConfig);
+        if (state.schema) setSchema(state.schema);
+        if (state.generatedTests) setGeneratedTests(state.generatedTests);
+        if (state.testResults) setTestResults(state.testResults);
+        if (state.customQuery) setCustomQuery(state.customQuery);
+        if (state.selectedTestTypes) setSelectedTestTypes(state.selectedTestTypes);
+        if (state.step) setStep(state.step);
+      } catch (e) {
+        console.error('Failed to load saved GraphQL Testing state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever important data changes
+  useEffect(() => {
+    const stateToSave = {
+      graphqlEndpoint,
+      authConfig,
+      schema,
+      generatedTests,
+      testResults,
+      customQuery,
+      selectedTestTypes,
+      step,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('graphqlTestingState', JSON.stringify(stateToSave));
+  }, [graphqlEndpoint, authConfig, schema, generatedTests, testResults, customQuery, selectedTestTypes, step]);
 
   // Step 1: Discover GraphQL Schema
   const discoverSchema = async () => {

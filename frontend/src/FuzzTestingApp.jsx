@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle,
@@ -34,6 +34,36 @@ const FuzzTestingApp = ({ user, onLogout }) => {
   const [generatedTests, setGeneratedTests] = useState([]);
   const [logs, setLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('config');
+
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('fuzzTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.apiUrl) setApiUrl(state.apiUrl);
+        if (state.sampleData) setSampleData(state.sampleData);
+        if (state.numTests) setNumTests(state.numTests);
+        if (state.results) setResults(state.results);
+        if (state.generatedTests) setGeneratedTests(state.generatedTests);
+      } catch (e) {
+        console.error('Failed to load saved Fuzz Testing state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever important data changes
+  useEffect(() => {
+    const stateToSave = {
+      apiUrl,
+      sampleData,
+      numTests,
+      results,
+      generatedTests,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('fuzzTestingState', JSON.stringify(stateToSave));
+  }, [apiUrl, sampleData, numTests, results, generatedTests]);
 
   // Logging function
   const addLog = (message, type = 'info') => {

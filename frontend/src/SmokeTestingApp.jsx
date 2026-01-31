@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle,
@@ -52,6 +52,50 @@ const SmokeTestingApp = ({ user, onLogout }) => {
   const [nlGenerating, setNlGenerating] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    // First check for discovery data (from Auto-Discovery navigation)
+    const discoveryDataStr = localStorage.getItem('discoveryData');
+    if (discoveryDataStr) {
+      try {
+        const discoveryData = JSON.parse(discoveryDataStr);
+        if (discoveryData.endpoints && discoveryData.endpoints.length > 0) {
+          setEndpoints(discoveryData.endpoints);
+          addLog(`Loaded ${discoveryData.endpoints.length} endpoints from Auto-Discovery`, 'success');
+          // Clear the discovery data after loading
+          localStorage.removeItem('discoveryData');
+          return; // Don't load saved state if we got discovery data
+        }
+      } catch (e) {
+        console.error('Failed to parse discovery data:', e);
+      }
+    }
+
+    // Load saved smoke testing state
+    const savedState = localStorage.getItem('smokeTestingState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.endpoints && state.endpoints.length > 0) {
+          setEndpoints(state.endpoints);
+        }
+        if (state.results) setResults(state.results);
+      } catch (e) {
+        console.error('Failed to load saved Smoke Testing state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever endpoints or results change
+  useEffect(() => {
+    const stateToSave = {
+      endpoints,
+      results,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('smokeTestingState', JSON.stringify(stateToSave));
+  }, [endpoints, results]);
 
   const handleGenerateFromNL = async () => {
     if (!nlTestInput.trim()) return;

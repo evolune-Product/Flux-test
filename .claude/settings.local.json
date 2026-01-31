@@ -32,7 +32,8 @@
       "Bash(exit 0)",
       "Bash(grep:*)",
       "Bash(pip install:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(Testing \")"
     ],
     "deny": [],
     "ask": []
