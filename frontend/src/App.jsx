@@ -1131,19 +1131,22 @@ function App({ user, onLogout }) {
                         fuzz_test: '🔥 Fuzz Test',
                         other: '📋 Other'
                       };
-                      return knownCategories.map(category => (
-                        <button
-                          key={category}
-                          onClick={() => setPreviewFilter(category)}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                            previewFilter === category
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
-                        >
-                          {labels[category]} ({stats[category] || 0})
-                        </button>
-                      ));
+                      // Only show 'all' always, others only if count > 0
+                      return knownCategories
+                        .filter(category => category === 'all' || (stats[category] || 0) > 0)
+                        .map(category => (
+                          <button
+                            key={category}
+                            onClick={() => setPreviewFilter(category)}
+                            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                              previewFilter === category
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {labels[category]} ({stats[category] || 0})
+                          </button>
+                        ));
                     })()}
                   </div>
 

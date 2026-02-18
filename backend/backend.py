@@ -2011,7 +2011,7 @@ async def delete_test_suite(
 # ============================================
 
 @app.get("/github/connect")
-async def connect_github_repo(request: Request, username: str = Depends(verify_token), db: Session = Depends(get_db)):
+async def connect_github_repo(request: Request, redirect_path: str = "/functional", username: str = Depends(verify_token), db: Session = Depends(get_db)):
     """Initiate GitHub OAuth for repository access - returns OAuth URL"""
     try:
         # Store state and user context to retrieve later
@@ -2044,11 +2044,11 @@ async def connect_github_repo(request: Request, username: str = Depends(verify_t
         # Clean up expired states first
         db.query(OAuthStateDB).filter(OAuthStateDB.expires_at < datetime.utcnow()).delete()
 
-        # Create new OAuth state entry
+        # Create new OAuth state entry - store redirect_path in provider field
         oauth_state = OAuthStateDB(
             state=state,
             username=username,
-            provider='github_repo',
+            provider=f'github_repo:{redirect_path}',  # Store redirect path
             created_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(minutes=10)  # 10 minute expiry
         )
@@ -2082,10 +2082,10 @@ async def github_repo_callback(
 ):
     """Handle GitHub OAuth callback for repository access"""
     try:
-        # Verify state from database
+        # Verify state from database - provider starts with 'github_repo'
         oauth_state = db.query(OAuthStateDB).filter(
             OAuthStateDB.state == state,
-            OAuthStateDB.provider == 'github_repo'
+            OAuthStateDB.provider.like('github_repo%')
         ).first()
 
         if not oauth_state:
@@ -2100,6 +2100,11 @@ async def github_repo_callback(
             raise HTTPException(status_code=400, detail="OAuth state has expired")
 
         stored_username = oauth_state.username
+
+        # Extract redirect path from provider field (format: 'github_repo:/path')
+        redirect_path = '/functional'  # default
+        if ':' in oauth_state.provider:
+            redirect_path = oauth_state.provider.split(':', 1)[1]
 
         if not stored_username:
             raise HTTPException(status_code=400, detail="User session not found")
@@ -2141,7 +2146,8 @@ async def github_repo_callback(
         db.delete(oauth_state)
         db.commit()
 
-        return RedirectResponse(url=f"{FRONTEND_URL}?github_connected=true")
+        # Redirect back to the original page
+        return RedirectResponse(url=f"{FRONTEND_URL}{redirect_path}?github_connected=true")
 
     except Exception as e:
         print(f"GitHub repo OAuth error: {str(e)}")

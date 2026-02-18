@@ -89,7 +89,9 @@ function GitHubIntegration({ testResults, apiUrl, onClose }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch(`${API_BASE_URL}/github/connect`, {
+      // Pass current page path so we return here after GitHub auth
+      const currentPath = window.location.pathname;
+      const response = await fetch(`${API_BASE_URL}/github/connect?redirect_path=${encodeURIComponent(currentPath)}`, {
         headers: { 'Authorization': `Bearer ${token}` },
         signal: controller.signal
       });
