@@ -325,6 +325,7 @@ function App({ user, onLogout }) {
       edge_case: 0,
       negative_test: 0,
       security_test: 0,
+      fuzz_test: 0,
       other: 0
     };
     
@@ -1128,6 +1129,7 @@ function App({ user, onLogout }) {
                         {category === 'edge_case' && `⚠️ Edge Cases (${count})`}
                         {category === 'negative_test' && `❌ Negative (${count})`}
                         {category === 'security_test' && `🔒 Security (${count})`}
+                        {category === 'fuzz_test' && `🔥 Fuzz Test (${count})`}
                         {category === 'other' && `📋 Other (${count})`}
                       </button>
                     ))}
