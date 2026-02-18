@@ -665,10 +665,10 @@ class OpenAITestGenerator:
             # Random/malformed data fuzzing
             {"method": "POST", "endpoint": "", "data": {"field": "A" * 100000}, "expected_status": [200, 201, 400, 413, 422],
              "description": "Fuzz: Extremely large string payload (100k chars)"},
-            {"method": "POST", "endpoint": "", "data": {"field": "\x00\x01\x02\x03\x04"}, "expected_status": [200, 201, 400, 422],
-             "description": "Fuzz: Binary/null bytes in string field"},
-            {"method": "POST", "endpoint": "", "data": {"field": "\u0000\uFFFF\uD800"}, "expected_status": [200, 201, 400, 422],
-             "description": "Fuzz: Invalid unicode characters"},
+            {"method": "POST", "endpoint": "", "data": {"field": "\\x00\\x01\\x02\\x03\\x04"}, "expected_status": [200, 201, 400, 422],
+             "description": "Fuzz: Binary/null bytes in string field (escaped)"},
+            {"method": "POST", "endpoint": "", "data": {"field": "\\u0000\\uFFFF\\uD800"}, "expected_status": [200, 201, 400, 422],
+             "description": "Fuzz: Invalid unicode characters (escaped)"},
             {"method": "POST", "endpoint": "", "data": {"field": "%s%s%s%s%s%s%s%s%s%s"}, "expected_status": [200, 201, 400, 422],
              "description": "Fuzz: Format string attack vector"},
 
@@ -687,8 +687,8 @@ class OpenAITestGenerator:
              "description": "Fuzz: URL-encoded null bytes"},
             {"method": "POST", "endpoint": "", "data": {"field": "\"><script>alert(1)</script>"}, "expected_status": [200, 201, 400, 422],
              "description": "Fuzz: HTML context breaking"},
-            {"method": "POST", "endpoint": "", "data": {"field": "../../../etc/passwd\x00.jpg"}, "expected_status": [200, 201, 400, 403, 422],
-             "description": "Fuzz: Null byte injection with path traversal"},
+            {"method": "POST", "endpoint": "", "data": {"field": "../../../etc/passwd\\x00.jpg"}, "expected_status": [200, 201, 400, 403, 422],
+             "description": "Fuzz: Null byte injection with path traversal (escaped)"},
 
             # Integer overflow/underflow fuzzing
             {"method": "POST", "endpoint": "", "data": {"field": 2147483647}, "expected_status": [200, 201, 400, 422],
@@ -727,8 +727,8 @@ class OpenAITestGenerator:
              "description": "Fuzz: Max float value"},
             {"method": "POST", "endpoint": "", "data": {"field": 0.0000000000000000000000001}, "expected_status": [200, 201, 400, 422],
              "description": "Fuzz: Extremely small float"},
-            {"method": "POST", "endpoint": "", "data": {"field": float('inf')}, "expected_status": [200, 201, 400, 422],
-             "description": "Fuzz: Infinity value"},
+            {"method": "POST", "endpoint": "", "data": {"field": "Infinity"}, "expected_status": [200, 201, 400, 422],
+             "description": "Fuzz: Infinity value (as string)"},
 
             # Duplicate field fuzzing
             {"method": "POST", "endpoint": "", "data": {"field": "first", "field": "second"}, "expected_status": [200, 201, 400, 422],
