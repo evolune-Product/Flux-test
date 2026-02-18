@@ -365,26 +365,49 @@ class OpenAITestGenerator:
         """Validate and fix a single test case"""
         if 'method' not in tc:
             tc['method'] = 'GET'
-        
+
         if 'expected_status' not in tc:
             tc['expected_status'] = 200
-        
+
         if 'description' not in tc:
             tc['description'] = f"{tc['method']} test"
-        
+
         tc.setdefault('endpoint', '')
         tc.setdefault('data', None)
         tc.setdefault('category', 'other')
         tc.setdefault('params', None)
         tc.setdefault('validate_body', False)
-        
+
         tc['method'] = tc['method'].upper()
-        
+
+        # Normalize category to expected format
+        category = str(tc.get('category', 'other')).lower().strip()
+        category = category.replace(' ', '_').replace('-', '_')
+
+        # Known valid categories
+        valid_categories = ['happy_path', 'edge_case', 'negative_test', 'security_test', 'fuzz_test', 'other']
+
+        # Map variations to valid categories
+        if 'happy' in category or 'valid' in category or 'success' in category or 'positive' in category:
+            tc['category'] = 'happy_path'
+        elif 'edge' in category or 'boundary' in category or 'limit' in category:
+            tc['category'] = 'edge_case'
+        elif 'negative' in category or 'invalid' in category or 'error' in category or 'fail' in category or 'bad' in category:
+            tc['category'] = 'negative_test'
+        elif 'security' in category or 'injection' in category or 'xss' in category or 'sql' in category or 'auth' in category or 'attack' in category:
+            tc['category'] = 'security_test'
+        elif 'fuzz' in category or 'random' in category or 'malform' in category or 'overflow' in category:
+            tc['category'] = 'fuzz_test'
+        elif category in valid_categories:
+            tc['category'] = category
+        else:
+            tc['category'] = 'other'
+
         try:
             tc['expected_status'] = int(tc['expected_status'])
         except (ValueError, TypeError):
             tc['expected_status'] = 200
-        
+
         return tc
     
     def _generate_fallback_tests(self, api_url: str, sample_data: Dict, num: int, has_auth: bool = False) -> List[Dict]:

@@ -319,6 +319,7 @@ function App({ user, onLogout }) {
   };
 
   const getCategoryStats = () => {
+    const knownCategories = ['happy_path', 'edge_case', 'negative_test', 'security_test', 'fuzz_test', 'other'];
     const stats = {
       all: generatedTests.length,
       happy_path: 0,
@@ -328,12 +329,16 @@ function App({ user, onLogout }) {
       fuzz_test: 0,
       other: 0
     };
-    
+
     generatedTests.forEach(test => {
       const cat = test.category || 'other';
-      stats[cat] = (stats[cat] || 0) + 1;
+      if (knownCategories.includes(cat)) {
+        stats[cat] = stats[cat] + 1;
+      } else {
+        stats.other = stats.other + 1;
+      }
     });
-    
+
     return stats;
   };
 
@@ -1114,25 +1119,32 @@ function App({ user, onLogout }) {
 
                   {/* Category Filter Tabs */}
                   <div className="flex gap-2 mb-4 flex-wrap">
-                    {Object.entries(getCategoryStats()).map(([category, count]) => (
-                      <button
-                        key={category}
-                        onClick={() => setPreviewFilter(category)}
-                        className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                          previewFilter === category
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {category === 'all' && `🌐 All (${count})`}
-                        {category === 'happy_path' && `✅ Happy Path (${count})`}
-                        {category === 'edge_case' && `⚠️ Edge Cases (${count})`}
-                        {category === 'negative_test' && `❌ Negative (${count})`}
-                        {category === 'security_test' && `🔒 Security (${count})`}
-                        {category === 'fuzz_test' && `🔥 Fuzz Test (${count})`}
-                        {category === 'other' && `📋 Other (${count})`}
-                      </button>
-                    ))}
+                    {(() => {
+                      const stats = getCategoryStats();
+                      const knownCategories = ['all', 'happy_path', 'edge_case', 'negative_test', 'security_test', 'fuzz_test', 'other'];
+                      const labels = {
+                        all: '🌐 All',
+                        happy_path: '✅ Happy Path',
+                        edge_case: '⚠️ Edge Cases',
+                        negative_test: '❌ Negative',
+                        security_test: '🔒 Security',
+                        fuzz_test: '🔥 Fuzz Test',
+                        other: '📋 Other'
+                      };
+                      return knownCategories.map(category => (
+                        <button
+                          key={category}
+                          onClick={() => setPreviewFilter(category)}
+                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                            previewFilter === category
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {labels[category]} ({stats[category] || 0})
+                        </button>
+                      ));
+                    })()}
                   </div>
 
                   {/* Select All / Deselect All */}
