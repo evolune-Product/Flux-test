@@ -33,7 +33,12 @@
       "Bash(grep:*)",
       "Bash(pip install:*)",
       "WebSearch",
-      "Bash(Testing \")"
+      "Bash(Testing \")",
+      "Bash(xargs:*)",
+      "Bash(git -C \"E:\\\\Evolune_Products\\\\Evo-TFX-main\" log --oneline)",
+      "Bash(wc:*)",
+      "WebFetch(domain:darkpearl.evolune.in)",
+      "WebFetch(domain:fluxtest.evolune.in)"
     ],
     "deny": [],
     "ask": []

@@ -392,17 +392,19 @@ class OpenAITestGenerator:
         
         # Calculate proportional distribution
         distributions = {
-            'happy_path': 0.30,      # 30%
-            'negative_test': 0.25,   # 25%
-            'security_test': 0.25,   # 25%
-            'edge_case': 0.20        # 20%
+            'happy_path': 0.25,      # 25%
+            'negative_test': 0.20,   # 20%
+            'security_test': 0.20,   # 20%
+            'edge_case': 0.15,       # 15%
+            'fuzz_test': 0.20        # 20%
         }
 
         counts = {
             'happy_path': max(3, int(num * distributions['happy_path'])),
             'negative_test': max(3, int(num * distributions['negative_test'])),
             'security_test': max(5, int(num * distributions['security_test'])),
-            'edge_case': max(3, int(num * distributions['edge_case']))
+            'edge_case': max(3, int(num * distributions['edge_case'])),
+            'fuzz_test': max(3, int(num * distributions['fuzz_test']))
         }
         
         # Adjust to match exactly num tests

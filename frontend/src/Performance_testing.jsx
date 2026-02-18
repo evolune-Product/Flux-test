@@ -168,15 +168,20 @@ const PerformanceTestingApp = () => {
   };
 
   const calculateStats = (durations) => {
+    // Handle empty array case (all requests failed)
+    if (!durations || durations.length === 0) {
+      return { avg: 0, min: 0, max: 0, p50: 0, p95: 0, p99: 0 };
+    }
+
     const sorted = [...durations].sort((a, b) => a - b);
     const sum = sorted.reduce((a, b) => a + b, 0);
     const avg = sum / sorted.length;
-    const min = sorted[0];
-    const max = sorted[sorted.length - 1];
-    const p50 = sorted[Math.floor(sorted.length * 0.50)];
-    const p95 = sorted[Math.floor(sorted.length * 0.95)];
-    const p99 = sorted[Math.floor(sorted.length * 0.99)];
-    
+    const min = sorted[0] || 0;
+    const max = sorted[sorted.length - 1] || 0;
+    const p50 = sorted[Math.floor(sorted.length * 0.50)] || 0;
+    const p95 = sorted[Math.floor(sorted.length * 0.95)] || 0;
+    const p99 = sorted[Math.floor(sorted.length * 0.99)] || 0;
+
     return { avg, min, max, p50, p95, p99 };
   };
 
