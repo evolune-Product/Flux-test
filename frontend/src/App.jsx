@@ -168,46 +168,11 @@ function App({ user, onLogout }) {
       }
     }
 
-    // Load saved functional testing state
-    const savedState = localStorage.getItem('functionalTestingState');
-    if (savedState) {
-      try {
-        const state = JSON.parse(savedState);
-        if (state.apiUrl) setApiUrl(state.apiUrl);
-        if (state.sampleData) setSampleData(state.sampleData);
-        if (state.timeout) setTimeout(state.timeout);
-        if (state.authType) setAuthType(state.authType);
-        if (state.authConfig) setAuthConfig(state.authConfig);
-        if (state.numTests) setNumTests(state.numTests);
-        if (state.testTypes) setTestTypes(state.testTypes);
-        if (state.testResults) setTestResults(state.testResults);
-        if (state.customTests) setCustomTests(state.customTests);
-        if (state.generatedTests) setGeneratedTests(state.generatedTests);
-        if (state.currentStep) setCurrentStep(state.currentStep);
-      } catch (e) {
-        console.error('Failed to load saved Functional Testing state:', e);
-      }
-    }
+    // Clear any saved state on page load - data should not persist after refresh
+    localStorage.removeItem('functionalTestingState');
   }, []);
 
-  // Save state to localStorage whenever important data changes
-  useEffect(() => {
-    const stateToSave = {
-      apiUrl,
-      sampleData,
-      timeout,
-      authType,
-      authConfig,
-      numTests,
-      testTypes,
-      testResults,
-      customTests,
-      generatedTests,
-      currentStep,
-      savedAt: new Date().toISOString()
-    };
-    localStorage.setItem('functionalTestingState', JSON.stringify(stateToSave));
-  }, [apiUrl, sampleData, timeout, authType, authConfig, numTests, testTypes, testResults, customTests, generatedTests, currentStep]);
+  // Auto-save disabled - data clears on refresh (user is warned via beforeunload)
 
   // Reset preview when any configuration changes
   const handleConfigChange = (configType, value) => {
