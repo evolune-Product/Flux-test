@@ -32,6 +32,17 @@ function AppWrapper() {
       const username = urlParams.get('username');
       const email = urlParams.get('email');
       const errorParam = urlParams.get('error');
+      const githubConnected = urlParams.get('github_connected');
+
+      // Handle GitHub repo connection callback - redirect to saved path
+      if (githubConnected) {
+        const savedPath = localStorage.getItem('github_redirect_path');
+        if (savedPath && window.location.pathname !== savedPath) {
+          localStorage.removeItem('github_redirect_path');
+          window.location.href = savedPath + '?github_connected=' + githubConnected;
+          return;
+        }
+      }
 
       // Handle OAuth error
       if (errorParam) {

@@ -134,6 +134,21 @@ function App({ user, onLogout }) {
     { num: 5, icon: '📊', title: 'Results', desc: 'Download reports' }
   ];
 
+  // Warn user before leaving if there's unsaved data
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Only warn if there are generated tests or results
+      if (generatedTests.length > 0 || testResults) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved test data. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [generatedTests, testResults]);
+
   // Load saved state from localStorage on mount
   useEffect(() => {
     // First check for discovery data (from Auto-Discovery navigation)

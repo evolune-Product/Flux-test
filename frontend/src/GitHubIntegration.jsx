@@ -29,10 +29,18 @@ function GitHubIntegration({ testResults, apiUrl, onClose }) {
     if (githubConnected === 'true') {
       setMessage({ type: 'success', text: 'GitHub connected successfully!' });
       checkGitHubStatus(); // Refresh status
-      // Clean URL
+      // Clean URL and redirect to saved path if exists
+      const savedPath = localStorage.getItem('github_redirect_path');
+      if (savedPath && window.location.pathname !== savedPath) {
+        localStorage.removeItem('github_redirect_path');
+        window.location.href = savedPath + '?github_connected=true';
+        return;
+      }
+      localStorage.removeItem('github_redirect_path');
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (error || githubConnected === 'false') {
       setMessage({ type: 'error', text: `Failed to connect GitHub: ${error || 'Unknown error'}` });
+      localStorage.removeItem('github_redirect_path');
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -89,9 +97,10 @@ function GitHubIntegration({ testResults, apiUrl, onClose }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      // Pass current page path so we return here after GitHub auth
-      const currentPath = window.location.pathname;
-      const response = await fetch(`${API_BASE_URL}/github/connect?redirect_path=${encodeURIComponent(currentPath)}`, {
+      // Save current path to return here after GitHub auth
+      localStorage.setItem('github_redirect_path', window.location.pathname);
+
+      const response = await fetch(`${API_BASE_URL}/github/connect`, {
         headers: { 'Authorization': `Bearer ${token}` },
         signal: controller.signal
       });
