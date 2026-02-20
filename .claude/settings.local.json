@@ -38,7 +38,9 @@
       "Bash(git -C \"E:\\\\Evolune_Products\\\\Evo-TFX-main\" log --oneline)",
       "Bash(wc:*)",
       "WebFetch(domain:darkpearl.evolune.in)",
-      "WebFetch(domain:fluxtest.evolune.in)"
+      "WebFetch(domain:fluxtest.evolune.in)",
+      "WebFetch(domain:www.researchnester.com)",
+      "WebFetch(domain:www.einpresswire.com)"
     ],
     "deny": [],
     "ask": []

@@ -157,43 +157,263 @@ function AppWrapper() {
     setLoggingOut(false);
   };
 
-  // Loading screen
+  // Loading screen - Creative OAuth Animation
   if (loading) {
     // Check if we're processing OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
     const isOAuthCallback = urlParams.get('token') && urlParams.get('user_id');
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mx-auto mb-4"></div>
-          <p className="text-white text-xl font-semibold">
-            {isOAuthCallback ? '🎉 Login successful! Loading your dashboard...' : 'Loading...'}
-          </p>
-          {isOAuthCallback && (
-            <p className="text-white/80 text-sm mt-2">Please wait while we set up your workspace</p>
-          )}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Floating orbs */}
+          <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl" style={{ animation: 'floatOrb 8s ease-in-out infinite' }} />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" style={{ animation: 'floatOrb 10s ease-in-out infinite reverse' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500/15 rounded-full blur-3xl" style={{ animation: 'pulseOrb 4s ease-in-out infinite' }} />
+
+          {/* Floating particles */}
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-white/30 rounded-full"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animation: `particle ${3 + Math.random() * 4}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 2}s`
+              }}
+            />
+          ))}
         </div>
+
+        <div className="relative text-center z-10">
+          {/* Main loader container */}
+          <div className="relative w-32 h-32 mx-auto mb-8">
+            {/* Outer spinning ring */}
+            <div
+              className="absolute inset-0 rounded-full border-2 border-transparent"
+              style={{
+                borderTopColor: '#8b5cf6',
+                borderRightColor: '#ec4899',
+                animation: 'spinRing 1.5s linear infinite'
+              }}
+            />
+
+            {/* Middle pulsing ring */}
+            <div
+              className="absolute inset-3 rounded-full border-2 border-purple-400/30"
+              style={{ animation: 'pulseRing 2s ease-in-out infinite' }}
+            />
+
+            {/* Inner spinning ring (reverse) */}
+            <div
+              className="absolute inset-6 rounded-full border-2 border-transparent"
+              style={{
+                borderBottomColor: '#3b82f6',
+                borderLeftColor: '#06b6d4',
+                animation: 'spinRing 2s linear infinite reverse'
+              }}
+            />
+
+            {/* Center logo */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-2xl shadow-purple-500/50"
+                style={{ animation: 'logoFloat 3s ease-in-out infinite' }}
+              >
+                <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Orbiting dots */}
+            <div className="absolute inset-0" style={{ animation: 'spinRing 3s linear infinite' }}>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full shadow-lg shadow-cyan-500/50" />
+            </div>
+            <div className="absolute inset-0" style={{ animation: 'spinRing 4s linear infinite reverse' }}>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full shadow-lg shadow-pink-500/50" />
+            </div>
+          </div>
+
+          {/* Text content */}
+          <div style={{ animation: 'fadeInUp 0.6s ease-out' }}>
+            <h2 className="text-3xl font-bold mb-3">
+              <span
+                className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
+                style={{ backgroundSize: '200% 200%', animation: 'gradientShift 3s ease-in-out infinite' }}
+              >
+                {isOAuthCallback ? 'Welcome Back!' : 'Loading'}
+              </span>
+            </h2>
+
+            <p className="text-gray-300 text-lg mb-6">
+              {isOAuthCallback ? 'Setting up your workspace...' : 'Preparing your experience...'}
+            </p>
+
+            {/* Progress bar */}
+            <div className="w-64 mx-auto h-1 bg-slate-700/50 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full"
+                style={{
+                  width: '100%',
+                  animation: 'progressSlide 2s ease-in-out infinite'
+                }}
+              />
+            </div>
+
+            {/* Status indicators */}
+            {isOAuthCallback && (
+              <div className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-400">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full" style={{ animation: 'pulse 1s ease-in-out infinite' }} />
+                  <span>Authenticated</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full" style={{ animation: 'pulse 1s ease-in-out 0.3s infinite' }} />
+                  <span>Loading profile</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full" style={{ animation: 'pulse 1s ease-in-out 0.6s infinite' }} />
+                  <span>Almost ready</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Animations */}
+        <style>{`
+          @keyframes floatOrb {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.1); }
+          }
+          @keyframes pulseOrb {
+            0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.25; transform: translate(-50%, -50%) scale(1.2); }
+          }
+          @keyframes particle {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+            25% { transform: translateY(-20px) translateX(10px); opacity: 0.6; }
+            50% { transform: translateY(-10px) translateX(-10px); opacity: 0.3; }
+            75% { transform: translateY(-30px) translateX(5px); opacity: 0.6; }
+          }
+          @keyframes spinRing {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes pulseRing {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+          }
+          @keyframes logoFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(5deg); }
+          }
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+          @keyframes progressSlide {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+          }
+        `}</style>
       </div>
     );
   }
 
-  // Logout loading screen
+  // Logout loading screen - Creative Animation
   if (loggingOut) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-400 mx-auto mb-4"></div>
-            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-purple-400/20 mx-auto animate-pulse"></div>
-          </div>
-          <p className="text-white text-xl font-semibold mb-2">
-            👋 Logging out...
-          </p>
-          <p className="text-gray-300 text-sm">
-            See you soon!
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" style={{ animation: 'shrinkOrb 1.5s ease-in-out forwards' }} />
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" style={{ animation: 'shrinkOrb 1.5s ease-in-out 0.2s forwards' }} />
         </div>
+
+        <div className="relative text-center z-10">
+          {/* Goodbye animation container */}
+          <div className="relative w-28 h-28 mx-auto mb-8">
+            {/* Fading rings */}
+            <div
+              className="absolute inset-0 rounded-full border-2 border-purple-400/40"
+              style={{ animation: 'fadeOutRing 1.5s ease-out forwards' }}
+            />
+            <div
+              className="absolute inset-4 rounded-full border-2 border-blue-400/30"
+              style={{ animation: 'fadeOutRing 1.5s ease-out 0.2s forwards' }}
+            />
+
+            {/* Center icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center"
+                style={{ animation: 'waveGoodbye 1.5s ease-in-out forwards' }}
+              >
+                <span className="text-2xl">👋</span>
+              </div>
+            </div>
+          </div>
+
+          <h2
+            className="text-2xl font-bold text-white mb-2"
+            style={{ animation: 'fadeOutUp 1.5s ease-out forwards' }}
+          >
+            See you soon!
+          </h2>
+          <p
+            className="text-gray-400"
+            style={{ animation: 'fadeOutUp 1.5s ease-out 0.1s forwards' }}
+          >
+            Logging you out safely...
+          </p>
+
+          {/* Progress dots */}
+          <div className="flex items-center justify-center gap-2 mt-6">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 bg-purple-400 rounded-full"
+                style={{ animation: `dotFade 1s ease-in-out ${i * 0.2}s infinite` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes shrinkOrb {
+            to { transform: scale(0); opacity: 0; }
+          }
+          @keyframes fadeOutRing {
+            0% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1.5); opacity: 0; }
+          }
+          @keyframes waveGoodbye {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+          }
+          @keyframes fadeOutUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0.8; transform: translateY(-5px); }
+          }
+          @keyframes dotFade {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+          }
+        `}</style>
       </div>
     );
   }
