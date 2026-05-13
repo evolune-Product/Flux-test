@@ -355,6 +355,32 @@ class TestExecutionHistoryDB(Base):
     executed_at = Column(DateTime, default=datetime.utcnow)
     ai_analysis_id = Column(String, ForeignKey('ai_analysis_history.analysis_id'), nullable=True)
 
+# Test Run Session model (history dashboard)
+class TestRunSessionDB(Base):
+    __tablename__ = "test_run_sessions"
+
+    session_id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey('users.user_id'), nullable=False)
+    module = Column(String, nullable=False)   # functional, smoke, performance, etc.
+    api_url = Column(String, nullable=False)
+    total_tests = Column(Integer, nullable=False, default=0)
+    passed = Column(Integer, nullable=False, default=0)
+    failed = Column(Integer, nullable=False, default=0)
+    duration_ms = Column(Integer, nullable=True)
+    overall_status = Column(String, nullable=False, default='PASS')  # PASS, FAIL
+    share_token = Column(String, nullable=True, unique=True, index=True)
+    result_json = Column(JSONB, nullable=True)
+    executed_at = Column(DateTime, default=datetime.utcnow)
+
+# Dashboard share token — one persistent token per user
+class DashboardShareDB(Base):
+    __tablename__ = "dashboard_shares"
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_id    = Column(String, ForeignKey('users.user_id'), nullable=False, unique=True)
+    token      = Column(String, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -405,6 +431,15 @@ app.add_middleware(
 try:
     from auto_discovery import auto_discovery_router
     app.include_router(auto_discovery_router, prefix="/discovery", tags=["Auto-Discovery"])
+except ImportError:
+    pass  # Feature disabled if module missing
+
+# ============================================
+# VIBE TESTING MODULE (Optional - fully isolated)
+# ============================================
+try:
+    from vibe_testing import vibe_testing_router
+    app.include_router(vibe_testing_router, prefix="/vibe", tags=["Vibe-Testing"])
 except ImportError:
     pass  # Feature disabled if module missing
 
@@ -1602,7 +1637,7 @@ async def get_test_execution_history(
                 'status_code': record.status_code,
                 'response_time_ms': record.response_time_ms,
                 'error_message': record.error_message,
-                'executed_at': record.executed_at.isoformat()
+                'executed_at': record.executed_at.isoformat() + 'Z'
             })
 
         return {
@@ -4559,6 +4594,368 @@ def find_json_differences(baseline, current, path=""):
             })
 
     return differences
+
+# ============================================
+# TEST HISTORY / RUN SESSION ENDPOINTS
+# ============================================
+
+@app.post("/history/runs/save")
+async def save_history_run(
+    data: dict,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Save a complete test run session to history.
+    Body: { module, api_url, total_tests, passed, failed, duration_ms, overall_status }
+    """
+    try:
+        user = db.query(UserDB).filter(UserDB.username == current_user['username']).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        session_id = secrets.token_urlsafe(16)
+        session = TestRunSessionDB(
+            session_id=session_id,
+            user_id=user.user_id,
+            module=data.get('module', 'unknown'),
+            api_url=data.get('api_url', ''),
+            total_tests=data.get('total_tests', 0),
+            passed=data.get('passed', 0),
+            failed=data.get('failed', 0),
+            duration_ms=data.get('duration_ms'),
+            overall_status=data.get('overall_status', 'PASS'),
+            result_json=data.get('result_json'),
+            executed_at=datetime.utcnow()
+        )
+        db.add(session)
+        db.commit()
+        return {'success': True, 'session_id': session_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/history/runs")
+async def get_history_runs(
+    module: str = None,
+    page: int = 1,
+    limit: int = 20,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Return paginated test run history for the current user.
+    Query params: module (filter), page, limit (max 50)
+    """
+    try:
+        user = db.query(UserDB).filter(UserDB.username == current_user['username']).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        limit = min(limit, 50)
+        offset = (max(page, 1) - 1) * limit
+
+        query = db.query(TestRunSessionDB).filter(TestRunSessionDB.user_id == user.user_id)
+        if module:
+            query = query.filter(TestRunSessionDB.module == module)
+
+        total = query.count()
+        runs = query.order_by(TestRunSessionDB.executed_at.desc()).offset(offset).limit(limit).all()
+
+        return {
+            'success': True,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'runs': [
+                {
+                    'session_id': r.session_id,
+                    'module': r.module,
+                    'api_url': r.api_url,
+                    'total_tests': r.total_tests,
+                    'passed': r.passed,
+                    'failed': r.failed,
+                    'duration_ms': r.duration_ms,
+                    'overall_status': r.overall_status,
+                    'share_token': r.share_token,
+                    'result_json': r.result_json,
+                    'executed_at': r.executed_at.isoformat() + 'Z'
+                }
+                for r in runs
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/history/stats")
+async def get_history_stats(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Return summary stats for the history dashboard:
+    - total_runs, total_passed, total_failed, pass_rate
+    - modules breakdown (count per module)
+    - daily_trend: last 7 days [{date, passed, failed}]
+    """
+    try:
+        user = db.query(UserDB).filter(UserDB.username == current_user['username']).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        all_runs = db.query(TestRunSessionDB).filter(TestRunSessionDB.user_id == user.user_id).all()
+
+        total_runs = len(all_runs)
+        total_passed = sum(r.passed for r in all_runs)
+        total_failed = sum(r.failed for r in all_runs)
+        total_tests = total_passed + total_failed
+        pass_rate = round((total_passed / total_tests * 100), 1) if total_tests > 0 else 0
+
+        # Module breakdown
+        modules: dict = {}
+        for r in all_runs:
+            modules[r.module] = modules.get(r.module, 0) + 1
+
+        # 7-day daily trend
+        from collections import defaultdict
+        daily: dict = defaultdict(lambda: {'passed': 0, 'failed': 0})
+        cutoff = datetime.utcnow() - timedelta(days=7)
+        for r in all_runs:
+            if r.executed_at >= cutoff:
+                day = r.executed_at.strftime('%Y-%m-%d')
+                daily[day]['passed'] += r.passed
+                daily[day]['failed'] += r.failed
+
+        # Fill in all 7 days
+        trend = []
+        for i in range(6, -1, -1):
+            day = (datetime.utcnow() - timedelta(days=i)).strftime('%Y-%m-%d')
+            trend.append({
+                'date': day,
+                'passed': daily[day]['passed'],
+                'failed': daily[day]['failed']
+            })
+
+        return {
+            'success': True,
+            'total_runs': total_runs,
+            'total_passed': total_passed,
+            'total_failed': total_failed,
+            'pass_rate': pass_rate,
+            'modules': modules,
+            'daily_trend': trend
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/history/runs/{session_id}/share")
+async def share_test_run(
+    session_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate (or return existing) a public share token for a test run.
+    Only the owner of the run can generate a share link.
+    Returns: { share_token }
+    """
+    try:
+        user = db.query(UserDB).filter(UserDB.username == current_user['username']).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        run = db.query(TestRunSessionDB).filter(
+            TestRunSessionDB.session_id == session_id,
+            TestRunSessionDB.user_id == user.user_id
+        ).first()
+
+        if not run:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        # Re-use existing token if already generated
+        if not run.share_token:
+            import uuid
+            run.share_token = uuid.uuid4().hex
+            db.commit()
+            db.refresh(run)
+
+        return {'success': True, 'share_token': run.share_token}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/report/{share_token}")
+async def get_shared_report(
+    share_token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint — no authentication required.
+    Returns the test run data for a given share token.
+    """
+    run = db.query(TestRunSessionDB).filter(
+        TestRunSessionDB.share_token == share_token
+    ).first()
+
+    if not run:
+        raise HTTPException(status_code=404, detail="Report not found or link has expired")
+
+    pass_rate = round((run.passed / run.total_tests * 100), 1) if run.total_tests > 0 else 0
+
+    return {
+        'success': True,
+        'run': {
+            'session_id': run.session_id,
+            'module': run.module,
+            'api_url': run.api_url,
+            'total_tests': run.total_tests,
+            'passed': run.passed,
+            'failed': run.failed,
+            'duration_ms': run.duration_ms,
+            'overall_status': run.overall_status,
+            'pass_rate': pass_rate,
+            'result_json': run.result_json,
+            'executed_at': run.executed_at.isoformat() + 'Z'
+        }
+    }
+
+
+# ── Dashboard share endpoints ─────────────────────────────────────
+
+@app.post("/dashboard/share")
+async def create_dashboard_share(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create (or return existing) a persistent public dashboard token for the
+    logged-in user.  One token per user — idempotent.
+    """
+    try:
+        user = db.query(UserDB).filter(UserDB.username == current_user['username']).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        existing = db.query(DashboardShareDB).filter(
+            DashboardShareDB.user_id == user.user_id
+        ).first()
+
+        if existing:
+            return {'success': True, 'token': existing.token}
+
+        token = secrets.token_urlsafe(20)
+        share = DashboardShareDB(user_id=user.user_id, token=token)
+        db.add(share)
+        db.commit()
+        return {'success': True, 'token': token}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dashboard/{token}")
+async def get_shared_dashboard(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint — no authentication required.
+    Returns full dashboard data (stats + recent 20 runs) for the given token.
+    """
+    try:
+        share = db.query(DashboardShareDB).filter(
+            DashboardShareDB.token == token
+        ).first()
+        if not share:
+            raise HTTPException(status_code=404, detail="Dashboard not found")
+
+        user = db.query(UserDB).filter(UserDB.user_id == share.user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        all_runs = db.query(TestRunSessionDB).filter(
+            TestRunSessionDB.user_id == share.user_id
+        ).all()
+
+        total_runs   = len(all_runs)
+        total_passed = sum(r.passed for r in all_runs)
+        total_failed = sum(r.failed for r in all_runs)
+        total_tests  = total_passed + total_failed
+        pass_rate    = round((total_passed / total_tests * 100), 1) if total_tests > 0 else 0
+
+        # Module breakdown
+        modules: dict = {}
+        for r in all_runs:
+            modules[r.module] = modules.get(r.module, 0) + 1
+
+        # 7-day daily trend
+        from collections import defaultdict
+        daily: dict = defaultdict(lambda: {'passed': 0, 'failed': 0})
+        cutoff = datetime.utcnow() - timedelta(days=7)
+        for r in all_runs:
+            if r.executed_at >= cutoff:
+                day = r.executed_at.strftime('%Y-%m-%d')
+                daily[day]['passed'] += r.passed
+                daily[day]['failed'] += r.failed
+
+        trend = []
+        for i in range(6, -1, -1):
+            day = (datetime.utcnow() - timedelta(days=i)).strftime('%Y-%m-%d')
+            trend.append({'date': day, 'passed': daily[day]['passed'], 'failed': daily[day]['failed']})
+
+        # Recent 20 runs
+        recent = (
+            db.query(TestRunSessionDB)
+            .filter(TestRunSessionDB.user_id == share.user_id)
+            .order_by(TestRunSessionDB.executed_at.desc())
+            .limit(20)
+            .all()
+        )
+        recent_runs = [
+            {
+                'session_id':     r.session_id,
+                'module':         r.module,
+                'api_url':        r.api_url,
+                'total_tests':    r.total_tests,
+                'passed':         r.passed,
+                'failed':         r.failed,
+                'overall_status': r.overall_status,
+                'executed_at':    r.executed_at.isoformat() + 'Z',
+            }
+            for r in recent
+        ]
+
+        return {
+            'success':     True,
+            'username':    user.username,
+            'total_runs':  total_runs,
+            'total_passed': total_passed,
+            'total_failed': total_failed,
+            'pass_rate':   pass_rate,
+            'modules':     modules,
+            'daily_trend': trend,
+            'recent_runs': recent_runs,
+            'refreshed_at': datetime.utcnow().isoformat() + 'Z',
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -19,6 +19,9 @@ import {
   Download
 } from 'lucide-react';
 
+import { saveTestRun } from './testHistoryUtils.js';
+import RecentRuns from './RecentRuns.jsx';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const FuzzTestingApp = ({ user, onLogout }) => {
@@ -153,6 +156,14 @@ const FuzzTestingApp = ({ user, onLogout }) => {
       const data = await response.json();
       setProgress(80);
       setResults(data);
+      saveTestRun({
+        module: 'fuzz',
+        apiUrl: apiUrl,
+        totalTests: data.summary?.total ?? 0,
+        passed: data.summary?.passed ?? 0,
+        failed: data.summary?.failed ?? 0,
+        overallStatus: (data.summary?.failed ?? 0) === 0 ? 'PASS' : 'FAIL'
+      });
       addLog(`Completed: ${data.summary.passed}/${data.summary.total} tests passed`, data.summary.passed === data.summary.total ? 'success' : 'warning');
       setProgress(100);
       setActiveTab('results');
@@ -295,6 +306,16 @@ const FuzzTestingApp = ({ user, onLogout }) => {
             >
               <Activity className="w-5 h-5 inline-block mr-2" />
               Logs ({logs.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-6 py-3 font-semibold transition-all ${
+                activeTab === 'history'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              History
             </button>
           </div>
 
@@ -519,6 +540,13 @@ const FuzzTestingApp = ({ user, onLogout }) => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* History Tab */}
+          {activeTab === 'history' && (
+            <div className="bg-slate-900/30 rounded-xl p-4">
+              <RecentRuns module="fuzz" />
             </div>
           )}
         </div>

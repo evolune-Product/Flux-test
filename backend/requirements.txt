@@ -21,3 +21,6 @@ email-validator
 pydantic
 reportlab
 pillow
+beautifulsoup4
+lxml
+playwright

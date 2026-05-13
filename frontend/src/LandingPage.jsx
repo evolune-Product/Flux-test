@@ -47,7 +47,6 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [toast, setToast] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showVersionPopup, setShowVersionPopup] = useState(true);
 
   // Show error toast if OAuth failed
   useEffect(() => {
@@ -58,26 +57,6 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       });
     }
   }, [authError]);
-
-  // Check if user has seen the version popup before
-  useEffect(() => {
-    const hasSeenPopup = localStorage.getItem('hasSeenVersionPopup');
-    if (hasSeenPopup) {
-      setShowVersionPopup(false);
-    }
-  }, []);
-
-  // Auto-hide version popup after 10 seconds and mark as seen
-  useEffect(() => {
-    if (showVersionPopup) {
-      const timer = setTimeout(() => {
-        setShowVersionPopup(false);
-        localStorage.setItem('hasSeenVersionPopup', 'true');
-      }, 10000); // 10 seconds
-
-      return () => clearTimeout(timer);
-    }
-  }, [showVersionPopup]);
   const [stats, setStats] = useState({
     users: 0,
     testsRun: 0,
@@ -1405,62 +1384,6 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         `}</style>
       </footer>
 
-      {/* Version Popup */}
-      {showVersionPopup && (
-        <div className="fixed bottom-6 right-6 z-[100] animate-slide-up">
-          <div className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-1 shadow-2xl shadow-purple-500/50 animate-glow">
-            <div className="bg-slate-900 rounded-xl p-6 relative overflow-hidden">
-              {/* Animated background effects */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl animate-pulse"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl animate-pulse delay-500"></div>
-
-              {/* Close button */}
-              <button
-                onClick={() => {
-                  setShowVersionPopup(false);
-                  localStorage.setItem('hasSeenVersionPopup', 'true');
-                }}
-                className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors z-10"
-              >
-                <X size={20} />
-              </button>
-
-              {/* Content */}
-              <div className="relative z-10 max-w-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg animate-float">
-                    <Rocket size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white">Hey There! 👋</h3>
-                    <p className="text-xs text-purple-300">Exciting News!</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    You're using <span className="font-bold text-blue-400">Evo-TFX Version 1</span>
-                  </p>
-                  <p className="text-white font-semibold text-base">
-                    🚀 Version 2 releasing very soon!
-                  </p>
-                  <p className="text-purple-300 text-sm font-medium">
-                    Stay tuned for amazing new features...
-                  </p>
-                </div>
-
-                {/* Progress bar for 10 seconds */}
-                <div className="mt-4 w-full h-1 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full animate-progress"
-                    style={{ width: '0%' }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Toast Notification */}
       {toast && (

@@ -15,7 +15,8 @@ import {
   GitCompare,
   FileText,
   Database,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react';
 
 function TestingTypesLanding({ user, onLogout }) {
@@ -176,6 +177,22 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: '/auto-discovery',
       color: 'emerald'
+    },
+    {
+      id: 'vibe-testing',
+      title: 'Vibe Testing',
+      description: 'AI-powered exploratory testing from real artifacts. Crawl web apps, analyze screenshots, upload source code, or drop an APK to instantly generate test scenarios.',
+      icon: Sparkles,
+      gradient: 'from-fuchsia-600 via-violet-600 to-indigo-600',
+      features: [
+        'Web App Crawler + GPT-4o',
+        'Screenshot UI Analysis',
+        'ZIP/Source Code Upload',
+        'APK Manifest Analysis',
+        'Instant Test Scenarios'
+      ],
+      route: '/vibe-testing',
+      color: 'fuchsia'
     }
   ];
 
@@ -1271,6 +1288,7 @@ function TestingTypesLanding({ user, onLogout }) {
           </div>
         </div>
       </div>
+
     </div>
   );
 }

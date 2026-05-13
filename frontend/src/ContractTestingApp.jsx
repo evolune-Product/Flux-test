@@ -20,6 +20,8 @@ import {
   Sparkles
 } from 'lucide-react';
 
+import { saveTestRun } from './testHistoryUtils.js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const ContractTestingApp = ({ user, onLogout }) => {
@@ -298,6 +300,14 @@ const ContractTestingApp = ({ user, onLogout }) => {
       if (response.ok) {
         const data = await response.json();
         setVerificationResult(data);
+        saveTestRun({
+          module: 'contract',
+          apiUrl: providerForm.provider_url,
+          totalTests: 1,
+          passed: data.passed ? 1 : 0,
+          failed: data.passed ? 0 : 1,
+          overallStatus: data.passed ? 'PASS' : 'FAIL'
+        });
 
         if (data.passed) {
           addLog('✅ Provider verification PASSED!', 'success');

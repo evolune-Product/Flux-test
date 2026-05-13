@@ -10,9 +10,14 @@ import RegressionTestingApp from './RegressionTestingApp.jsx';
 import ContractTestingApp from './ContractTestingApp.jsx';
 import GraphQLTestingApp from './GraphQLTestingApp.jsx';
 import AutoDiscoveryApp from './AutoDiscoveryApp.jsx';
+import VibeTestingApp from './VibeTestingApp.jsx';
+import TestHistoryApp from './TestHistoryApp.jsx';
+import SharedReportApp from './SharedReportApp.jsx';
+import SharedDashboardApp from './SharedDashboardApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
 import LandingPage from './LandingPage.jsx';
 import MobileBlocker from './MobileBlocker.jsx';
+import ErrorBoundary from './ErrorBoundary.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -418,6 +423,18 @@ function AppWrapper() {
     );
   }
 
+  // Public report page — no authentication required
+  const reportMatch = window.location.pathname.match(/^\/report\/([a-zA-Z0-9_-]+)/);
+  if (reportMatch) {
+    return <SharedReportApp token={reportMatch[1]} />;
+  }
+
+  // Public shared dashboard — no authentication required
+  const dashMatch = window.location.pathname.match(/^\/dashboard\/([a-zA-Z0-9_-]+)/);
+  if (dashMatch) {
+    return <SharedDashboardApp token={dashMatch[1]} />;
+  }
+
   // If not logged in, show Landing Page
   if (!user) {
     return (
@@ -432,16 +449,18 @@ function AppWrapper() {
     <MobileBlocker>
       <Router>
         <Routes>
-          <Route path="/" element={<TestingTypesLanding user={user} onLogout={handleLogout} />} />
-          <Route path="/functional" element={<App user={user} onLogout={handleLogout} />} />
-          <Route path="/smoke" element={<SmokeTestingApp user={user} onLogout={handleLogout} />} />
-          <Route path="/performance" element={<PerformanceTestingApp user={user} onLogout={handleLogout} />} />
-          <Route path="/chaos" element={<ChaosTestingApp user={user} onLogout={handleLogout} />} />
-          <Route path="/fuzz" element={<FuzzTestingApp user={user} onLogout={handleLogout} />} />
-          <Route path="/regression" element={<RegressionTestingApp user={user} onLogout={handleLogout} />} />
-          <Route path="/contract" element={<ContractTestingApp user={user} onLogout={handleLogout} />} />
-          <Route path="/graphql" element={<GraphQLTestingApp user={user} onLogout={handleLogout} />} />
-          <Route path="/auto-discovery" element={<AutoDiscoveryApp user={user} onLogout={handleLogout} />} />
+          <Route path="/" element={<ErrorBoundary><TestingTypesLanding user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/functional" element={<ErrorBoundary><App user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/smoke" element={<ErrorBoundary><SmokeTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/performance" element={<ErrorBoundary><PerformanceTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/chaos" element={<ErrorBoundary><ChaosTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/fuzz" element={<ErrorBoundary><FuzzTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/regression" element={<ErrorBoundary><RegressionTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/contract" element={<ErrorBoundary><ContractTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/graphql" element={<ErrorBoundary><GraphQLTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/auto-discovery" element={<ErrorBoundary><AutoDiscoveryApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/vibe-testing" element={<ErrorBoundary><VibeTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/history" element={<ErrorBoundary><TestHistoryApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

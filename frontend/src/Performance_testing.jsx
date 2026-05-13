@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, Zap, TrendingUp, AlertCircle, Clock, Users, Target, Repeat, Home, ArrowLeft, Github, FileText, BarChart3, Settings } from 'lucide-react';
 import GitHubIntegration from './GitHubIntegration.jsx';
+import { saveTestRun } from './testHistoryUtils.js';
+import RecentRuns from './RecentRuns.jsx';
 
 const PerformanceTestingApp = () => {
   const navigate = useNavigate();
@@ -281,6 +283,15 @@ const PerformanceTestingApp = () => {
       };
 
       setResults(finalResults);
+      saveTestRun({
+        module: 'performance',
+        apiUrl: apiEndpoint,
+        totalTests: finalResults.totalRequests,
+        passed: finalResults.successCount,
+        failed: finalResults.failureCount,
+        durationMs: Math.round(totalDuration * 1000),
+        overallStatus: finalResults.failureCount === 0 ? 'PASS' : 'FAIL'
+      });
       addLog(`Test completed successfully!`, 'success');
       addLog(`Total Duration: ${totalDuration.toFixed(2)}s | Throughput: ${throughput.toFixed(2)} req/s`, 'info');
       
@@ -592,6 +603,16 @@ const PerformanceTestingApp = () => {
                     <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{logs.length}</span>
                   )}
                 </button>
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                    activeTab === 'history'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                  }`}
+                >
+                  History
+                </button>
               </div>
             </div>
 
@@ -754,6 +775,13 @@ const PerformanceTestingApp = () => {
                       ))
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* History Tab */}
+              {activeTab === 'history' && (
+                <div className="py-2">
+                  <RecentRuns module="performance" />
                 </div>
               )}
             </div>

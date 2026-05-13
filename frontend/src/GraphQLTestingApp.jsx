@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp } from 'lucide-react';
 import Toast from './Toast';
+import { saveTestRun } from './testHistoryUtils.js';
+import RecentRuns from './RecentRuns.jsx';
 
 const GraphQLTestingApp = () => {
   const [step, setStep] = useState(1);
@@ -192,6 +194,14 @@ const GraphQLTestingApp = () => {
       }
 
       setTestResults(data);
+      saveTestRun({
+        module: 'graphql',
+        apiUrl: graphqlEndpoint,
+        totalTests: data.summary?.total ?? 0,
+        passed: data.summary?.passed ?? 0,
+        failed: data.summary?.failed ?? 0,
+        overallStatus: (data.summary?.failed ?? 0) === 0 ? 'PASS' : 'FAIL'
+      });
       showToast('Tests completed successfully!', 'success');
       setStep(4);
     } catch (error) {
@@ -833,6 +843,11 @@ const GraphQLTestingApp = () => {
                   New Test
                 </button>
               </div>
+            </div>
+
+            {/* Recent Runs History */}
+            <div className="bg-gray-800/50 rounded-lg p-5 border border-gray-700/50 mb-6">
+              <RecentRuns module="graphql" />
             </div>
 
             {/* Detailed Results */}

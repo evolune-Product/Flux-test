@@ -4,6 +4,8 @@ import { ChevronRight, Check, Settings, Lock, Zap, Play, Download, RefreshCw, Fi
 import Profile from './Profile.jsx';
 import GitHubIntegration from './GitHubIntegration.jsx';
 import AIAnalysisPanel from './AIAnalysisPanel.jsx';
+import { saveTestRun } from './testHistoryUtils.js';
+import RecentRuns from './RecentRuns.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -87,6 +89,7 @@ function App({ user, onLogout }) {
   const [showGitHub, setShowGitHub] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [apiUrl, setApiUrl] = useState('https://jsonplaceholder.typicode.com/posts');
+  const [httpMethod, setHttpMethod] = useState('GET');
   const [sampleData, setSampleData] = useState('{\n  "title": "Test Post",\n  "body": "This is a test",\n  "userId": 1\n}');
   const [timeout, setTimeout] = useState(10);
   const [authConfig, setAuthConfig] = useState({ type: 'none' });
@@ -133,6 +136,14 @@ function App({ user, onLogout }) {
     { num: 4, icon: '▶️', title: 'Run Tests', desc: 'Execute & view' },
     { num: 5, icon: '📊', title: 'Results', desc: 'Download reports' }
   ];
+
+  // Highest step the user is allowed to navigate to, based on what they've actually completed.
+  // Step 1 → need a URL. Step 2 (auth) is optional so URL unlocks step 3 too.
+  // Step 4 → need confirmed test cases. Step 5 → need test results.
+  const maxAllowedStep = testResults !== null ? 5
+    : testCases.length > 0                    ? 4
+    : apiUrl.trim().length > 0                ? 3
+    : 1;
 
   // Warn user before leaving if there's unsaved data
   useEffect(() => {
@@ -194,6 +205,9 @@ function App({ user, onLogout }) {
 
   // Reset preview when navigating backwards
   const handleStepChange = (stepNumber) => {
+    // Block forward navigation beyond what the user has actually completed
+    if (stepNumber > maxAllowedStep) return;
+
     // Clear test preview if going back to step 1 or 2
     if (stepNumber < 3) {
       setShowTestPreview(false);
@@ -201,12 +215,12 @@ function App({ user, onLogout }) {
       setSelectedTests([]);
       setStatusMessage('');
     }
-    
+
     // Clear test results if going back before step 5
     if (stepNumber < 5) {
       setTestResults(null);
     }
-    
+
     setCurrentStep(stepNumber);
   };
 
@@ -230,6 +244,7 @@ function App({ user, onLogout }) {
         credentials: 'include',
         body: JSON.stringify({
           api_url: apiUrl,
+          http_method: httpMethod,
           sample_data: sampleJson,
           num_tests: numTests,
           test_types: selectedTypes,
@@ -437,6 +452,7 @@ function App({ user, onLogout }) {
         },
         body: JSON.stringify({
           base_url: apiUrl,
+          http_method: httpMethod,
           auth_config: authConfig,
           timeout: timeout,
           test_cases: testCases
@@ -452,6 +468,16 @@ function App({ user, onLogout }) {
       if (data.results) {
         setTestResults(data);
         setStatusMessage('✅ Tests completed!');
+        // Save run to history (fire-and-forget)
+        const passedCount = data.results.filter(r => r.status === 'PASS').length;
+        saveTestRun({
+          module: 'functional',
+          apiUrl: apiUrl,
+          totalTests: data.results.length,
+          passed: passedCount,
+          failed: data.results.length - passedCount,
+          overallStatus: passedCount === data.results.length ? 'PASS' : 'FAIL'
+        });
         setTimeout(() => {
           setCurrentStep(5);
         }, 1500);
@@ -533,35 +559,49 @@ function App({ user, onLogout }) {
         </button>
 
         <div className="space-y-3">
-          {steps.map(step => (
-            <button
-              key={step.num}
-              onClick={() => handleStepChange(step.num)}
-              className={`w-full text-left p-4 rounded-xl transition-all shadow-lg ${
-                currentStep === step.num
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 border-2 border-purple-400 shadow-purple-500/50 scale-105'
-                  : currentStep > step.num
-                  ? 'bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/40'
-                  : 'bg-white/5 hover:bg-white/10 border border-white/10'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{step.icon}</span>
-                <div>
-                  <div className="font-semibold">{step.title}</div>
-                  <div className={`text-xs ${currentStep === step.num ? 'text-blue-100' : 'text-blue-200'}`}>{step.desc}</div>
+          {steps.map(step => {
+            const isActive   = currentStep === step.num;
+            const isComplete = step.num < currentStep && step.num <= maxAllowedStep;
+            const isLocked   = step.num > maxAllowedStep;
+            return (
+              <button
+                key={step.num}
+                onClick={() => handleStepChange(step.num)}
+                disabled={isLocked}
+                className={`w-full text-left p-4 rounded-xl transition-all shadow-lg ${
+                  isLocked
+                    ? 'bg-white/3 border border-white/8 opacity-40 cursor-not-allowed'
+                    : isActive
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 border-2 border-purple-400 shadow-purple-500/50 scale-105'
+                    : isComplete
+                    ? 'bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/40'
+                    : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {isLocked ? (
+                    <Lock size={20} className="text-slate-500 flex-shrink-0" />
+                  ) : isComplete ? (
+                    <Check size={20} className="text-green-400 flex-shrink-0" />
+                  ) : (
+                    <span className="text-2xl">{step.icon}</span>
+                  )}
+                  <div>
+                    <div className="font-semibold">{step.title}</div>
+                    <div className={`text-xs ${isActive ? 'text-blue-100' : 'text-blue-200'}`}>{step.desc}</div>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         <div className="mt-8 pt-8 border-t border-white/20">
-          <div className="text-sm mb-2 font-semibold">Progress: {Math.round((currentStep / 5) * 100)}%</div>
+          <div className="text-sm mb-2 font-semibold">Progress: {Math.round(((maxAllowedStep - 1) / 4) * 100)}%</div>
           <div className="w-full bg-white/20 rounded-full h-2.5 shadow-inner">
             <div
               className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 h-2.5 rounded-full transition-all duration-500 shadow-lg"
-              style={{ width: `${(currentStep / 5) * 100}%` }}
+              style={{ width: `${((maxAllowedStep - 1) / 4) * 100}%` }}
             />
           </div>
         </div>
@@ -591,7 +631,7 @@ function App({ user, onLogout }) {
           {currentStep === 1 && (
             <div>
               <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
-                🎯 Step 1: Configure Your API
+                🎯 Configure Your API
               </h1>
               <p className="text-gray-300 mb-8 text-lg">Enter your API endpoint details to get started</p>
 
@@ -599,13 +639,46 @@ function App({ user, onLogout }) {
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <h3 className="text-lg font-semibold mb-4 text-white">🌐 API Endpoint</h3>
-                    <input
-                      type="text"
-                      value={apiUrl}
-                      onChange={(e) => setApiUrl(e.target.value)}
-                      className="w-full p-3 bg-white/10 border border-purple-400/30 text-white placeholder-gray-400 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-lg"
-                      placeholder="https://api.example.com/v1/resources"
-                    />
+
+                    {/* HTTP Method selector */}
+                    <div className="flex gap-1.5 mb-3 flex-wrap">
+                      {['GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(m => {
+                        const colors = {
+                          GET:     'bg-green-500/80  border-green-400/60  text-white',
+                          POST:    'bg-blue-500/80   border-blue-400/60   text-white',
+                          PUT:     'bg-yellow-500/80 border-yellow-400/60 text-white',
+                          PATCH:   'bg-orange-500/80 border-orange-400/60 text-white',
+                          DELETE:  'bg-red-500/80    border-red-400/60    text-white',
+                          OPTIONS: 'bg-purple-500/80 border-purple-400/60 text-white',
+                        };
+                        const inactive = 'bg-white/10 border-white/20 text-gray-400 hover:bg-white/20 hover:text-white';
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => setHttpMethod(m)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${httpMethod === m ? colors[m] : inactive}`}
+                          >
+                            {m}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* URL input */}
+                    <div className="flex items-center gap-2">
+                      <span className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                        {GET:'bg-green-500/80 border-green-400/60',POST:'bg-blue-500/80 border-blue-400/60',PUT:'bg-yellow-500/80 border-yellow-400/60',PATCH:'bg-orange-500/80 border-orange-400/60',DELETE:'bg-red-500/80 border-red-400/60',OPTIONS:'bg-purple-500/80 border-purple-400/60'}[httpMethod]
+                      } text-white`}>
+                        {httpMethod}
+                      </span>
+                      <input
+                        type="text"
+                        value={apiUrl}
+                        onChange={(e) => setApiUrl(e.target.value)}
+                        className="flex-1 p-3 bg-white/10 border border-purple-400/30 text-white placeholder-gray-400 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-lg"
+                        placeholder="https://api.example.com/v1/resources"
+                      />
+                    </div>
 
                     <h3 className="text-lg font-semibold mb-4 mt-6 text-white">📝 Sample Data Structure</h3>
                     <textarea
@@ -660,7 +733,7 @@ function App({ user, onLogout }) {
           {currentStep === 2 && (
             <div>
               <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
-                🔒 Step 2: Authentication Setup
+                🔒 Authentication Setup
               </h1>
               <p className="text-gray-300 mb-8 text-lg">Configure authentication if your API requires it</p>
 
@@ -759,7 +832,7 @@ function App({ user, onLogout }) {
           {currentStep === 3 && (
             <div>
               <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
-                ⚙️ Step 3: Generate AI Tests
+                ⚙️ Generate AI Tests
               </h1>
               <p className="text-gray-300 mb-8 text-lg">Let AI create intelligent test cases for your API</p>
 
@@ -1280,7 +1353,7 @@ function App({ user, onLogout }) {
           {currentStep === 4 && (
             <div>
               <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
-                ▶️ Step 4: Run Tests
+                ▶️ Run Tests
               </h1>
               <p className="text-gray-300 mb-8 text-lg">Execute your test suite and view real-time results</p>
 
@@ -1335,7 +1408,7 @@ function App({ user, onLogout }) {
           {currentStep === 5 && testResults && (
             <div>
               <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
-                📊 Step 5: Results & Reports
+                📊 Results & Reports
               </h1>
               <p className="text-gray-300 mb-8 text-lg">View detailed results and download reports</p>
 
@@ -1403,6 +1476,11 @@ function App({ user, onLogout }) {
                   <Github size={20} />
                   Save Results to GitHub Repository
                 </button>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-6 mb-6 border border-white/20">
+                <h3 className="text-lg font-semibold mb-4 text-white">📋 Previous Runs</h3>
+                <RecentRuns module="functional" />
               </div>
 
               <div className="flex justify-center gap-4">

@@ -19,6 +19,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import GitHubIntegration from './GitHubIntegration';
+import { saveTestRun } from './testHistoryUtils.js';
+import RecentRuns from './RecentRuns.jsx';
 
 const ChaosTestingApp = () => {
   const navigate = useNavigate();
@@ -418,6 +420,15 @@ const ChaosTestingApp = () => {
       };
 
       setResults(testResults);
+      saveTestRun({
+        module: 'chaos',
+        apiUrl: apiEndpoint,
+        totalTests: testResults.totalRequests,
+        passed: testResults.successCount,
+        failed: testResults.failureCount,
+        durationMs: Math.round(totalTime * 1000),
+        overallStatus: testResults.failureCount === 0 ? 'PASS' : 'FAIL'
+      });
       addLog(`Test completed in ${totalTime.toFixed(2)}s`, 'success');
       addLog(`Success: ${successCount}, Failures: ${failureCount}, Chaos Injected: ${chaosInjectedCount}`, 'info');
 
@@ -758,6 +769,16 @@ const ChaosTestingApp = () => {
             >
               Logs ({logs.length})
             </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-4 py-2 transition-all ${
+                activeTab === 'history'
+                  ? 'border-b-2 border-blue-400 text-blue-400'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              History
+            </button>
           </div>
 
           {/* Results Tab */}
@@ -972,6 +993,13 @@ const ChaosTestingApp = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* History Tab */}
+          {activeTab === 'history' && (
+            <div className="bg-slate-900/30 rounded-xl p-4">
+              <RecentRuns module="chaos" />
             </div>
           )}
         </div>

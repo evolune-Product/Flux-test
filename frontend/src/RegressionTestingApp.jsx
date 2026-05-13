@@ -20,6 +20,8 @@ import {
   Minus
 } from 'lucide-react';
 
+import { saveTestRun } from './testHistoryUtils.js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const RegressionTestingApp = ({ user, onLogout }) => {
@@ -294,6 +296,14 @@ const RegressionTestingApp = ({ user, onLogout }) => {
       if (response.ok) {
         const data = await response.json();
         setTestResults(data);
+        saveTestRun({
+          module: 'regression',
+          apiUrl: selectedBaseline?.api_url || 'regression baseline',
+          totalTests: data.summary?.total_checks ?? 1,
+          passed: data.passed ? (data.summary?.total_checks ?? 1) : (data.summary?.total_checks ?? 1) - (data.summary?.failed_checks ?? 1),
+          failed: data.summary?.failed_checks ?? (data.passed ? 0 : 1),
+          overallStatus: data.passed ? 'PASS' : 'FAIL'
+        });
 
         if (data.passed) {
           addLog('✅ Regression test PASSED! No regressions detected.', 'success');

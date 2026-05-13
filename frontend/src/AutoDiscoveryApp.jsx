@@ -28,6 +28,9 @@ import {
   Check
 } from 'lucide-react';
 
+import { saveTestRun } from './testHistoryUtils.js';
+import RecentRuns from './RecentRuns.jsx';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 function AutoDiscoveryApp({ user, onLogout }) {
@@ -233,6 +236,14 @@ function AutoDiscoveryApp({ user, onLogout }) {
 
       const data = await response.json();
       setTestResults(data);
+      saveTestRun({
+        module: 'auto-discovery',
+        apiUrl: targetUrl,
+        totalTests: data.total ?? 0,
+        passed: data.passed ?? 0,
+        failed: data.failed ?? 0,
+        overallStatus: (data.failed ?? 0) === 0 ? 'PASS' : 'FAIL'
+      });
 
     } catch (err) {
       setError(err.message);
@@ -1022,6 +1033,11 @@ function AutoDiscoveryApp({ user, onLogout }) {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Recent Runs History */}
+            <div className="bg-slate-800/30 border border-slate-700/30 rounded-2xl p-5 mb-6">
+              <RecentRuns module="auto-discovery" />
             </div>
 
             {/* Action Buttons */}

@@ -21,6 +21,8 @@ import {
   Shield
 } from 'lucide-react';
 import GitHubIntegration from './GitHubIntegration.jsx';
+import { saveTestRun } from './testHistoryUtils.js';
+import RecentRuns from './RecentRuns.jsx';
 
 const SmokeTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -329,6 +331,17 @@ const SmokeTestingApp = ({ user, onLogout }) => {
       };
 
       setResults(finalResults);
+
+      // Save run to history (fire-and-forget)
+      saveTestRun({
+        module: 'smoke',
+        apiUrl: endpoints[0]?.url || 'multiple endpoints',
+        totalTests: finalResults.totalTests,
+        passed: finalResults.passed,
+        failed: finalResults.failed,
+        durationMs: Math.round((finalResults.totalTime || 0) * 1000),
+        overallStatus: finalResults.overallStatus === 'PASS' ? 'PASS' : 'FAIL'
+      });
 
       // Final summary
       if (finalResults.overallStatus === 'PASS') {
@@ -741,6 +754,16 @@ const SmokeTestingApp = ({ user, onLogout }) => {
               >
                 Logs ({logs.length})
               </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`px-4 py-2 transition-all ${
+                  activeTab === 'history'
+                    ? 'border-b-2 border-blue-400 text-blue-400'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                History
+              </button>
             </div>
 
             {/* Results Tab */}
@@ -878,6 +901,13 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* History Tab */}
+            {activeTab === 'history' && (
+              <div className="bg-slate-900/30 rounded-xl p-4">
+                <RecentRuns module="smoke" />
               </div>
             )}
           </div>
