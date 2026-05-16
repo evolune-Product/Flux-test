@@ -359,147 +359,125 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
 
-      {/* Navigation - Creative Floating Design */}
-      <nav className="relative z-50 sticky top-0">
-        {/* Navbar background with glassmorphism */}
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" />
+      {/* Navigation - Floating Notch */}
+      <nav className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
+        {/* Outer glow halo */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[80px] bg-purple-600/20 blur-3xl rounded-full pointer-events-none" />
 
-        {/* Animated aurora bottom border */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500 to-transparent" style={{ animation: 'navAuroraSlide 3s ease-in-out infinite' }} />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500 to-transparent" style={{ animation: 'navAuroraSlide 3s ease-in-out 1s infinite' }} />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-500 to-transparent" style={{ animation: 'navAuroraSlide 3s ease-in-out 2s infinite' }} />
-        </div>
+        {/* Notch pill wrapper */}
+        <div className="relative w-full max-w-5xl">
+          {/* Animated gradient border */}
+          <div
+            className="absolute -inset-[1px] rounded-2xl opacity-70"
+            style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0.5), rgba(168,85,247,0.5), rgba(236,72,153,0.5), rgba(59,130,246,0.5))', backgroundSize: '300% 100%', animation: 'navBorderShift 4s linear infinite' }}
+          />
 
-        {/* Floating particles in navbar */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-2 left-[20%] w-1 h-1 bg-blue-400/40 rounded-full" style={{ animation: 'navParticle 4s ease-in-out infinite' }} />
-          <div className="absolute top-4 left-[40%] w-1.5 h-1.5 bg-purple-400/30 rounded-full" style={{ animation: 'navParticle 5s ease-in-out 1s infinite' }} />
-          <div className="absolute top-3 left-[60%] w-1 h-1 bg-pink-400/40 rounded-full" style={{ animation: 'navParticle 4.5s ease-in-out 0.5s infinite' }} />
-          <div className="absolute top-5 left-[80%] w-1 h-1 bg-cyan-400/30 rounded-full" style={{ animation: 'navParticle 3.5s ease-in-out 1.5s infinite' }} />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo with orbital ring */}
-            <div className="flex items-center gap-3 group cursor-pointer">
-              <div className="relative">
-                {/* Outer orbital ring */}
-                <div
-                  className="absolute -inset-2 rounded-full border border-purple-500/30 group-hover:border-purple-400/50 transition-colors"
-                  style={{ animation: 'logoOrbit 8s linear infinite' }}
-                >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full shadow-lg shadow-purple-500/50" />
-                </div>
-
-                {/* Glow effect */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl opacity-0 group-hover:opacity-50 blur-lg transition-all duration-500" />
-
-                {/* Logo container */}
-                <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/50 group-hover:shadow-purple-500/80 transition-all duration-300 group-hover:scale-110 overflow-hidden">
-                  {/* Shine sweep */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                  <Shield size={26} className="text-white relative z-10" />
-                  <Activity size={14} className="text-white/80 absolute bottom-1 right-1" />
-                </div>
-              </div>
-
-              <div className="relative">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ backgroundSize: '200% 200%', animation: 'navGradientShift 4s ease-in-out infinite' }}>
-                  Evo-TFX
-                </h1>
-                <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors flex items-center gap-1">
-                  by EvoluneEdgeTech
-                  <span className="inline-block w-1 h-1 bg-green-400 rounded-full" style={{ animation: 'navPulse 2s ease-in-out infinite' }} />
-                </p>
-              </div>
+          {/* Glass pill */}
+          <div className="relative bg-slate-900/75 backdrop-blur-2xl rounded-2xl px-6 py-3 shadow-2xl shadow-black/40">
+            {/* Floating particles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+              <div className="absolute top-2 left-[20%] w-1 h-1 bg-blue-400/40 rounded-full" style={{ animation: 'navParticle 4s ease-in-out infinite' }} />
+              <div className="absolute top-4 left-[40%] w-1.5 h-1.5 bg-purple-400/30 rounded-full" style={{ animation: 'navParticle 5s ease-in-out 1s infinite' }} />
+              <div className="absolute top-3 left-[60%] w-1 h-1 bg-pink-400/40 rounded-full" style={{ animation: 'navParticle 4.5s ease-in-out 0.5s infinite' }} />
+              <div className="absolute top-2 left-[80%] w-1 h-1 bg-cyan-400/30 rounded-full" style={{ animation: 'navParticle 3.5s ease-in-out 1.5s infinite' }} />
             </div>
 
-            {/* Navigation links as floating pills */}
-            <div className="hidden md:flex items-center gap-2">
-              {[
-                { href: '#features', label: 'Features', gradient: 'from-blue-500 to-cyan-500' },
-                { href: '#why-us', label: 'Why Us', gradient: 'from-purple-500 to-pink-500' },
-                { href: '#testimonials', label: 'Testimonials', gradient: 'from-pink-500 to-orange-500' },
-                { href: '#pricing', label: 'Pricing', gradient: 'from-emerald-500 to-teal-500' }
-              ].map((item, index) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="group relative px-4 py-2 rounded-full transition-all duration-300"
-                  style={{ animation: `navItemFloat 3s ease-in-out ${index * 0.2}s infinite` }}
+            {/* Row */}
+            <div className="relative flex items-center justify-between">
+              {/* Logo with orbital ring */}
+              <div className="flex items-center gap-3 group cursor-pointer">
+                <div className="relative">
+                  <div
+                    className="absolute -inset-2 rounded-full border border-purple-500/30 group-hover:border-purple-400/50 transition-colors"
+                    style={{ animation: 'logoOrbit 8s linear infinite' }}
+                  >
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full shadow-lg shadow-purple-500/50" />
+                  </div>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl opacity-0 group-hover:opacity-50 blur-lg transition-all duration-500" />
+                  <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/50 group-hover:shadow-purple-500/80 transition-all duration-300 group-hover:scale-110 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    <Shield size={26} className="text-white relative z-10" />
+                    <Activity size={14} className="text-white/80 absolute bottom-1 right-1" />
+                  </div>
+                </div>
+                <div className="relative">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ backgroundSize: '200% 200%', animation: 'navGradientShift 4s ease-in-out infinite' }}>
+                    Evo-TFX
+                  </h1>
+                  <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors flex items-center gap-1">
+                    by EvoluneEdgeTech
+                    <span className="inline-block w-1 h-1 bg-green-400 rounded-full" style={{ animation: 'navPulse 2s ease-in-out infinite' }} />
+                  </p>
+                </div>
+              </div>
+
+              {/* Navigation links */}
+              <div className="hidden md:flex items-center gap-2">
+                {[
+                  { href: '#features', label: 'Features', gradient: 'from-blue-500 to-cyan-500' },
+                  { href: '#why-us', label: 'Why Us', gradient: 'from-purple-500 to-pink-500' },
+                  { href: '#testimonials', label: 'Testimonials', gradient: 'from-pink-500 to-orange-500' },
+                  { href: '#pricing', label: 'Pricing', gradient: 'from-emerald-500 to-teal-500' }
+                ].map((item, index) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="group relative px-4 py-2 rounded-full transition-all duration-300"
+                    style={{ animation: `navItemFloat 3s ease-in-out ${index * 0.2}s infinite` }}
+                  >
+                    <div className={`absolute inset-0 rounded-full bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300`} />
+                    <div className="absolute inset-0 rounded-full border border-transparent group-hover:border-white/20 transition-colors duration-300" />
+                    <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-all duration-300 scale-0 group-hover:scale-100`} />
+                    <span className="relative text-gray-300 group-hover:text-white transition-colors font-medium text-sm">
+                      {item.label}
+                    </span>
+                  </a>
+                ))}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-3">
+                {/* Login */}
+                <button
+                  onClick={() => handleGetStarted('login')}
+                  className="group relative px-5 py-2.5 rounded-full font-medium overflow-hidden transition-all duration-300"
                 >
-                  {/* Hover background */}
-                  <div className={`absolute inset-0 rounded-full bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300`} />
+                  <div className="absolute inset-0 rounded-full border border-white/20 group-hover:border-white/40 transition-colors" />
+                  <div className="absolute inset-0 rounded-full bg-white/0 group-hover:bg-white/10 transition-colors" />
+                  <div
+                    className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ animation: 'logoOrbit 3s linear infinite' }}
+                  >
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-white/50 rounded-full" />
+                  </div>
+                  <span className="relative text-white text-sm">Login</span>
+                </button>
 
-                  {/* Border that appears on hover */}
-                  <div className={`absolute inset-0 rounded-full border border-transparent group-hover:border-white/20 transition-colors duration-300`} />
-
-                  {/* Active indicator dot */}
-                  <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-100 scale-0`} />
-
-                  <span className="relative text-gray-300 group-hover:text-white transition-colors font-medium text-sm">
-                    {item.label}
+                {/* Get Started */}
+                <button
+                  onClick={() => handleGetStarted('signup')}
+                  className="group relative px-6 py-2.5 rounded-full font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30"
+                >
+                  <div
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
+                    style={{ backgroundSize: '200% 200%', animation: 'navGradientShift 3s ease-in-out infinite' }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-50 blur-md transition-opacity" />
+                  <span className="relative text-white text-sm flex items-center gap-2">
+                    Get Started Free
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </span>
-                </a>
-              ))}
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-3">
-              {/* Login button with orbital effect */}
-              <button
-                onClick={() => handleGetStarted('login')}
-                className="group relative px-5 py-2.5 rounded-full font-medium overflow-hidden transition-all duration-300"
-              >
-                {/* Border */}
-                <div className="absolute inset-0 rounded-full border border-white/20 group-hover:border-white/40 transition-colors" />
-
-                {/* Hover fill */}
-                <div className="absolute inset-0 rounded-full bg-white/0 group-hover:bg-white/10 transition-colors" />
-
-                {/* Orbiting dot on hover */}
-                <div
-                  className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ animation: 'logoOrbit 3s linear infinite' }}
-                >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-white/50 rounded-full" />
-                </div>
-
-                <span className="relative text-white text-sm">Login</span>
-              </button>
-
-              {/* Get Started button with animated gradient */}
-              <button
-                onClick={() => handleGetStarted('signup')}
-                className="group relative px-6 py-2.5 rounded-full font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30"
-              >
-                {/* Animated gradient background */}
-                <div
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
-                  style={{ backgroundSize: '200% 200%', animation: 'navGradientShift 3s ease-in-out infinite' }}
-                />
-
-                {/* Shine sweep */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-
-                {/* Glow pulse */}
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-50 blur-md transition-opacity" />
-
-                <span className="relative text-white text-sm flex items-center gap-2">
-                  Get Started Free
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </span>
-              </button>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Navbar animations */}
         <style>{`
-          @keyframes navAuroraSlide {
-            0%, 100% { transform: translateX(-100%); opacity: 0; }
-            50% { transform: translateX(100%); opacity: 1; }
+          @keyframes navBorderShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
           }
           @keyframes navParticle {
             0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
@@ -527,7 +505,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       </nav>
 
       {/* Hero Section - Creative Design */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 pt-12 pb-16 overflow-hidden">
+      <section className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-16 overflow-hidden">
         {/* Animated background elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Floating geometric shapes */}

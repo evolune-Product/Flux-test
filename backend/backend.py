@@ -444,6 +444,16 @@ except ImportError:
     pass  # Feature disabled if module missing
 
 # ============================================
+# FULLSEND MODULE (Optional - fully isolated)
+# Drop a URL → full-send all 5 test suites → GPT-4 unified report
+# ============================================
+try:
+    from full_send import full_send_router
+    app.include_router(full_send_router, prefix="/fullsend", tags=["FullSend"])
+except ImportError:
+    pass  # Feature disabled if module missing
+
+# ============================================
 # AUTHENTICATION HELPER FUNCTIONS
 # ============================================
 

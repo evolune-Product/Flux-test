@@ -14,6 +14,8 @@ import VibeTestingApp from './VibeTestingApp.jsx';
 import TestHistoryApp from './TestHistoryApp.jsx';
 import SharedReportApp from './SharedReportApp.jsx';
 import SharedDashboardApp from './SharedDashboardApp.jsx';
+import FullSendApp from './FullSendApp.jsx';
+import FullSendReportApp from './FullSendReportApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
 import LandingPage from './LandingPage.jsx';
 import MobileBlocker from './MobileBlocker.jsx';
@@ -435,6 +437,12 @@ function AppWrapper() {
     return <SharedDashboardApp token={dashMatch[1]} />;
   }
 
+  // FullSend public report — no authentication required
+  const fullSendReportMatch = window.location.pathname.match(/^\/fullsend-report\/([a-zA-Z0-9_-]+)/);
+  if (fullSendReportMatch) {
+    return <FullSendReportApp token={fullSendReportMatch[1]} />;
+  }
+
   // If not logged in, show Landing Page
   if (!user) {
     return (
@@ -461,6 +469,7 @@ function AppWrapper() {
           <Route path="/auto-discovery" element={<ErrorBoundary><AutoDiscoveryApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/vibe-testing" element={<ErrorBoundary><VibeTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/history" element={<ErrorBoundary><TestHistoryApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/fullsend" element={<ErrorBoundary><FullSendApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

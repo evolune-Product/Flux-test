@@ -16,7 +16,8 @@ import {
   FileText,
   Database,
   Search,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 
 function TestingTypesLanding({ user, onLogout }) {
@@ -34,6 +35,23 @@ function TestingTypesLanding({ user, onLogout }) {
   }, []);
 
   const testingTypes = [
+    {
+      id: 'fullsend',
+      title: 'FullSend — URL Scan',
+      description: 'Drop any URL. Get a full app health report in under 60 seconds. Playwright crawls every page, then smoke, AI functional, visual, security, and performance tests run in parallel. GPT-4 writes the report. No config.',
+      icon: Globe,
+      gradient: 'from-violet-600 via-fuchsia-600 to-pink-600',
+      features: [
+        'Zero Config — Just a URL',
+        'Playwright Headless Crawl',
+        '5 Test Suites in Parallel',
+        'GPT-4 Unified Report',
+        'Public Shareable Link'
+      ],
+      route: '/fullsend',
+      color: 'violet',
+      badge: 'NEW'
+    },
     {
       id: 'functional',
       title: 'Functional API Testing',
@@ -621,6 +639,14 @@ function TestingTypesLanding({ user, onLogout }) {
                         <div className={`absolute -inset-4 rounded-full border-2 border-dashed border-white/30 animate-pulse`} />
                       )}
                     </div>
+
+                    {/* NEW badge (FullSend only) */}
+                    {testType.badge && (
+                      <div className="absolute -top-2 -right-2 z-20 px-1.5 py-0.5 rounded-full text-[9px] font-black text-white"
+                        style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 0 8px rgba(124,58,237,0.6)' }}>
+                        {testType.badge}
+                      </div>
+                    )}
 
                     {/* Label below orb */}
                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">

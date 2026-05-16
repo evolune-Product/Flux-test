@@ -63,7 +63,12 @@
       "Bash(echo:*)",
       "Bash(npx vite build:*)",
       "Bash(ping:*)",
-      "WebFetch(domain:testcomet.io)"
+      "WebFetch(domain:testcomet.io)",
+      "Bash(E:Evolune_ProductsEvo-TFX-mainbackendvenvScriptspip.exe install isort)",
+      "Bash(npx --yes tsc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(node_modules/.bin/vite build:*)"
     ],
     "deny": [],
     "ask": []
