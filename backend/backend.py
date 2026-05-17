@@ -394,16 +394,18 @@ class FlowDB(Base):
     nodes       = Column(JSONB, nullable=False, default=list)
     edges       = Column(JSONB, nullable=False, default=list)
     share_token = Column(String, nullable=True, unique=True, index=True)
+    custom_slug = Column(String, nullable=True, unique=True, index=True)
     created_at  = Column(DateTime, default=datetime.utcnow)
     updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
 
-# Migration: add share_token column to saved_flows if it was created before this column existed
+# Migrations
 try:
     from sqlalchemy import text as _text
     with engine.connect() as _conn:
         _conn.execute(_text("ALTER TABLE saved_flows ADD COLUMN IF NOT EXISTS share_token VARCHAR UNIQUE"))
+        _conn.execute(_text("ALTER TABLE saved_flows ADD COLUMN IF NOT EXISTS custom_slug VARCHAR UNIQUE"))
         _conn.commit()
 except Exception:
     pass
@@ -729,6 +731,7 @@ class UpdateFlowRequest(BaseModel):
     base_url: Optional[str] = None
     auth_config: Optional[Dict[str, Any]] = None
     nodes: Optional[List[Dict[str, Any]]] = None
+
     edges: Optional[List[Dict[str, Any]]] = None
 
 # ============================================
@@ -5283,13 +5286,20 @@ async def delete_flow(
     return {"deleted": True}
 
 
+class ShareFlowRequest(BaseModel):
+    custom_slug: Optional[str] = None  # None = auto-generate from flow name, "" = clear slug
+
 @app.post("/flows/{flow_id}/share")
 async def generate_share_token(
     flow_id: str,
+    request: ShareFlowRequest = None,
     username: str = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
-    """Generate (or return existing) share token for a flow."""
+    """Generate share token. Uses custom_slug if provided, else auto-generates from flow name."""
+    import re
+    if request is None:
+        request = ShareFlowRequest()
     user = db.query(UserDB).filter(UserDB.username == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -5298,14 +5308,39 @@ async def generate_share_token(
         raise HTTPException(status_code=404, detail="Flow not found")
     if not flow.share_token:
         flow.share_token = secrets.token_urlsafe(16)
-        db.commit()
-    return {"share_token": flow.share_token}
+
+    if request.custom_slug is not None:
+        # User provided a slug — validate and apply it
+        slug = request.custom_slug.strip()
+        if slug:
+            if not re.match(r'^[a-zA-Z0-9_-]{1,60}$', slug):
+                raise HTTPException(status_code=400, detail="Slug must be 1–60 chars: letters, numbers, hyphens, underscores only.")
+            conflict = db.query(FlowDB).filter(FlowDB.custom_slug == slug, FlowDB.flow_id != flow_id).first()
+            if conflict:
+                raise HTTPException(status_code=409, detail="That URL is already taken. Try a different name.")
+            flow.custom_slug = slug
+        else:
+            flow.custom_slug = None
+    elif not flow.custom_slug:
+        # Auto-generate from flow name
+        slug = flow.name.lower()
+        slug = re.sub(r'[^a-z0-9]+', '-', slug)
+        slug = slug.strip('-')[:60]
+        if slug and db.query(FlowDB).filter(FlowDB.custom_slug == slug, FlowDB.flow_id != flow_id).first():
+            slug = slug[:54] + '-' + flow.flow_id[:5]
+        if slug:
+            flow.custom_slug = slug
+
+    db.commit()
+    return {"share_token": flow.share_token, "custom_slug": flow.custom_slug}
 
 
 @app.get("/flows/shared/{token}")
 async def get_shared_flow(token: str, db: Session = Depends(get_db)):
-    """Public endpoint — return flow structure by share token (no auth required)."""
-    flow = db.query(FlowDB).filter(FlowDB.share_token == token).first()
+    """Public endpoint — return flow structure by share token or custom slug (no auth required)."""
+    flow = db.query(FlowDB).filter(
+        (FlowDB.share_token == token) | (FlowDB.custom_slug == token)
+    ).first()
     if not flow:
         raise HTTPException(status_code=404, detail="Shared flow not found or link has expired")
     owner = db.query(UserDB).filter(UserDB.user_id == flow.user_id).first()
@@ -5330,7 +5365,9 @@ async def fork_shared_flow(
 ):
     """Fork a shared flow into the authenticated user's workspace."""
     import uuid
-    source = db.query(FlowDB).filter(FlowDB.share_token == token).first()
+    source = db.query(FlowDB).filter(
+        (FlowDB.share_token == token) | (FlowDB.custom_slug == token)
+    ).first()
     if not source:
         raise HTTPException(status_code=404, detail="Shared flow not found")
     user = db.query(UserDB).filter(UserDB.username == username).first()

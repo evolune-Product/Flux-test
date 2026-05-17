@@ -57,6 +57,8 @@ function VisualBuilderInner({ user, onLogout }) {
   const [shareLink, setShareLink] = useState('');
   const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [customSlugInput, setCustomSlugInput] = useState('');
+  const [slugError, setSlugError] = useState('');
 
   const reactFlowWrapper = useRef(null);
 
@@ -441,30 +443,47 @@ function VisualBuilderInner({ user, onLogout }) {
     }
   }, [currentFlowId]);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     if (!currentFlowId) {
       alert('Save the flow first before sharing.');
       return;
     }
-    setIsSharing(true);
+    // Pre-fill slug from flow name
+    const autoSlug = currentFlowName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 60);
+    setCustomSlugInput(autoSlug);
     setShareLink('');
     setShareCopied(false);
+    setSlugError('');
     setShowShareModal(true);
+  }, [currentFlowId, currentFlowName]);
+
+  const handleGenerateLink = useCallback(async () => {
+    setIsSharing(true);
+    setSlugError('');
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/flows/${currentFlowId}/share`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ custom_slug: customSlugInput.trim() || null }),
       });
       const data = await res.json();
-      const url = `${window.location.origin}/flow/${data.share_token}`;
-      setShareLink(url);
+      if (!res.ok) {
+        setSlugError(data.detail || 'Failed to generate link.');
+        return;
+      }
+      const slug = data.custom_slug || data.share_token;
+      setShareLink(`${window.location.origin}/flow/${slug}`);
     } catch {
-      setShareLink('');
+      setSlugError('Failed to generate link. Try again.');
     } finally {
       setIsSharing(false);
     }
-  }, [currentFlowId]);
+  }, [currentFlowId, customSlugInput]);
 
   const copyShareLink = useCallback(() => {
     if (!shareLink) return;
@@ -1011,61 +1030,81 @@ function VisualBuilderInner({ user, onLogout }) {
               </button>
             </div>
 
-            <p className="text-slate-400 text-sm">
-              Anyone with this link can view the flow diagram and fork it into their own workspace.
-            </p>
-
-            <div className="flex flex-col gap-2">
-              {/* Share modes info */}
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { icon: '👁', label: 'View', desc: 'See the flow diagram' },
-                  { icon: '⑂', label: 'Fork', desc: 'Copy to their workspace' },
-                ].map((m) => (
-                  <div key={m.label} className="bg-slate-700/40 border border-slate-700/40 rounded-xl p-3 flex items-start gap-2">
-                    <span className="text-lg">{m.icon}</span>
-                    <div>
-                      <p className="text-white text-xs font-semibold">{m.label}</p>
-                      <p className="text-slate-500 text-xs">{m.desc}</p>
-                    </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { icon: '👁', label: 'View', desc: 'See the flow diagram' },
+                { icon: '⑂', label: 'Fork', desc: 'Copy to their workspace' },
+              ].map((m) => (
+                <div key={m.label} className="bg-slate-700/40 border border-slate-700/40 rounded-xl p-3 flex items-start gap-2">
+                  <span className="text-lg">{m.icon}</span>
+                  <div>
+                    <p className="text-white text-xs font-semibold">{m.label}</p>
+                    <p className="text-slate-500 text-xs">{m.desc}</p>
                   </div>
-                ))}
-              </div>
-
-              {/* Link box */}
-              <div className="mt-1">
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Shareable Link</label>
-                {isSharing ? (
-                  <div className="flex items-center justify-center h-10 bg-slate-700/40 border border-slate-600/40 rounded-lg">
-                    <Loader className="w-4 h-4 animate-spin text-slate-500" />
-                  </div>
-                ) : shareLink ? (
-                  <div className="flex gap-2">
-                    <input
-                      readOnly
-                      value={shareLink}
-                      className="flex-1 bg-slate-700/60 border border-slate-600/60 rounded-lg px-3 py-2 text-xs text-slate-300 font-mono focus:outline-none select-all"
-                      onClick={(e) => e.target.select()}
-                    />
-                    <button
-                      onClick={copyShareLink}
-                      className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                        shareCopied
-                          ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-                          : 'bg-purple-600 hover:bg-purple-500 text-white'
-                      }`}
-                    >
-                      {shareCopied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-red-400 text-xs">Failed to generate link. Try again.</p>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
 
+            {/* Custom URL slug */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Custom URL</label>
+              <div className="flex items-center gap-0 bg-slate-700/60 border border-slate-600/60 rounded-lg overflow-hidden focus-within:border-indigo-500/60">
+                <span className="text-slate-500 text-xs px-3 py-2 shrink-0 border-r border-slate-600/60 bg-slate-700/40">
+                  /flow/
+                </span>
+                <input
+                  type="text"
+                  value={customSlugInput}
+                  onChange={(e) => {
+                    setCustomSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''));
+                    setShareLink('');
+                    setSlugError('');
+                  }}
+                  placeholder="your-flow-name"
+                  className="flex-1 bg-transparent px-3 py-2 text-xs text-white font-mono focus:outline-none"
+                  maxLength={60}
+                />
+              </div>
+              {slugError && <p className="text-red-400 text-xs">{slugError}</p>}
+              <p className="text-slate-600 text-xs">Letters, numbers, hyphens and underscores only.</p>
+            </div>
+
+            {/* Link output */}
+            {shareLink ? (
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Shareable Link</label>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={shareLink}
+                    className="flex-1 bg-slate-700/60 border border-slate-600/60 rounded-lg px-3 py-2 text-xs text-slate-300 font-mono focus:outline-none"
+                    onClick={(e) => e.target.select()}
+                  />
+                  <button
+                    onClick={copyShareLink}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      shareCopied
+                        ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+                        : 'bg-purple-600 hover:bg-purple-500 text-white'
+                    }`}
+                  >
+                    {shareCopied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleGenerateLink}
+                disabled={isSharing || !customSlugInput.trim()}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-semibold text-white transition-all"
+              >
+                {isSharing ? <Loader className="w-4 h-4 animate-spin" /> : <Link className="w-4 h-4" />}
+                {isSharing ? 'Generating…' : 'Generate Link'}
+              </button>
+            )}
+
             <p className="text-xs text-slate-600">
-              The link is permanent until you delete the flow. Credentials and base URL are not exposed in the public view.
+              Permanent until you delete the flow. Credentials and base URL are not exposed publicly.
             </p>
           </div>
         </div>
