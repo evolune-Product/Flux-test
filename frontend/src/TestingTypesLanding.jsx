@@ -17,7 +17,8 @@ import {
   Database,
   Search,
   Sparkles,
-  Globe
+  Globe,
+  Workflow
 } from 'lucide-react';
 
 function TestingTypesLanding({ user, onLogout }) {
@@ -211,6 +212,23 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: '/vibe-testing',
       color: 'fuchsia'
+    },
+    {
+      id: 'flow-builder',
+      title: 'Visual Flow Builder',
+      description: 'Drag-and-drop canvas for multi-step API flows. Chain requests, extract response variables, and inject them into subsequent steps.',
+      icon: Workflow,
+      gradient: 'from-teal-600 via-cyan-600 to-blue-600',
+      features: [
+        'Drag-and-Drop Canvas',
+        'Request Chaining',
+        'Variable Extraction',
+        '{{token}} Injection',
+        'Per-node Results'
+      ],
+      route: '/flow-builder',
+      color: 'teal',
+      badge: 'NEW'
     }
   ];
 

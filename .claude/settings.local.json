@@ -68,7 +68,14 @@
       "Bash(npx --yes tsc:*)",
       "Bash(npx tsc:*)",
       "Bash(node_modules/.bin/tsc:*)",
-      "Bash(node_modules/.bin/vite build:*)"
+      "Bash(node_modules/.bin/vite build:*)",
+      "Bash(node -e:*)",
+      "Bash(claude mcp add:*)",
+      "mcp__miro__board_search_boards",
+      "mcp__miro__layout_get_dsl",
+      "mcp__miro__board_create",
+      "mcp__miro__layout_create",
+      "mcp__miro__layout_read"
     ],
     "deny": [],
     "ask": []

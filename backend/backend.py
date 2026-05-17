@@ -381,7 +381,32 @@ class DashboardShareDB(Base):
     token      = Column(String, unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+# Saved Flow model (Visual Builder)
+class FlowDB(Base):
+    __tablename__ = "saved_flows"
+
+    flow_id     = Column(String, primary_key=True)
+    user_id     = Column(String, ForeignKey('users.user_id'), nullable=False)
+    name        = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    base_url    = Column(String, nullable=False, default='')
+    auth_config = Column(JSONB, nullable=True)
+    nodes       = Column(JSONB, nullable=False, default=list)
+    edges       = Column(JSONB, nullable=False, default=list)
+    share_token = Column(String, nullable=True, unique=True, index=True)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 Base.metadata.create_all(bind=engine)
+
+# Migration: add share_token column to saved_flows if it was created before this column existed
+try:
+    from sqlalchemy import text as _text
+    with engine.connect() as _conn:
+        _conn.execute(_text("ALTER TABLE saved_flows ADD COLUMN IF NOT EXISTS share_token VARCHAR UNIQUE"))
+        _conn.commit()
+except Exception:
+    pass
 
 def get_db():
     db = SessionLocal()
@@ -658,6 +683,53 @@ class AIContractGenerationRequest(BaseModel):
     description: str  # Plain English description of the contract
     include_request_schema: bool = True
     include_response_headers: bool = False
+
+# ============================================
+# VISUAL FLOW BUILDER MODELS
+# ============================================
+
+class FlowNodeData(BaseModel):
+    label: str
+    method: str = "GET"
+    endpoint: str = ""
+    description: str = ""
+    expected_status: int = 200
+    body: Optional[Dict[str, Any]] = None
+    params: Optional[Dict[str, Any]] = None
+    headers: Optional[Dict[str, Any]] = None
+    extractions: Optional[List[Dict[str, str]]] = None  # [{name, jsonpath}]
+
+class FlowNode(BaseModel):
+    id: str
+    data: FlowNodeData
+
+class FlowEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+
+class RunFlowRequest(BaseModel):
+    base_url: str
+    auth_config: Dict[str, Any] = {}
+    timeout: int = 10
+    nodes: List[FlowNode]
+    edges: List[FlowEdge]
+
+class SaveFlowRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    base_url: str = ''
+    auth_config: Dict[str, Any] = {}
+    nodes: List[Dict[str, Any]] = []
+    edges: List[Dict[str, Any]] = []
+
+class UpdateFlowRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    base_url: Optional[str] = None
+    auth_config: Optional[Dict[str, Any]] = None
+    nodes: Optional[List[Dict[str, Any]]] = None
+    edges: Optional[List[Dict[str, Any]]] = None
 
 # ============================================
 # AUTHENTICATION ENDPOINTS
@@ -4959,6 +5031,496 @@ async def get_shared_dashboard(
             'daily_trend': trend,
             'recent_runs': recent_runs,
             'refreshed_at': datetime.utcnow().isoformat() + 'Z',
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# VISUAL FLOW BUILDER — HELPER FUNCTIONS
+# ============================================
+
+def _topological_sort(nodes: List[FlowNode], edges: List[FlowEdge]) -> List[str]:
+    """Kahn's BFS topological sort. Returns node IDs in execution order.
+    Raises ValueError if a cycle is detected."""
+    from collections import deque
+
+    node_ids = {n.id for n in nodes}
+    in_degree: Dict[str, int] = {nid: 0 for nid in node_ids}
+    adjacency: Dict[str, List[str]] = {nid: [] for nid in node_ids}
+
+    for edge in edges:
+        if edge.source in node_ids and edge.target in node_ids:
+            adjacency[edge.source].append(edge.target)
+            in_degree[edge.target] += 1
+
+    queue = deque(nid for nid in node_ids if in_degree[nid] == 0)
+    order: List[str] = []
+
+    while queue:
+        current = queue.popleft()
+        order.append(current)
+        for neighbor in adjacency[current]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+
+    if len(order) != len(node_ids):
+        raise ValueError("Flow graph contains a cycle — execution aborted.")
+
+    return order
+
+
+def _substitute_variables(value: Any, var_store: Dict[str, Any]) -> Any:
+    """Recursively replace {{varName}} tokens in strings, dicts, and lists."""
+    import re
+    if isinstance(value, str):
+        def replacer(match):
+            key = match.group(1).strip()
+            return str(var_store.get(key, match.group(0)))
+        return re.sub(r'\{\{(\w+)\}\}', replacer, value)
+    elif isinstance(value, dict):
+        return {k: _substitute_variables(v, var_store) for k, v in value.items()}
+    elif isinstance(value, list):
+        return [_substitute_variables(item, var_store) for item in value]
+    return value
+
+
+def _find_unresolved_vars(value: Any) -> List[str]:
+    """Return list of {{varName}} tokens that survived substitution (i.e. were not in var_store)."""
+    import re
+    found: List[str] = []
+    if isinstance(value, str):
+        found.extend(re.findall(r'\{\{(\w+)\}\}', value))
+    elif isinstance(value, dict):
+        for v in value.values():
+            found.extend(_find_unresolved_vars(v))
+    elif isinstance(value, list):
+        for item in value:
+            found.extend(_find_unresolved_vars(item))
+    return found
+
+
+def _resolve_jsonpath(data: Any, path: str) -> Optional[str]:
+    """Minimal $.key.nested[0].field JSONPath resolver. Returns str or None."""
+    import re
+    if not path.startswith('$'):
+        return None
+    # Remove leading '$'
+    segments_raw = path[1:]
+    # Split by '.' but keep array indices
+    parts = re.split(r'\.(?![^\[]*\])', segments_raw)
+    current = data
+    for part in parts:
+        if not part:
+            continue
+        # Array index notation: key[0]
+        arr_match = re.match(r'^(\w+)\[(\d+)\]$', part)
+        if arr_match:
+            key, idx = arr_match.group(1), int(arr_match.group(2))
+            if isinstance(current, dict):
+                current = current.get(key)
+            if isinstance(current, list):
+                current = current[idx] if idx < len(current) else None
+        elif part.isdigit():
+            idx = int(part)
+            if isinstance(current, list) and idx < len(current):
+                current = current[idx]
+            else:
+                return None
+        elif isinstance(current, dict):
+            current = current.get(part)
+        else:
+            return None
+        if current is None:
+            return None
+    if current is None:
+        return None
+    return str(current)
+
+
+# ============================================
+# FLOW SAVE / LOAD (Visual Builder persistence)
+# ============================================
+
+@app.post("/flows")
+async def save_flow(
+    request: SaveFlowRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Save a new named flow for the authenticated user."""
+    import uuid
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    flow = FlowDB(
+        flow_id=str(uuid.uuid4()),
+        user_id=user.user_id,
+        name=request.name.strip(),
+        description=request.description,
+        base_url=request.base_url,
+        auth_config=request.auth_config,
+        nodes=request.nodes,
+        edges=request.edges,
+    )
+    db.add(flow)
+    db.commit()
+    db.refresh(flow)
+    return {
+        "flow_id": flow.flow_id,
+        "name": flow.name,
+        "created_at": flow.created_at.isoformat() + "Z",
+    }
+
+
+@app.get("/flows")
+async def list_flows(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """List all saved flows for the authenticated user (metadata only)."""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    flows = (
+        db.query(FlowDB)
+        .filter(FlowDB.user_id == user.user_id)
+        .order_by(FlowDB.updated_at.desc())
+        .all()
+    )
+    return {
+        "flows": [
+            {
+                "flow_id": f.flow_id,
+                "name": f.name,
+                "description": f.description,
+                "base_url": f.base_url,
+                "node_count": len(f.nodes) if f.nodes else 0,
+                "created_at": f.created_at.isoformat() + "Z",
+                "updated_at": f.updated_at.isoformat() + "Z",
+            }
+            for f in flows
+        ]
+    }
+
+
+@app.get("/flows/{flow_id}")
+async def get_flow(
+    flow_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Load a specific saved flow (full data)."""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    flow = db.query(FlowDB).filter(FlowDB.flow_id == flow_id, FlowDB.user_id == user.user_id).first()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Flow not found")
+    return {
+        "flow_id": flow.flow_id,
+        "name": flow.name,
+        "description": flow.description,
+        "base_url": flow.base_url,
+        "auth_config": flow.auth_config or {},
+        "nodes": flow.nodes or [],
+        "edges": flow.edges or [],
+        "created_at": flow.created_at.isoformat() + "Z",
+        "updated_at": flow.updated_at.isoformat() + "Z",
+    }
+
+
+@app.put("/flows/{flow_id}")
+async def update_flow(
+    flow_id: str,
+    request: UpdateFlowRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Update an existing saved flow."""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    flow = db.query(FlowDB).filter(FlowDB.flow_id == flow_id, FlowDB.user_id == user.user_id).first()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Flow not found")
+    if request.name is not None:
+        flow.name = request.name.strip()
+    if request.description is not None:
+        flow.description = request.description
+    if request.base_url is not None:
+        flow.base_url = request.base_url
+    if request.auth_config is not None:
+        flow.auth_config = request.auth_config
+    if request.nodes is not None:
+        flow.nodes = request.nodes
+    if request.edges is not None:
+        flow.edges = request.edges
+    flow.updated_at = datetime.utcnow()
+    db.commit()
+    return {"flow_id": flow.flow_id, "name": flow.name, "updated_at": flow.updated_at.isoformat() + "Z"}
+
+
+@app.delete("/flows/{flow_id}")
+async def delete_flow(
+    flow_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Delete a saved flow."""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    flow = db.query(FlowDB).filter(FlowDB.flow_id == flow_id, FlowDB.user_id == user.user_id).first()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Flow not found")
+    db.delete(flow)
+    db.commit()
+    return {"deleted": True}
+
+
+@app.post("/flows/{flow_id}/share")
+async def generate_share_token(
+    flow_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Generate (or return existing) share token for a flow."""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    flow = db.query(FlowDB).filter(FlowDB.flow_id == flow_id, FlowDB.user_id == user.user_id).first()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Flow not found")
+    if not flow.share_token:
+        flow.share_token = secrets.token_urlsafe(16)
+        db.commit()
+    return {"share_token": flow.share_token}
+
+
+@app.get("/flows/shared/{token}")
+async def get_shared_flow(token: str, db: Session = Depends(get_db)):
+    """Public endpoint — return flow structure by share token (no auth required)."""
+    flow = db.query(FlowDB).filter(FlowDB.share_token == token).first()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Shared flow not found or link has expired")
+    owner = db.query(UserDB).filter(UserDB.user_id == flow.user_id).first()
+    return {
+        "flow_id": flow.flow_id,
+        "name": flow.name,
+        "description": flow.description,
+        "node_count": len(flow.nodes) if flow.nodes else 0,
+        "nodes": flow.nodes or [],
+        "edges": flow.edges or [],
+        "owner": owner.username if owner else "unknown",
+        "created_at": flow.created_at.isoformat() + "Z",
+        "updated_at": flow.updated_at.isoformat() + "Z",
+    }
+
+
+@app.post("/flows/shared/{token}/fork")
+async def fork_shared_flow(
+    token: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Fork a shared flow into the authenticated user's workspace."""
+    import uuid
+    source = db.query(FlowDB).filter(FlowDB.share_token == token).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Shared flow not found")
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    forked = FlowDB(
+        flow_id=str(uuid.uuid4()),
+        user_id=user.user_id,
+        name=f"{source.name} (forked)",
+        description=source.description,
+        base_url=source.base_url,
+        auth_config=source.auth_config,
+        nodes=source.nodes,
+        edges=source.edges,
+    )
+    db.add(forked)
+    db.commit()
+    db.refresh(forked)
+    return {
+        "flow_id": forked.flow_id,
+        "name": forked.name,
+        "message": "Flow forked into your workspace successfully",
+    }
+
+
+# ============================================
+# POST /run-flow — Execute a Visual Flow
+# ============================================
+
+@app.post("/run-flow")
+async def run_flow(request: RunFlowRequest, username: str = Depends(verify_token)):
+    """Execute a visual flow: topological sort → variable substitution → HTTP requests → extraction."""
+    import requests as req_lib
+
+    try:
+        # 1. Topological sort
+        try:
+            execution_order = _topological_sort(request.nodes, request.edges)
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve))
+
+        # Build node lookup map
+        node_map = {n.id: n for n in request.nodes}
+
+        # 2. Build auth headers from auth_config
+        auth_headers: Dict[str, str] = {}
+        auth_cfg = request.auth_config or {}
+        auth_type = auth_cfg.get('type', 'none')
+
+        if auth_type == 'bearer':
+            token_val = auth_cfg.get('token', '')
+            if token_val:
+                auth_headers['Authorization'] = f'Bearer {token_val}'
+        elif auth_type == 'basic':
+            import base64
+            uname = auth_cfg.get('username', '')
+            passwd = auth_cfg.get('password', '')
+            if uname:
+                creds = base64.b64encode(f'{uname}:{passwd}'.encode()).decode()
+                auth_headers['Authorization'] = f'Basic {creds}'
+        elif auth_type == 'api_key':
+            header_name = auth_cfg.get('header_name', 'X-API-Key')
+            api_key_val = auth_cfg.get('api_key', '')
+            if api_key_val:
+                auth_headers[header_name] = api_key_val
+
+        # 3. Execute nodes in order
+        var_store: Dict[str, Any] = {}
+        results = []
+        session = req_lib.Session()
+        base_url = request.base_url.rstrip('/')
+
+        for node_id in execution_order:
+            node = node_map.get(node_id)
+            if not node:
+                continue
+
+            d = node.data
+
+            # Substitute variables into endpoint, body, params, headers
+            endpoint = _substitute_variables((d.endpoint or '').strip(), var_store)
+            body = _substitute_variables(d.body, var_store) if d.body else None
+            params = _substitute_variables(d.params, var_store) if d.params else None
+            node_headers = _substitute_variables(d.headers or {}, var_store)
+
+            # Merge auth headers (node headers take precedence)
+            merged_headers = {**auth_headers, **node_headers}
+
+            # Guard: fail immediately if any {{var}} was not resolved
+            unresolved = list(set(
+                _find_unresolved_vars(endpoint) +
+                _find_unresolved_vars(body) +
+                _find_unresolved_vars(node_headers)
+            ))
+            if unresolved:
+                var_list = ', '.join(f'{{{{{v}}}}}' for v in unresolved)
+                results.append({
+                    'node_id': node_id,
+                    'test': f'{d.method} {endpoint} — {d.label}',
+                    'status': 'FAIL',
+                    'details': f'Unresolved variable(s): {var_list}. Connect this node to the node that extracts these variables first.',
+                    'response_data': None,
+                    'extracted_vars': {},
+                })
+                continue
+
+            url = base_url + ('/' + endpoint.lstrip('/') if endpoint else '')
+
+            start_time = time.time()
+            actual_status = 0
+            response_body: Any = None
+            error_msg: Optional[str] = None
+
+            try:
+                req_kwargs: Dict[str, Any] = {
+                    'method': d.method.upper(),
+                    'url': url,
+                    'headers': merged_headers,
+                    'timeout': request.timeout,
+                }
+                if body is not None:
+                    req_kwargs['json'] = body
+                if params is not None:
+                    req_kwargs['params'] = params
+                resp = session.request(**req_kwargs)
+                elapsed = round(time.time() - start_time, 3)
+                actual_status = resp.status_code
+                try:
+                    response_body = resp.json()
+                except Exception:
+                    response_body = resp.text
+            except req_lib.exceptions.Timeout:
+                elapsed = round(time.time() - start_time, 3)
+                error_msg = f'Request timed out after {request.timeout}s'
+            except Exception as exc:
+                elapsed = round(time.time() - start_time, 3)
+                error_msg = str(exc)
+
+            # 4. Determine PASS/FAIL
+            if error_msg:
+                status = 'FAIL'
+                details = f'Error: {error_msg}'
+            elif actual_status == d.expected_status:
+                status = 'PASS'
+                details = f'Status: {actual_status} (expected {d.expected_status}), Time: {elapsed}s'
+            else:
+                status = 'FAIL'
+                details = f'Status: {actual_status} (expected {d.expected_status}), Time: {elapsed}s'
+
+            # 5. Run extractions
+            extracted_vars: Dict[str, Any] = {}
+            if status == 'PASS' and d.extractions and isinstance(response_body, (dict, list)):
+                for extraction in d.extractions:
+                    var_name = extraction.get('name', '').strip()
+                    jsonpath = extraction.get('jsonpath', '').strip()
+                    if var_name and jsonpath:
+                        value = _resolve_jsonpath(response_body, jsonpath)
+                        if value is not None:
+                            var_store[var_name] = value
+                            extracted_vars[var_name] = value
+
+            results.append({
+                'node_id': node_id,
+                'test': f'{d.method} {endpoint} — {d.label}',
+                'status': status,
+                'details': details,
+                'response_data': {
+                    'status': actual_status,
+                    'time': elapsed,
+                    'body': response_body,
+                },
+                'extracted_vars': extracted_vars,
+            })
+
+        # 6. Compute summary
+        total = len(results)
+        passed = sum(1 for r in results if r['status'] == 'PASS')
+        failed = total - passed
+        pass_rate = round((passed / total * 100) if total > 0 else 0, 1)
+
+        return {
+            'success': True,
+            'summary': {
+                'total': total,
+                'passed': passed,
+                'failed': failed,
+                'pass_rate': pass_rate,
+            },
+            'results': results,
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
         }
 
     except HTTPException:

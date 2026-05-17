@@ -16,6 +16,8 @@ import SharedReportApp from './SharedReportApp.jsx';
 import SharedDashboardApp from './SharedDashboardApp.jsx';
 import FullSendApp from './FullSendApp.jsx';
 import FullSendReportApp from './FullSendReportApp.jsx';
+import VisualBuilderApp from './VisualBuilderApp.jsx';
+import SharedFlowApp from './SharedFlowApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
 import LandingPage from './LandingPage.jsx';
 import MobileBlocker from './MobileBlocker.jsx';
@@ -425,6 +427,12 @@ function AppWrapper() {
     );
   }
 
+  // Public shared flow — no authentication required
+  const sharedFlowMatch = window.location.pathname.match(/^\/flow\/([a-zA-Z0-9_-]+)/);
+  if (sharedFlowMatch) {
+    return <SharedFlowApp token={sharedFlowMatch[1]} />;
+  }
+
   // Public report page — no authentication required
   const reportMatch = window.location.pathname.match(/^\/report\/([a-zA-Z0-9_-]+)/);
   if (reportMatch) {
@@ -470,6 +478,7 @@ function AppWrapper() {
           <Route path="/vibe-testing" element={<ErrorBoundary><VibeTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/history" element={<ErrorBoundary><TestHistoryApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/fullsend" element={<ErrorBoundary><FullSendApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/flow-builder" element={<ErrorBoundary><VisualBuilderApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
