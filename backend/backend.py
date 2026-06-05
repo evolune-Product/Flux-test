@@ -13,6 +13,7 @@ import io
 from io import BytesIO
 import os
 import secrets
+import uuid
 import time
 from dotenv import load_dotenv
 import httpx
@@ -398,6 +399,18 @@ class FlowDB(Base):
     created_at  = Column(DateTime, default=datetime.utcnow)
     updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+# Integration Testing Scenario model
+class IntegrationScenarioDB(Base):
+    __tablename__ = "integration_scenarios"
+    id          = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id     = Column(String, ForeignKey("users.user_id"))
+    name        = Column(String, nullable=False)
+    description = Column(String)
+    services    = Column(JSONB)   # [{id, name, base_url, auth_config}]
+    steps       = Column(JSONB)   # [{service_id, name, method, endpoint, body, params, headers, expected_status, extractions, assertions}]
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 Base.metadata.create_all(bind=engine)
 
 # Migrations
@@ -430,7 +443,7 @@ app = FastAPI(title="AI API Tester Backend", version="1.0.0")
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://fluxtest.evolune.in",
+    "https://flasqo.evolune.in",
     FRONTEND_URL
 ]
 allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
@@ -444,12 +457,14 @@ app.add_middleware(
 )
 
 # SessionMiddleware MUST be added last (so it executes first)
+_https_only = os.getenv('HTTPS_ONLY', 'False').lower() == 'true'
+_same_site = os.getenv('SESSION_SAME_SITE', 'lax' if not _https_only else 'none')
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
-    max_age=3600,  # Session expires after 1 hour
-    same_site="none",  # Changed from "lax" to "none" for cross-domain OAuth
-    https_only=True  # IMPORTANT: Must be True for HTTPS in production
+    max_age=3600,
+    same_site=_same_site,
+    https_only=_https_only
 )
 
 # ============================================
@@ -724,6 +739,40 @@ class SaveFlowRequest(BaseModel):
     auth_config: Dict[str, Any] = {}
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
+
+# ============================================
+# INTEGRATION TESTING MODELS
+# ============================================
+
+class IntegrationService(BaseModel):
+    id: str
+    name: str
+    base_url: str
+    auth_config: Dict[str, Any] = {}
+
+class IntegrationStep(BaseModel):
+    id: str
+    service_id: str
+    name: str
+    method: str = "GET"
+    endpoint: str = ""
+    body: Optional[Dict[str, Any]] = None
+    params: Optional[Dict[str, Any]] = None
+    headers: Optional[Dict[str, Any]] = None
+    expected_status: int = 200
+    extractions: List[Dict[str, Any]] = []
+    assertions: List[Dict[str, Any]] = []
+
+class RunIntegrationRequest(BaseModel):
+    services: List[IntegrationService]
+    steps: List[IntegrationStep]
+    timeout: int = 10
+
+class SaveIntegrationScenarioRequest(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    services: List[IntegrationService]
+    steps: List[IntegrationStep]
 
 class UpdateFlowRequest(BaseModel):
     name: Optional[str] = None
@@ -4184,7 +4233,7 @@ async def download_graphql_report(
                 "endpoint": endpoint,
                 "timestamp": datetime.utcnow().isoformat(),
                 "results": results,
-                "generated_by": "Evo-TFX GraphQL Testing"
+                "generated_by": "Flasqo GraphQL Testing"
             }
 
             return StreamingResponse(
@@ -5120,9 +5169,17 @@ def _resolve_jsonpath(data: Any, path: str) -> Optional[str]:
     for part in parts:
         if not part:
             continue
-        # Array index notation: key[0]
-        arr_match = re.match(r'^(\w+)\[(\d+)\]$', part)
-        if arr_match:
+        # Bare array index notation: [0]
+        bare_arr_match = re.match(r'^\[(\d+)\]$', part)
+        if bare_arr_match:
+            idx = int(bare_arr_match.group(1))
+            if isinstance(current, list) and idx < len(current):
+                current = current[idx]
+            else:
+                return None
+        # Array index with key notation: key[0]
+        elif re.match(r'^(\w+)\[(\d+)\]$', part):
+            arr_match = re.match(r'^(\w+)\[(\d+)\]$', part)
             key, idx = arr_match.group(1), int(arr_match.group(2))
             if isinstance(current, dict):
                 current = current.get(key)
@@ -5564,6 +5621,311 @@ async def run_flow(request: RunFlowRequest, username: str = Depends(verify_token
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# INTEGRATION TESTING ROUTES
+# ============================================
+
+@app.post("/run-integration-tests")
+async def run_integration_tests(request: RunIntegrationRequest):
+    """Execute a multi-service integration scenario."""
+    import requests as req_lib
+
+    try:
+        # Build service map
+        service_map = {svc.id: svc for svc in request.services}
+        var_store: Dict[str, Any] = {}
+        results = []
+        session = req_lib.Session()
+
+        for step in request.steps:
+            svc = service_map.get(step.service_id)
+            if not svc:
+                results.append({
+                    'step_id': step.id,
+                    'step_name': step.name,
+                    'service_id': step.service_id,
+                    'service_name': 'Unknown',
+                    'status': 'FAIL',
+                    'details': f'Service {step.service_id} not found in registry.',
+                    'extracted_vars': {},
+                    'ai_analysis': None,
+                })
+                continue
+
+            # Build auth headers for this service
+            auth_headers: Dict[str, str] = {}
+            auth_cfg = svc.auth_config or {}
+            auth_type = auth_cfg.get('type', 'none')
+            if auth_type == 'bearer':
+                token_val = auth_cfg.get('token', '')
+                if token_val:
+                    auth_headers['Authorization'] = f'Bearer {token_val}'
+            elif auth_type == 'basic':
+                import base64
+                uname = auth_cfg.get('username', '')
+                passwd = auth_cfg.get('password', '')
+                if uname:
+                    creds = base64.b64encode(f'{uname}:{passwd}'.encode()).decode()
+                    auth_headers['Authorization'] = f'Basic {creds}'
+            elif auth_type == 'api_key':
+                header_name = auth_cfg.get('header_name', 'X-API-Key')
+                api_key_val = auth_cfg.get('api_key', '')
+                if api_key_val:
+                    auth_headers[header_name] = api_key_val
+
+            # Substitute {{vars}} in endpoint, body, params, headers
+            endpoint = _substitute_variables((step.endpoint or '').strip(), var_store)
+            body = _substitute_variables(step.body, var_store) if step.body else None
+            params = _substitute_variables(step.params, var_store) if step.params else None
+            step_headers = _substitute_variables(step.headers or {}, var_store)
+            merged_headers = {**auth_headers, **step_headers}
+
+            base_url = svc.base_url.strip().rstrip('/')
+            url = base_url + ('/' + endpoint.lstrip('/') if endpoint else '')
+
+            start_time = time.time()
+            actual_status = 0
+            response_body: Any = None
+            error_msg: Optional[str] = None
+
+            try:
+                req_kwargs: Dict[str, Any] = {
+                    'method': step.method.upper(),
+                    'url': url,
+                    'headers': merged_headers,
+                    'timeout': request.timeout,
+                }
+                if body is not None:
+                    req_kwargs['json'] = body
+                if params is not None:
+                    req_kwargs['params'] = params
+                resp = session.request(**req_kwargs)
+                elapsed = round(time.time() - start_time, 3)
+                actual_status = resp.status_code
+                try:
+                    response_body = resp.json()
+                except Exception:
+                    response_body = resp.text
+            except req_lib.exceptions.Timeout:
+                elapsed = round(time.time() - start_time, 3)
+                error_msg = f'Request timed out after {request.timeout}s'
+            except Exception as exc:
+                elapsed = round(time.time() - start_time, 3)
+                error_msg = str(exc)
+
+            # Determine PASS/FAIL
+            if error_msg:
+                status = 'FAIL'
+                details = f'Error: {error_msg}'
+            elif actual_status == step.expected_status:
+                status = 'PASS'
+                details = f'Status: {actual_status} (expected {step.expected_status}), Time: {elapsed}s'
+            else:
+                status = 'FAIL'
+                details = f'Status: {actual_status} (expected {step.expected_status}), Time: {elapsed}s'
+
+            # Run assertions
+            assertion_failures = []
+            for assertion in (step.assertions or []):
+                a_type = assertion.get('type', '')
+                if a_type == 'status':
+                    op = assertion.get('operator', 'eq')
+                    expected_val = assertion.get('value')
+                    if op == 'eq' and actual_status != expected_val:
+                        assertion_failures.append(f'Status assertion failed: {actual_status} != {expected_val}')
+                elif a_type == 'body_field' and isinstance(response_body, (dict, list)):
+                    field = assertion.get('field', '')
+                    op = assertion.get('operator', 'eq')
+                    expected_val = assertion.get('value')
+                    actual_val = _resolve_jsonpath(response_body, field)
+                    if op == 'eq' and str(actual_val) != str(expected_val):
+                        assertion_failures.append(f'Body assertion failed: {field} = {actual_val}, expected {expected_val}')
+                    elif op == 'contains' and expected_val not in str(actual_val or ''):
+                        assertion_failures.append(f'Body assertion failed: {field} does not contain {expected_val}')
+                    elif op == 'exists' and actual_val is None:
+                        assertion_failures.append(f'Body assertion failed: {field} does not exist')
+
+            if assertion_failures:
+                status = 'FAIL'
+                details += ' | Assertions: ' + '; '.join(assertion_failures)
+
+            # Run extractions on PASS
+            extracted_vars: Dict[str, Any] = {}
+            if status == 'PASS' and step.extractions and isinstance(response_body, (dict, list)):
+                for extraction in step.extractions:
+                    var_name = extraction.get('name', '').strip()
+                    jsonpath = extraction.get('jsonpath', '').strip()
+                    if var_name and jsonpath:
+                        value = _resolve_jsonpath(response_body, jsonpath)
+                        if value is not None:
+                            var_store[var_name] = value
+                            extracted_vars[var_name] = value
+
+            # AI analysis on failure (if OpenAI key available)
+            ai_analysis = None
+            if status == 'FAIL' and OPENAI_API_KEY and openai:
+                try:
+                    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+                    ai_resp = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[{
+                            "role": "user",
+                            "content": (
+                                f"An integration test step failed.\n"
+                                f"Service: {svc.name} ({svc.base_url})\n"
+                                f"Step: {step.name}\n"
+                                f"Request: {step.method} {url}\n"
+                                f"Details: {details}\n"
+                                f"Response body: {str(response_body)[:500]}\n\n"
+                                "Provide a brief explanation of the likely cause and a suggested fix in 2-3 sentences."
+                            )
+                        }],
+                        max_tokens=200
+                    )
+                    ai_analysis = ai_resp.choices[0].message.content
+                except Exception:
+                    pass
+
+            results.append({
+                'step_id': step.id,
+                'step_name': step.name,
+                'service_id': svc.id,
+                'service_name': svc.name,
+                'status': status,
+                'details': details,
+                'extracted_vars': extracted_vars,
+                'ai_analysis': ai_analysis,
+            })
+
+        # Build per-service summary
+        service_summaries: Dict[str, Any] = {}
+        for svc in request.services:
+            svc_results = [r for r in results if r['service_id'] == svc.id]
+            svc_passed = sum(1 for r in svc_results if r['status'] == 'PASS')
+            service_summaries[svc.id] = {
+                'name': svc.name,
+                'total': len(svc_results),
+                'passed': svc_passed,
+                'failed': len(svc_results) - svc_passed,
+            }
+
+        total = len(results)
+        passed = sum(1 for r in results if r['status'] == 'PASS')
+        failed = total - passed
+        pass_rate = round((passed / total * 100) if total > 0 else 0.0, 1)
+
+        return {
+            'success': True,
+            'summary': {'total': total, 'passed': passed, 'failed': failed, 'pass_rate': pass_rate},
+            'service_summaries': service_summaries,
+            'results': results,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/integration-scenarios")
+async def save_integration_scenario(
+    request: SaveIntegrationScenarioRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    scenario = IntegrationScenarioDB(
+        id=str(uuid.uuid4()),
+        user_id=user.user_id,
+        name=request.name,
+        description=request.description,
+        services=[s.dict() for s in request.services],
+        steps=[s.dict() for s in request.steps],
+    )
+    db.add(scenario)
+    db.commit()
+    db.refresh(scenario)
+    return {
+        'id': scenario.id,
+        'name': scenario.name,
+        'description': scenario.description,
+        'services': scenario.services,
+        'steps': scenario.steps,
+        'created_at': scenario.created_at.isoformat(),
+    }
+
+
+@app.get("/integration-scenarios")
+async def list_integration_scenarios(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    scenarios = db.query(IntegrationScenarioDB).filter(
+        IntegrationScenarioDB.user_id == user.user_id
+    ).order_by(IntegrationScenarioDB.created_at.desc()).all()
+    return [
+        {
+            'id': s.id,
+            'name': s.name,
+            'description': s.description,
+            'services': s.services,
+            'steps': s.steps,
+            'created_at': s.created_at.isoformat(),
+        }
+        for s in scenarios
+    ]
+
+
+@app.get("/integration-scenarios/{scenario_id}")
+async def get_integration_scenario(
+    scenario_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    scenario = db.query(IntegrationScenarioDB).filter(
+        IntegrationScenarioDB.id == scenario_id,
+        IntegrationScenarioDB.user_id == user.user_id
+    ).first()
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    return {
+        'id': scenario.id,
+        'name': scenario.name,
+        'description': scenario.description,
+        'services': scenario.services,
+        'steps': scenario.steps,
+        'created_at': scenario.created_at.isoformat(),
+    }
+
+
+@app.delete("/integration-scenarios/{scenario_id}")
+async def delete_integration_scenario(
+    scenario_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    scenario = db.query(IntegrationScenarioDB).filter(
+        IntegrationScenarioDB.id == scenario_id,
+        IntegrationScenarioDB.user_id == user.user_id
+    ).first()
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    db.delete(scenario)
+    db.commit()
+    return {'success': True}
 
 
 if __name__ == "__main__":

@@ -110,14 +110,14 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       icon: Brain,
       title: 'AI Root Cause Analysis',
       description: 'GPT-4 powered failure analysis with severity classification, business impact, and fix recommendations',
-      gradient: 'from-blue-500 to-purple-600',
+      gradient: 'from-blue-500 to-indigo-600',
       delay: '50'
     },
     {
       icon: MessageSquare,
       title: 'Natural Language Tests',
       description: 'Describe tests in plain English - AI converts your words into executable test cases instantly',
-      gradient: 'from-purple-500 to-pink-600',
+      gradient: 'from-blue-500 to-indigo-600',
       delay: '100'
     },
     {
@@ -138,7 +138,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       icon: Users,
       title: 'Team Collaboration',
       description: 'Create teams, invite members, share test suites, and collaborate on API testing projects',
-      gradient: 'from-violet-500 to-fuchsia-600',
+      gradient: 'from-violet-500 to-blue-600',
       delay: '250'
     },
     {
@@ -166,14 +166,14 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       icon: Clock,
       title: 'State Persistence',
       description: 'All configurations auto-saved - resume exactly where you left off, even after refresh',
-      gradient: 'from-indigo-500 to-purple-600',
+      gradient: 'from-indigo-500 to-blue-600',
       delay: '450'
     },
     {
       icon: Copy,
       title: 'One-Click Sharing',
       description: 'Copy test results, analysis, and configurations to clipboard instantly for sharing',
-      gradient: 'from-pink-500 to-rose-600',
+      gradient: 'from-blue-500 to-cyan-600',
       delay: '500'
     },
     {
@@ -214,7 +214,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       name: 'Performance',
       icon: Activity,
       color: 'purple',
-      gradient: 'from-purple-500 to-pink-500',
+      gradient: 'from-blue-500 to-indigo-500',
       description: 'Load & stress testing',
       delay: '150'
     },
@@ -246,7 +246,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       name: 'Contract',
       icon: FileText,
       color: 'violet',
-      gradient: 'from-violet-500 to-fuchsia-500',
+      gradient: 'from-violet-500 to-blue-500',
       description: 'API contracts',
       delay: '350'
     },
@@ -271,7 +271,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       title: '90% Less Manual Work',
       description: 'AI generates comprehensive test suites in seconds - what took hours now takes minutes',
       icon: Brain,
-      gradient: 'from-blue-500 to-purple-600'
+      gradient: 'from-blue-500 to-cyan-600'
     },
     {
       title: 'Live Progress Streaming',
@@ -283,7 +283,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       title: 'Enterprise Security',
       description: 'Google & GitHub OAuth, JWT sessions, encrypted storage - your tests and data are protected',
       icon: Shield,
-      gradient: 'from-purple-500 to-pink-600'
+      gradient: 'from-blue-500 to-indigo-600'
     },
     {
       title: 'Built-in Collaboration',
@@ -351,25 +351,25 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-600/15 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
 
       {/* Navigation - Floating Notch */}
       <nav className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
         {/* Outer glow halo */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[80px] bg-purple-600/20 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[80px] bg-blue-600/15 blur-3xl rounded-full pointer-events-none" />
 
         {/* Notch pill wrapper */}
         <div className="relative w-full max-w-5xl">
           {/* Animated gradient border */}
           <div
             className="absolute -inset-[1px] rounded-2xl opacity-70"
-            style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0.5), rgba(168,85,247,0.5), rgba(236,72,153,0.5), rgba(59,130,246,0.5))', backgroundSize: '300% 100%', animation: 'navBorderShift 4s linear infinite' }}
+            style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0.5), rgba(6,182,212,0.5), rgba(99,102,241,0.4), rgba(59,130,246,0.5))', backgroundSize: '300% 100%', animation: 'navBorderShift 4s linear infinite' }}
           />
 
           {/* Glass pill */}
@@ -377,8 +377,8 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             {/* Floating particles */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
               <div className="absolute top-2 left-[20%] w-1 h-1 bg-blue-400/40 rounded-full" style={{ animation: 'navParticle 4s ease-in-out infinite' }} />
-              <div className="absolute top-4 left-[40%] w-1.5 h-1.5 bg-purple-400/30 rounded-full" style={{ animation: 'navParticle 5s ease-in-out 1s infinite' }} />
-              <div className="absolute top-3 left-[60%] w-1 h-1 bg-pink-400/40 rounded-full" style={{ animation: 'navParticle 4.5s ease-in-out 0.5s infinite' }} />
+              <div className="absolute top-4 left-[40%] w-1.5 h-1.5 bg-blue-400/30 rounded-full" style={{ animation: 'navParticle 5s ease-in-out 1s infinite' }} />
+              <div className="absolute top-3 left-[60%] w-1 h-1 bg-cyan-400/30 rounded-full" style={{ animation: 'navParticle 4.5s ease-in-out 0.5s infinite' }} />
               <div className="absolute top-2 left-[80%] w-1 h-1 bg-cyan-400/30 rounded-full" style={{ animation: 'navParticle 3.5s ease-in-out 1.5s infinite' }} />
             </div>
 
@@ -388,21 +388,21 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               <div className="flex items-center gap-3 group cursor-pointer">
                 <div className="relative">
                   <div
-                    className="absolute -inset-2 rounded-full border border-purple-500/30 group-hover:border-purple-400/50 transition-colors"
+                    className="absolute -inset-2 rounded-full border border-blue-500/30 group-hover:border-cyan-400/50 transition-colors"
                     style={{ animation: 'logoOrbit 8s linear infinite' }}
                   >
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full shadow-lg shadow-purple-500/50" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full shadow-lg shadow-blue-500/50" />
                   </div>
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl opacity-0 group-hover:opacity-50 blur-lg transition-all duration-500" />
-                  <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/50 group-hover:shadow-purple-500/80 transition-all duration-300 group-hover:scale-110 overflow-hidden">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-400 rounded-xl opacity-0 group-hover:opacity-50 blur-lg transition-all duration-500" />
+                  <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50 group-hover:shadow-cyan-500/60 transition-all duration-300 group-hover:scale-110 overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                     <Shield size={26} className="text-white relative z-10" />
                     <Activity size={14} className="text-white/80 absolute bottom-1 right-1" />
                   </div>
                 </div>
                 <div className="relative">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ backgroundSize: '200% 200%', animation: 'navGradientShift 4s ease-in-out infinite' }}>
-                    Evo-TFX
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent" style={{ backgroundSize: '200% 200%', animation: 'navGradientShift 4s ease-in-out infinite' }}>
+                    Flasqo
                   </h1>
                   <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors flex items-center gap-1">
                     by EvoluneEdgeTech
@@ -415,8 +415,8 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               <div className="hidden md:flex items-center gap-2">
                 {[
                   { href: '#features', label: 'Features', gradient: 'from-blue-500 to-cyan-500' },
-                  { href: '#why-us', label: 'Why Us', gradient: 'from-purple-500 to-pink-500' },
-                  { href: '#testimonials', label: 'Testimonials', gradient: 'from-pink-500 to-orange-500' },
+                  { href: '#why-us', label: 'Why Us', gradient: 'from-blue-500 to-cyan-500' },
+                  { href: '#testimonials', label: 'Testimonials', gradient: 'from-cyan-500 to-blue-500' },
                   { href: '#pricing', label: 'Pricing', gradient: 'from-emerald-500 to-teal-500' }
                 ].map((item, index) => (
                   <a
@@ -456,14 +456,14 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                 {/* Get Started */}
                 <button
                   onClick={() => handleGetStarted('signup')}
-                  className="group relative px-6 py-2.5 rounded-full font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30"
+                  className="group relative px-6 py-2.5 rounded-full font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/30"
                 >
                   <div
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500"
                     style={{ backgroundSize: '200% 200%', animation: 'navGradientShift 3s ease-in-out infinite' }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                  <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-50 blur-md transition-opacity" />
+                  <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-50 blur-md transition-opacity" />
                   <span className="relative text-white text-sm flex items-center gap-2">
                     Get Started Free
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -509,13 +509,13 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         {/* Animated background elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Floating geometric shapes */}
-          <div className="absolute top-20 left-[10%] w-24 h-24 border border-purple-500/20 rounded-2xl rotate-12" style={{ animation: 'heroFloat1 8s ease-in-out infinite' }} />
+          <div className="absolute top-20 left-[10%] w-24 h-24 border border-blue-500/20 rounded-2xl rotate-12" style={{ animation: 'heroFloat1 8s ease-in-out infinite' }} />
           <div className="absolute top-40 right-[15%] w-16 h-16 border border-blue-500/20 rounded-full" style={{ animation: 'heroFloat2 6s ease-in-out infinite' }} />
-          <div className="absolute bottom-40 left-[20%] w-12 h-12 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-xl rotate-45" style={{ animation: 'heroFloat3 7s ease-in-out infinite' }} />
+          <div className="absolute bottom-40 left-[20%] w-12 h-12 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-xl rotate-45" style={{ animation: 'heroFloat3 7s ease-in-out infinite' }} />
           <div className="absolute top-1/3 right-[8%] w-20 h-20 border border-cyan-500/10 rounded-full" style={{ animation: 'heroFloat1 9s ease-in-out infinite reverse' }} />
 
           {/* Floating code snippets */}
-          <div className="hidden md:block absolute top-32 left-[5%] text-xs font-mono text-purple-500/40 bg-purple-500/5 px-3 py-1.5 rounded-lg border border-purple-500/10" style={{ animation: 'heroFloat2 10s ease-in-out infinite' }}>
+          <div className="hidden md:block absolute top-32 left-[5%] text-xs font-mono text-blue-400/50 bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/15" style={{ animation: 'heroFloat2 10s ease-in-out infinite' }}>
             {'{ status: 200 }'}
           </div>
           <div className="hidden md:block absolute bottom-48 right-[5%] text-xs font-mono text-blue-500/40 bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/10" style={{ animation: 'heroFloat3 8s ease-in-out infinite' }}>
@@ -526,24 +526,24 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           </div>
 
           {/* Glowing orbs */}
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl" style={{ animation: 'pulseGlow 4s ease-in-out infinite' }} />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl" style={{ animation: 'pulseGlow 5s ease-in-out infinite reverse' }} />
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-700/15 rounded-full blur-3xl" style={{ animation: 'pulseGlow 4s ease-in-out infinite' }} />
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-cyan-700/15 rounded-full blur-3xl" style={{ animation: 'pulseGlow 5s ease-in-out infinite reverse' }} />
         </div>
 
         <div className="relative text-center">
           {/* Badge with animated border */}
           <div className="relative inline-flex items-center gap-2 px-5 py-2.5 mb-8">
             <div className="absolute inset-0 rounded-full" style={{
-              background: 'linear-gradient(90deg, #8b5cf6, #ec4899, #3b82f6, #8b5cf6)',
+              background: 'linear-gradient(90deg, #3b82f6, #06b6d4, #6366f1, #3b82f6)',
               backgroundSize: '300% 100%',
               animation: 'gradientBorder 3s linear infinite',
               padding: '1px'
             }}>
-              <div className="absolute inset-[1px] bg-slate-900 rounded-full" />
+              <div className="absolute inset-[1px] bg-slate-950 rounded-full" />
             </div>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 opacity-20 blur-md" style={{ animation: 'pulseGlow 2s ease-in-out infinite' }} />
-            <Sparkles size={16} className="relative text-purple-400" style={{ animation: 'sparkleRotate 3s ease-in-out infinite' }} />
-            <span className="relative text-sm font-semibold bg-gradient-to-r from-purple-300 via-pink-300 to-blue-300 bg-clip-text text-transparent">AI-Powered API Testing Platform</span>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-cyan-500 to-indigo-500 opacity-20 blur-md" style={{ animation: 'pulseGlow 2s ease-in-out infinite' }} />
+            <Sparkles size={16} className="relative text-cyan-400" style={{ animation: 'sparkleRotate 3s ease-in-out infinite' }} />
+            <span className="relative text-sm font-semibold bg-gradient-to-r from-blue-300 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">AI-Powered API Testing Platform</span>
             <span className="relative flex h-2 w-2 ml-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -553,20 +553,20 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           {/* Main heading with animation */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             <span
-              className="inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
+              className="inline-block bg-gradient-to-r from-white via-blue-100 to-cyan-300 bg-clip-text text-transparent"
               style={{ animation: 'titleSlideIn 0.8s ease-out' }}
             >
               Test Smarter,
             </span>
             <br />
             <span
-              className="inline-block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent"
+              className="inline-block bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-300 bg-clip-text text-transparent"
               style={{ animation: 'titleSlideIn 0.8s ease-out 0.2s both' }}
             >
               Ship Faster
             </span>
             {/* Animated underline */}
-            <div className="mt-2 mx-auto w-32 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full" style={{ animation: 'underlineExpand 1s ease-out 0.5s both' }} />
+            <div className="mt-2 mx-auto w-32 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-400 rounded-full" style={{ animation: 'underlineExpand 1s ease-out 0.5s both' }} />
           </h1>
 
           <p className="text-lg text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed" style={{ animation: 'fadeInUp 0.8s ease-out 0.4s both' }}>
@@ -581,7 +581,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               className="group relative px-8 py-4 rounded-full font-bold text-lg overflow-hidden transition-all transform hover:scale-105"
             >
               {/* Button gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600" style={{ backgroundSize: '200% 200%', animation: 'gradientBorder 3s linear infinite' }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" style={{ backgroundSize: '200% 200%', animation: 'gradientBorder 3s linear infinite' }} />
               {/* Shine effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
               <span className="relative flex items-center gap-2 text-white">
@@ -660,7 +660,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
               { value: stats.users.toLocaleString(), suffix: '+', label: 'Active Users', gradient: 'from-blue-400 to-cyan-400', glow: '#22d3ee', icon: '👥' },
-              { value: stats.testsRun.toLocaleString(), suffix: '+', label: 'Tests Run', gradient: 'from-purple-400 to-pink-400', glow: '#a855f7', icon: '🧪' },
+              { value: stats.testsRun.toLocaleString(), suffix: '+', label: 'Tests Run', gradient: 'from-indigo-400 to-blue-400', glow: '#818cf8', icon: '🧪' },
               { value: stats.apisSecured.toLocaleString(), suffix: '+', label: 'APIs Secured', gradient: 'from-green-400 to-emerald-400', glow: '#22c55e', icon: '🔒' },
               { value: stats.uptime, suffix: '%', label: 'Uptime', gradient: 'from-orange-400 to-red-400', glow: '#f97316', icon: '⚡' }
             ].map((stat, index) => (
@@ -726,28 +726,28 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         <div className="relative text-center mb-12 animate-fade-in">
           {/* Background decoration */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
             <div className="absolute top-0 left-[20%] w-2 h-2 bg-blue-400/50 rounded-full" style={{ animation: 'twinkle 3s ease-in-out infinite' }} />
-            <div className="absolute top-10 right-[25%] w-1.5 h-1.5 bg-purple-400/50 rounded-full" style={{ animation: 'twinkle 2s ease-in-out 0.5s infinite' }} />
-            <div className="absolute bottom-0 left-[30%] w-1 h-1 bg-pink-400/50 rounded-full" style={{ animation: 'twinkle 2.5s ease-in-out 1s infinite' }} />
+            <div className="absolute top-10 right-[25%] w-1.5 h-1.5 bg-blue-400/50 rounded-full" style={{ animation: 'twinkle 2s ease-in-out 0.5s infinite' }} />
+            <div className="absolute bottom-0 left-[30%] w-1 h-1 bg-cyan-400/40 rounded-full" style={{ animation: 'twinkle 2.5s ease-in-out 1s infinite' }} />
           </div>
 
           {/* Badge with animated border */}
           <div className="relative inline-flex items-center gap-2 px-5 py-2.5 mb-6">
             {/* Rotating gradient border */}
             <div className="absolute inset-0 rounded-full" style={{
-              background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6)',
+              background: 'linear-gradient(90deg, #3b82f6, #06b6d4, #6366f1, #3b82f6)',
               backgroundSize: '300% 100%',
               animation: 'gradientMove 3s linear infinite',
               padding: '1px'
             }}>
-              <div className="absolute inset-[1px] bg-slate-900 rounded-full" />
+              <div className="absolute inset-[1px] bg-slate-950 rounded-full" />
             </div>
             {/* Glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-md" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-cyan-500 to-indigo-500 opacity-20 blur-md" />
             {/* Content */}
-            <Sparkles size={16} className="relative text-blue-400" style={{ animation: 'sparkle 2s ease-in-out infinite' }} />
-            <span className="relative text-sm font-semibold bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">12+ Powerful Features</span>
+            <Sparkles size={16} className="relative text-cyan-400" style={{ animation: 'sparkle 2s ease-in-out infinite' }} />
+            <span className="relative text-sm font-semibold bg-gradient-to-r from-blue-300 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">12+ Powerful Features</span>
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -756,23 +756,23 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
 
           {/* Main heading with animated text */}
           <h2 className="relative text-5xl md:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{
+            <span className="bg-gradient-to-r from-white via-blue-200 to-cyan-300 bg-clip-text text-transparent" style={{
               backgroundSize: '200% 200%',
               animation: 'gradientShift 4s ease-in-out infinite'
             }}>
               Complete Testing Arsenal
             </span>
             {/* Decorative underline */}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent rounded-full" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded-full" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
           </h2>
 
           {/* Subtitle with icons */}
           <div className="flex items-center justify-center gap-4 mt-6">
-            <div className="hidden md:block h-px w-16 bg-gradient-to-r from-transparent to-purple-500/50" />
+            <div className="hidden md:block h-px w-16 bg-gradient-to-r from-transparent to-blue-500/50" />
             <p className="text-lg text-gray-300 max-w-2xl">
               Everything you need to test, monitor, and secure your APIs in one unified platform
             </p>
-            <div className="hidden md:block h-px w-16 bg-gradient-to-l from-transparent to-purple-500/50" />
+            <div className="hidden md:block h-px w-16 bg-gradient-to-l from-transparent to-blue-500/50" />
           </div>
         </div>
 
@@ -871,17 +871,17 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         <div className="text-center mb-8">
           <div className="relative inline-flex items-center gap-2 px-5 py-2 mb-4">
             <div className="absolute inset-0 rounded-full" style={{
-              background: 'linear-gradient(90deg, #a855f7, #ec4899, #f97316, #a855f7)',
+              background: 'linear-gradient(90deg, #3b82f6, #06b6d4, #6366f1, #3b82f6)',
               backgroundSize: '300% 100%',
               animation: 'gradientMove 3s linear infinite',
               padding: '1px'
             }}>
-              <div className="absolute inset-[1px] bg-slate-900 rounded-full" />
+              <div className="absolute inset-[1px] bg-slate-950 rounded-full" />
             </div>
-            <Target size={16} className="relative text-purple-400" />
-            <span className="relative text-sm font-semibold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">9 Specialized Modules</span>
+            <Target size={16} className="relative text-blue-400" />
+            <span className="relative text-sm font-semibold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">9 Specialized Modules</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
+          <h2 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent">
             Complete Testing Suite
           </h2>
           <p className="text-gray-400 max-w-xl mx-auto text-sm">
@@ -945,14 +945,14 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/5 rounded-full" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] border border-purple-500/10 rounded-full" style={{ animation: 'spin 30s linear infinite' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] border border-blue-500/10 rounded-full" style={{ animation: 'spin 30s linear infinite' }} />
         </div>
 
         {/* Header */}
         <div className="relative text-center mb-8">
           <h2 className="text-4xl md:text-5xl font-bold mb-3">
             <span className="text-white">Why Choose </span>
-            <span className="bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">Evo-TFX?</span>
+            <span className="bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">Flasqo?</span>
           </h2>
           <p className="text-gray-400 max-w-xl mx-auto text-sm">
             What makes us different from other API testing platforms
@@ -1000,7 +1000,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                   </div>
 
                   {/* Corner decoration */}
-                  <div className={`absolute bottom-2 right-2 w-8 h-8 border-r border-b ${item.gradient.includes('green') ? 'border-green-500/20' : item.gradient.includes('blue') ? 'border-blue-500/20' : item.gradient.includes('purple') ? 'border-purple-500/20' : 'border-pink-500/20'} rounded-br-xl opacity-0 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute bottom-2 right-2 w-8 h-8 border-r border-b ${item.gradient.includes('green') ? 'border-green-500/20' : 'border-blue-500/20'} rounded-br-xl opacity-0 group-hover:opacity-100 transition-opacity`} />
                 </div>
               </div>
             );
@@ -1021,7 +1021,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-20 left-10 text-8xl text-white/[0.02] font-serif">"</div>
           <div className="absolute bottom-20 right-10 text-8xl text-white/[0.02] font-serif rotate-180">"</div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-pink-600/5 to-orange-600/5 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-blue-600/5 to-cyan-600/5 rounded-full blur-3xl" />
         </div>
 
         {/* Header */}
@@ -1031,7 +1031,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               {['K', 'A', 'D'].map((letter, i) => (
                 <div
                   key={i}
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center text-white text-xs font-bold border-2 border-slate-900"
+                  className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold border-2 border-slate-950"
                   style={{ animation: `popIn 0.3s ease-out ${i * 0.1}s both` }}
                 >
                   {letter}
@@ -1042,10 +1042,10 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-3">
             <span className="text-white">Loved by </span>
-            <span className="bg-gradient-to-r from-pink-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">Professionals</span>
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-300 bg-clip-text text-transparent">Professionals</span>
           </h2>
           <p className="text-gray-400 max-w-xl mx-auto text-sm">
-            See what industry experts say about Evo-TFX
+            See what industry experts say about Flasqo
           </p>
         </div>
 
@@ -1053,9 +1053,9 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
         <div className="relative flex flex-col md:flex-row justify-center gap-6">
           {testimonials.map((testimonial, index) => {
             const gradients = [
-              'from-pink-500 to-rose-600',
-              'from-orange-500 to-amber-600',
-              'from-purple-500 to-indigo-600'
+              'from-blue-500 to-cyan-600',
+              'from-cyan-500 to-blue-600',
+              'from-indigo-500 to-blue-600'
             ];
             const isMiddle = index === 1;
             return (
@@ -1145,7 +1145,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             Reviews from Students
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Students exploring and learning API testing with Evo-TFX
+            Students exploring and learning API testing with Flasqo
           </p>
         </div>
 
@@ -1170,9 +1170,9 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-lg rounded-xl p-6 border border-purple-400/20 hover:border-purple-400/40 transition-all">
+          <div className="bg-gradient-to-br from-indigo-500/10 to-blue-500/10 backdrop-blur-lg rounded-xl p-6 border border-indigo-400/20 hover:border-indigo-400/40 transition-all">
             <div className="flex items-center gap-2 mb-4">
-              <Code size={24} className="text-purple-400" />
+              <Code size={24} className="text-indigo-400" />
               <div className="font-bold text-lg">Perfect for Learning</div>
             </div>
             <p className="text-gray-300 leading-relaxed">
@@ -1180,9 +1180,9 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-lg rounded-xl p-6 border border-orange-400/20 hover:border-orange-400/40 transition-all">
+          <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 backdrop-blur-lg rounded-xl p-6 border border-cyan-400/20 hover:border-cyan-400/40 transition-all">
             <div className="flex items-center gap-2 mb-4">
-              <Sparkles size={24} className="text-orange-400" />
+              <Sparkles size={24} className="text-cyan-400" />
               <div className="font-bold text-lg">Reducing Manual Work</div>
             </div>
             <p className="text-gray-300 leading-relaxed">
@@ -1196,7 +1196,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       <section className="relative z-10 max-w-6xl mx-auto px-6 py-12">
         <div className="relative overflow-hidden rounded-3xl">
           {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600" style={{ backgroundSize: '200% 200%', animation: 'gradientFlow 6s ease infinite' }} />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600" style={{ backgroundSize: '200% 200%', animation: 'gradientFlow 6s ease infinite' }} />
 
           {/* Floating particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -1229,20 +1229,20 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               Ready to Transform Your API Testing?
             </h2>
             <p className="text-white/80 mb-8 max-w-xl mx-auto text-sm">
-              Join thousands of developers who trust Evo-TFX for their API testing needs
+              Join thousands of developers who trust Flasqo for their API testing needs
             </p>
 
             {/* Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-4">
               <button
                 onClick={() => handleGetStarted('signup')}
-                className="group relative px-8 py-3 bg-white text-purple-600 rounded-full font-bold hover:shadow-2xl hover:shadow-white/20 transition-all transform hover:scale-105 overflow-hidden"
+                className="group relative px-8 py-3 bg-white text-blue-700 rounded-full font-bold hover:shadow-2xl hover:shadow-white/20 transition-all transform hover:scale-105 overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <Zap size={18} />
                   Start Free Trial
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-purple-100 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-cyan-100 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
               <button
                 onClick={() => handleGetStarted('login')}
@@ -1290,25 +1290,25 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       {/* Footer - Creative Compact Design */}
       <footer className="relative z-10 mt-8">
         {/* Top aurora border */}
-        <div className="h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-40" />
 
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             {/* Logo & Brand */}
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg"
+                className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg"
                 style={{ animation: 'logoFloat 4s ease-in-out infinite' }}
               >
                 <Zap size={22} className="text-white" />
               </div>
               <div>
-                <div className="text-lg font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">Evo-TFX</div>
+                <div className="text-lg font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Flasqo</div>
                 <a
                   href="https://www.evolune.in/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
+                  className="text-[10px] text-blue-400 hover:text-cyan-300 transition-colors"
                 >
                   by EvoluneEdgeTech
                 </a>
@@ -1329,7 +1329,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                 { icon: Github, href: 'https://github.com/EvoluneEdgeTech', gradient: 'from-gray-600 to-gray-700' },
                 { icon: Twitter, href: 'https://x.com/EvoluneEdgeTech', gradient: 'from-blue-400 to-blue-600' },
                 { icon: Linkedin, href: 'https://www.linkedin.com/in/evolune-edgetech-546640389/', gradient: 'from-blue-600 to-blue-800' },
-                { icon: Mail, href: 'mailto:contact@evolune.in', gradient: 'from-pink-500 to-rose-600' }
+                { icon: Mail, href: 'mailto:contact@evolune.in', gradient: 'from-blue-500 to-cyan-600' }
               ].map((social, i) => (
                 <a
                   key={i}
@@ -1349,7 +1349,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           {/* Copyright */}
           <div className="mt-6 pt-4 border-t border-white/5 text-center">
             <p className="text-xs text-gray-500">
-              © 2026 Evo-TFX. All rights reserved. Built with ❤️ for developers.
+              © 2026 Flasqo. All rights reserved. Built with ❤️ for developers.
             </p>
           </div>
         </div>

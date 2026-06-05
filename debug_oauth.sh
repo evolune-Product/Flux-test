@@ -71,24 +71,24 @@ fi
 echo ""
 echo -e "${YELLOW}2. Checking Backend Service Status...${NC}"
 echo "-----------------------------------"
-systemctl is-active --quiet evo-tfx-backend
+systemctl is-active --quiet flasqo-backend
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓${NC} Backend service is running"
 else
     echo -e "${RED}✗${NC} Backend service is NOT running"
     echo "Starting service..."
-    sudo systemctl start evo-tfx-backend
+    sudo systemctl start flasqo-backend
 fi
 
 echo ""
 echo -e "${YELLOW}3. Checking Recent Backend Logs (Last 30 lines)...${NC}"
 echo "-----------------------------------"
-sudo journalctl -u evo-tfx-backend -n 30 --no-pager
+sudo journalctl -u flasqo-backend -n 30 --no-pager
 
 echo ""
 echo -e "${YELLOW}4. Checking for OAuth-related errors...${NC}"
 echo "-----------------------------------"
-sudo journalctl -u evo-tfx-backend --since "1 hour ago" --no-pager | grep -i "oauth\|google\|github\|auth" | tail -20
+sudo journalctl -u flasqo-backend --since "1 hour ago" --no-pager | grep -i "oauth\|google\|github\|auth" | tail -20
 
 echo ""
 echo -e "${YELLOW}5. Testing Backend API Endpoints...${NC}"
@@ -114,10 +114,10 @@ echo ""
 echo ""
 echo -e "${YELLOW}6. Checking Nginx Configuration...${NC}"
 echo "-----------------------------------"
-if [ -f /etc/nginx/sites-enabled/evo-tfx ]; then
+if [ -f /etc/nginx/sites-enabled/Flasqo ]; then
     echo -e "${GREEN}✓${NC} Nginx config exists"
     echo "Checking /auth proxy configuration..."
-    grep -A 5 "location /auth" /etc/nginx/sites-enabled/evo-tfx
+    grep -A 5 "location /auth" /etc/nginx/sites-enabled/Flasqo
 else
     echo -e "${RED}✗${NC} Nginx config not found"
 fi
@@ -175,8 +175,8 @@ echo "4. Frontend is rebuilt with production API URL"
 echo "5. HTTPS is working (check SSL certificate)"
 echo ""
 echo "To view live logs, run:"
-echo "  sudo journalctl -u evo-tfx-backend -f"
+echo "  sudo journalctl -u flasqo-backend -f"
 echo ""
 echo "To restart backend:"
-echo "  sudo systemctl restart evo-tfx-backend"
+echo "  sudo systemctl restart flasqo-backend"
 echo ""

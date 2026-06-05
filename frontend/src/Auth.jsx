@@ -171,7 +171,7 @@ function Auth({ onLoginSuccess }) {
               <Zap size={24} />
             </div>
             <div>
-              <div className="text-2xl font-bold">Evo-TFX</div>
+              <div className="text-2xl font-bold">Flasqo</div>
               <div className="text-xs text-blue-200">by EvoluneEdgeTech</div>
             </div>
           </div>
@@ -238,7 +238,7 @@ function Auth({ onLoginSuccess }) {
               <Zap size={24} className="text-white" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">Evo-TFX</div>
+              <div className="text-2xl font-bold text-gray-900">Flasqo</div>
               <div className="text-xs text-gray-500">by EvoluneEdgeTech</div>
             </div>
           </div>

@@ -13,12 +13,12 @@ NC='\033[0m'
 
 echo ""
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Environment Setup for Evo-TFX${NC}"
+echo -e "${BLUE}  Environment Setup for Flasqo${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
 # Navigate to backend directory
-cd /home/appuser/app/backend || cd /home/appuser/app/Flux-test/backend || { echo -e "${RED}Cannot find backend directory${NC}"; exit 1; }
+cd /home/appuser/app/backend || cd /home/appuser/app/Flasqo/backend || { echo -e "${RED}Cannot find backend directory${NC}"; exit 1; }
 
 echo -e "${YELLOW}Creating .env file...${NC}"
 echo ""
@@ -34,8 +34,8 @@ echo "Please provide the following information:"
 echo ""
 
 # Domain
-read -p "Domain (default: https://fluxtest.evolune.in): " DOMAIN
-DOMAIN=${DOMAIN:-https://fluxtest.evolune.in}
+read -p "Domain (default: https://Flasqo.evolune.in): " DOMAIN
+DOMAIN=${DOMAIN:-https://Flasqo.evolune.in}
 
 # Database password
 echo ""
@@ -154,5 +154,5 @@ echo ""
 echo "Next steps:"
 echo "1. Verify the .env file: cat backend/.env"
 echo "2. Run: ./fix_oauth_production.sh"
-echo "3. Or manually restart: sudo systemctl restart evo-tfx-backend"
+echo "3. Or manually restart: sudo systemctl restart Flasqo-backend"
 echo ""

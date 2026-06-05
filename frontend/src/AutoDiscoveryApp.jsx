@@ -1112,7 +1112,7 @@ function AutoDiscoveryApp({ user, onLogout }) {
       {/* Footer */}
       <div className="max-w-7xl mx-auto px-6 py-8 mt-12 border-t border-white/10">
         <div className="text-center text-gray-400 text-sm">
-          <p className="font-bold">Evo-TFX</p>
+          <p className="font-bold">Flasqo</p>
           <p className="text-xs text-gray-500">by EvoluneEdgeTech</p>
           <p className="mt-2">Professional API Testing Platform - Auto-Discovery Module</p>
         </div>

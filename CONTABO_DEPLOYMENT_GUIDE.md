@@ -1,302 +1,410 @@
-# Contabo Deployment Guide - Evo TFX Application
+# Flasqo — Contabo Deployment Guide
+**Domain:** `flasqo.evolune.in`
+**Stack:** FastAPI + React/Vite + PostgreSQL + Redis + Nginx + Gunicorn
+
+---
 
 ## Table of Contents
-1. [Overview](#overview)
-2. [Prerequisites](#prerequisites)
-3. [Architecture](#architecture)
-4. [Deployment Steps](#deployment-steps)
-5. [Configuration](#configuration)
-6. [Maintenance](#maintenance)
-7. [Troubleshooting](#troubleshooting)
-
----
-
-## Overview
-
-This guide provides complete instructions for deploying the Evo TFX application (FastAPI backend + React frontend + PostgreSQL database) on a Contabo VPS with a custom subdomain.
-
-### Technology Stack
-- **Backend**: FastAPI (Python)
-- **Frontend**: React + Vite
-- **Database**: PostgreSQL
-- **Web Server**: Nginx
-- **Process Manager**: Systemd
-- **SSL**: Let's Encrypt (Certbot)
-
-### Estimated Deployment Time
-- **Initial Setup**: 45-60 minutes
-- **DNS Propagation**: 5-15 minutes
-- **SSL Certificate**: 5 minutes
-
----
-
-## Prerequisites
-
-### Required Information
-- [ ] Contabo VPS IP address
-- [ ] Root SSH access to Contabo VPS
-- [ ] Domain name with DNS management access
-- [ ] Subdomain name (e.g., `app.yourdomain.com`)
-- [ ] OpenAI API key
-- [ ] Google OAuth credentials (Client ID & Secret)
-- [ ] GitHub OAuth credentials (Client ID & Secret)
-
-### Local Requirements
-- Git repository with your application code
-- SSH client (PuTTY for Windows, Terminal for Mac/Linux)
+1. [Architecture](#architecture)
+2. [Pre-Deployment Checklist](#pre-deployment-checklist)
+3. [Phase 1 — Server Setup](#phase-1--server-setup)
+4. [Phase 2 — Database & Redis](#phase-2--database--redis)
+5. [Phase 3 — Backend Deployment](#phase-3--backend-deployment)
+6. [Phase 4 — Frontend Build](#phase-4--frontend-build)
+7. [Phase 5 — Nginx Configuration](#phase-5--nginx-configuration)
+8. [Phase 6 — DNS Configuration](#phase-6--dns-configuration)
+9. [Phase 7 — SSL Certificate](#phase-7--ssl-certificate)
+10. [Phase 8 — OAuth Configuration](#phase-8--oauth-configuration)
+11. [Phase 9 — Verification](#phase-9--verification)
+12. [Updating the App](#updating-the-app)
+13. [Maintenance & Monitoring](#maintenance--monitoring)
+14. [Troubleshooting](#troubleshooting)
+15. [Quick Reference](#quick-reference)
 
 ---
 
 ## Architecture
 
 ```
-Internet
-    ↓
-Nginx (Port 80/443)
-    ↓
-    ├── Static Files (React Build) → /home/appuser/app/frontend/dist
-    ├── /api/* → FastAPI Backend (Port 8000)
-    └── /auth/* → OAuth Callbacks (Port 8000)
+Browser
+   ↓ HTTPS (443)
+Nginx  ──────────────────────────────────────
+   ├── /                → React SPA (dist/)
+   ├── /api/*           → FastAPI (127.0.0.1:8000)
+   ├── /auth/*          → FastAPI OAuth (127.0.0.1:8000)
+   ├── /history/*       → FastAPI (127.0.0.1:8000)
+   ├── /flows/*         → FastAPI (127.0.0.1:8000)
+   ├── /report/*        → FastAPI (127.0.0.1:8000)
+   ├── /dashboard/*     → FastAPI (127.0.0.1:8000)
+   └── /fullsend/*      → FastAPI (127.0.0.1:8000)
          ↓
-    PostgreSQL (Port 5432)
+   PostgreSQL (127.0.0.1:5432)
+   Redis      (127.0.0.1:6379)
 ```
 
 ---
 
-## Deployment Steps
+## Pre-Deployment Checklist
 
-### Phase 1: Server Setup
+Before starting, have these ready:
 
-#### Step 1: Access Your Contabo VPS
+- [ ] Contabo VPS IP address
+- [ ] Root SSH credentials for VPS
+- [ ] Access to `evolune.in` DNS panel
+- [ ] Google OAuth Client ID & Secret (from Google Cloud Console)
+- [ ] GitHub OAuth Client ID & Secret — both apps (auth + repo)
+- [ ] OpenAI API key
+- [ ] Your app code pushed to a Git repo (or ready to SCP)
+
+---
+
+## Phase 1 — Server Setup
+
+### 1.1 SSH into your Contabo VPS
+
 ```bash
-ssh root@your-contabo-ip
+ssh root@YOUR_CONTABO_IP
 ```
 
-**Expected Output:**
-```
-Welcome to Ubuntu...
-root@hostname:~#
-```
+### 1.2 Update system packages
 
-#### Step 2: Update System & Install Dependencies
 ```bash
-# Update system packages
 apt update && apt upgrade -y
+```
 
-# Install all required packages
+### 1.3 Install all required software
+
+```bash
 apt install -y \
     nginx \
     postgresql \
     postgresql-contrib \
+    redis-server \
     python3-pip \
     python3-venv \
-    nodejs \
-    npm \
+    python3-dev \
     git \
     ufw \
     certbot \
     python3-certbot-nginx \
     curl \
-    build-essential
+    build-essential \
+    libpq-dev
+
+# Install Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
 ```
 
-**Verification:**
+### 1.4 Verify installations
+
 ```bash
-# Check versions
-python3 --version    # Should be 3.8+
-node --version       # Should be 14+
-nginx -v            # Should be installed
-psql --version      # Should be 12+
+python3 --version   # 3.10+
+node --version      # v20+
+npm --version       # 10+
+nginx -v
+psql --version
+redis-server --version
 ```
 
-#### Step 3: Set Up Firewall
+### 1.5 Configure firewall
+
 ```bash
-# Configure UFW firewall
 ufw allow OpenSSH
 ufw allow 'Nginx Full'
 ufw enable
 ufw status
 ```
 
-**Expected Output:**
+Expected output:
 ```
 Status: active
+OpenSSH    ALLOW
+Nginx Full ALLOW
+```
 
-To                         Action      From
---                         ------      ----
-OpenSSH                    ALLOW       Anywhere
-Nginx Full                 ALLOW       Anywhere
+### 1.6 Create application user
+
+```bash
+adduser --disabled-password --gecos "" flasqo
 ```
 
 ---
 
-### Phase 2: Database Setup
+## Phase 2 — Database & Redis
 
-#### Step 4: Configure PostgreSQL
+### 2.1 Set up PostgreSQL
+
 ```bash
-# Switch to postgres user
 sudo -u postgres psql
 ```
 
-**Inside PostgreSQL shell, run:**
+Run inside the PostgreSQL shell:
+
 ```sql
--- Create database
-CREATE DATABASE evo_tfx_db;
-
--- Create user with password
-CREATE USER evo_tfx_user WITH PASSWORD 'YOUR_SECURE_PASSWORD_HERE';
-
--- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE evo_tfx_db TO evo_tfx_user;
-
--- Exit
+CREATE DATABASE flasqo_db;
+CREATE USER flasqo_user WITH PASSWORD 'CHOOSE_A_STRONG_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE flasqo_db TO flasqo_user;
+ALTER DATABASE flasqo_db OWNER TO flasqo_user;
 \q
 ```
 
-**Important:** Replace `YOUR_SECURE_PASSWORD_HERE` with a strong password. Save it securely!
+> Save your password — you will need it in the `.env` file.
 
-#### Step 5: Configure PostgreSQL Authentication
+### 2.2 Test database connection
+
 ```bash
-# Edit pg_hba.conf
-nano /etc/postgresql/*/main/pg_hba.conf
-```
-
-**Add this line** (find the section with "local" connections):
-```
-local   all   evo_tfx_user   md5
-```
-
-**Restart PostgreSQL:**
-```bash
-systemctl restart postgresql
-systemctl status postgresql
-```
-
-**Test database connection:**
-```bash
-psql -U evo_tfx_user -d evo_tfx_db -h localhost
-# Enter password when prompted
-# If successful, you'll see: evo_tfx_db=>
+psql -U flasqo_user -d flasqo_db -h localhost
+# Type password, then:
 \q
+```
+
+### 2.3 Configure Redis
+
+```bash
+# Enable Redis to start on boot
+systemctl enable redis-server
+systemctl start redis-server
+
+# Verify Redis is running
+redis-cli ping
+# Expected: PONG
 ```
 
 ---
 
-### Phase 3: Backend Deployment
+## Phase 3 — Backend Deployment
 
-#### Step 6: Create Application User
+### 3.1 Upload or clone your code
+
+**Option A — Git clone (recommended):**
 ```bash
-# Create non-root user for security
-adduser --disabled-password --gecos "" appuser
-su - appuser
+su - flasqo
+mkdir -p /home/flasqo/app
+cd /home/flasqo/app
+git clone YOUR_GIT_REPO_URL .
 ```
 
-#### Step 7: Clone and Setup Backend
+**Option B — SCP from your Windows machine** (run this on your local machine):
 ```bash
-# Create app directory
-mkdir -p /home/appuser/app
-cd /home/appuser/app
+scp -r "E:\Evolune_Products\Evo-TFX-main\backend" root@YOUR_CONTABO_IP:/home/flasqo/app/
+scp -r "E:\Evolune_Products\Evo-TFX-main\frontend" root@YOUR_CONTABO_IP:/home/flasqo/app/
+```
 
-# Option A: Clone from Git
-git clone YOUR_REPO_URL .
+Then fix ownership:
+```bash
+chown -R flasqo:flasqo /home/flasqo/app
+```
 
-# Option B: Upload files via SCP (from your local machine)
-# scp -r E:\Automation_project\Evo-TFX-main/* root@your-contabo-ip:/home/appuser/app/
+### 3.2 Set up Python virtual environment
 
-# Navigate to backend
-cd /home/appuser/app/backend
+```bash
+su - flasqo
+cd /home/flasqo/app/backend
 
-# Create Python virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Install Python dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install gunicorn
 ```
 
-**Verification:**
+Verify:
 ```bash
-which python  # Should show: /home/appuser/app/backend/venv/bin/python
-pip list      # Should show all installed packages
+which python   # /home/flasqo/app/backend/venv/bin/python
 ```
 
-#### Step 8: Create Environment File
+### 3.3 Create the backend `.env` file
+
 ```bash
-nano /home/appuser/app/backend/.env
+nano /home/flasqo/app/backend/.env
 ```
 
-**Add this content** (replace all placeholder values):
+Paste and fill in all values:
+
 ```env
-# Database Configuration
-DATABASE_URL=postgresql://evo_tfx_user:YOUR_SECURE_PASSWORD_HERE@localhost/evo_tfx_db
+# ============================================
+# ENVIRONMENT
+# ============================================
+ENVIRONMENT=production
 
-# Security
-SECRET_KEY=GENERATE_THIS_WITH_OPENSSL
+# ============================================
+# SECURITY
+# ============================================
+# Generate with: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+SECRET_KEY=GENERATE_AND_PASTE_HERE
 
-# Frontend URL (update with your domain)
-FRONTEND_URL=https://your-subdomain.yourdomain.com
+# ============================================
+# DATABASE
+# ============================================
+DATABASE_URL=postgresql://flasqo_user:YOUR_DB_PASSWORD@localhost:5432/flasqo_db
+DB_POOL_SIZE=20
+DB_MAX_OVERFLOW=40
+DB_POOL_TIMEOUT=30
+DB_POOL_RECYCLE=3600
+DB_ECHO=False
 
-# OpenAI API
-OPENAI_API_KEY=your-openai-api-key
+# ============================================
+# REDIS
+# ============================================
+REDIS_URL=redis://localhost:6379/0
+REDIS_CACHE_TTL=300
+CACHE_ENABLED=True
 
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# ============================================
+# URLS
+# ============================================
+FRONTEND_URL=https://flasqo.evolune.in
+BACKEND_URL=https://flasqo.evolune.in
+ALLOWED_ORIGINS=
 
-# GitHub OAuth
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
+# ============================================
+# GOOGLE OAUTH
+# ============================================
+GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+
+# ============================================
+# GITHUB OAUTH (User Authentication)
+# ============================================
+GITHUB_CLIENT_ID=YOUR_GITHUB_AUTH_CLIENT_ID
+GITHUB_CLIENT_SECRET=YOUR_GITHUB_AUTH_CLIENT_SECRET
+
+# ============================================
+# GITHUB OAUTH (Repository Access)
+# ============================================
+GITHUB_REPO_CLIENT_ID=YOUR_GITHUB_REPO_CLIENT_ID
+GITHUB_REPO_CLIENT_SECRET=YOUR_GITHUB_REPO_CLIENT_SECRET
+
+# ============================================
+# OPENAI
+# ============================================
+OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+
+# ============================================
+# SECURITY SETTINGS
+# ============================================
+HTTPS_ONLY=True
+SECURE_COOKIES=True
+ENABLE_SECURITY_HEADERS=True
+
+# ============================================
+# RATE LIMITING
+# ============================================
+RATE_LIMIT_ENABLED=True
+RATE_LIMIT_PER_MINUTE=60
+RATE_LIMIT_AUTH_PER_MINUTE=5
+RATE_LIMIT_BURST=10
+MAX_LOGIN_ATTEMPTS=5
+ACCOUNT_LOCKOUT_DURATION=900
+
+# ============================================
+# SESSION
+# ============================================
+SESSION_MAX_AGE=3600
+SESSION_SAME_SITE=none
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+
+# ============================================
+# PASSWORD POLICY
+# ============================================
+MIN_PASSWORD_LENGTH=8
+REQUIRE_SPECIAL_CHAR=True
+REQUIRE_NUMBER=True
+REQUIRE_UPPERCASE=True
+
+# ============================================
+# LOGGING
+# ============================================
+LOG_LEVEL=INFO
+LOG_FORMAT=json
+LOG_FILE=logs/app.log
+
+# ============================================
+# METRICS
+# ============================================
+ENABLE_METRICS=True
+METRICS_PORT=9090
+
+# ============================================
+# LIMITS
+# ============================================
+DEFAULT_TEST_TIMEOUT=10
+MAX_TEST_CASES_PER_RUN=100
+MAX_UPLOAD_SIZE=10485760
+
+# ============================================
+# SERVER
+# ============================================
+HOST=0.0.0.0
+PORT=8000
+WORKERS=4
+REQUEST_TIMEOUT=30
+KEEPALIVE_TIMEOUT=75
+DEBUG=False
 ```
 
-**Generate SECRET_KEY:**
+Generate the SECRET_KEY:
 ```bash
-openssl rand -hex 32
-# Copy the output and paste it as SECRET_KEY value
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-**Save and exit:** Press `Ctrl+X`, then `Y`, then `Enter`
+Save and exit: `Ctrl+X` → `Y` → `Enter`
 
-#### Step 9: Test Backend Locally
+### 3.4 Create logs directory
+
 ```bash
-# Make sure you're in backend directory with venv activated
-cd /home/appuser/app/backend
+mkdir -p /home/flasqo/app/backend/logs
+```
+
+### 3.5 Test backend starts correctly
+
+```bash
+cd /home/flasqo/app/backend
 source venv/bin/activate
-
-# Test run
 uvicorn backend:app --host 0.0.0.0 --port 8000
 ```
 
-**Test from another terminal:**
+Open a second terminal and test:
 ```bash
-curl http://localhost:8000
-# Should return response from your API
+curl http://localhost:8000/health
+# Should return a JSON response
 ```
 
-Press `Ctrl+C` to stop the test server.
+Press `Ctrl+C` to stop.
 
-#### Step 10: Create Systemd Service for Backend
+### 3.6 Create systemd service
+
+Exit to root first:
 ```bash
-# Exit from appuser to root
 exit
-
-# Create service file
-nano /etc/systemd/system/evo-tfx-backend.service
 ```
 
-**Add this content:**
+```bash
+nano /etc/systemd/system/flasqo-backend.service
+```
+
+Paste:
 ```ini
 [Unit]
-Description=Evo TFX FastAPI Backend
-After=network.target postgresql.service
+Description=Flasqo FastAPI Backend
+After=network.target postgresql.service redis.service
 
 [Service]
-User=appuser
-Group=appuser
-WorkingDirectory=/home/appuser/app/backend
-Environment="PATH=/home/appuser/app/backend/venv/bin"
-ExecStart=/home/appuser/app/backend/venv/bin/gunicorn backend:app -w 4 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000 --timeout 120
+User=flasqo
+Group=flasqo
+WorkingDirectory=/home/flasqo/app/backend
+Environment="PATH=/home/flasqo/app/backend/venv/bin"
+EnvironmentFile=/home/flasqo/app/backend/.env
+ExecStart=/home/flasqo/app/backend/venv/bin/gunicorn backend:app \
+    -w 4 \
+    -k uvicorn.workers.UvicornWorker \
+    -b 127.0.0.1:8000 \
+    --timeout 120 \
+    --keep-alive 5 \
+    --access-logfile /home/flasqo/app/backend/logs/access.log \
+    --error-logfile /home/flasqo/app/backend/logs/error.log
 Restart=always
 RestartSec=10
 
@@ -304,1050 +412,658 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-#### Step 11: Start Backend Service
+### 3.7 Start and enable backend service
+
 ```bash
-# Reload systemd
 systemctl daemon-reload
-
-# Start service
-systemctl start evo-tfx-backend
-
-# Enable auto-start on boot
-systemctl enable evo-tfx-backend
-
-# Check status
-systemctl status evo-tfx-backend
+systemctl start flasqo-backend
+systemctl enable flasqo-backend
+systemctl status flasqo-backend
 ```
 
-**Expected Output:**
+Expected:
 ```
-● evo-tfx-backend.service - Evo TFX FastAPI Backend
-   Loaded: loaded
+● flasqo-backend.service - Flasqo FastAPI Backend
    Active: active (running)
 ```
 
-**View logs:**
+View live logs:
 ```bash
-journalctl -u evo-tfx-backend -f
+journalctl -u flasqo-backend -f
 ```
 
 ---
 
-### Phase 4: Frontend Deployment
+## Phase 4 — Frontend Build
 
-#### Step 12: Update Frontend Configuration
+### 4.1 Verify `.env.production` is correct
+
+The file `frontend/.env.production` should already contain:
+```env
+VITE_API_BASE_URL=https://flasqo.evolune.in
+```
+
+> This is already set correctly. Do not change it.
+
+### 4.2 Build the frontend
+
 ```bash
-su - appuser
-cd /home/appuser/app/frontend
-```
+su - flasqo
+cd /home/flasqo/app/frontend
 
-**Find and update API URL** (usually in `src/config.js`, `src/constants.js`, or similar):
-```bash
-# Search for API URL configuration
-grep -r "localhost:8000" src/
-grep -r "API_URL" src/
-```
-
-**Update to your domain:**
-```javascript
-// Before
-const API_URL = 'http://localhost:8000';
-
-// After
-const API_URL = 'https://your-subdomain.yourdomain.com/api';
-```
-
-Or create a config file if it doesn't exist:
-```bash
-nano src/config.js
-```
-
-```javascript
-const config = {
-  API_URL: import.meta.env.PROD
-    ? 'https://your-subdomain.yourdomain.com/api'
-    : 'http://localhost:8000',
-};
-
-export default config;
-```
-
-#### Step 13: Build Frontend
-```bash
-# Install Node dependencies
 npm install
-
-# Build for production
 npm run build
-
-# Verify build
-ls -la dist/
 ```
 
-**Expected Output:**
-```
-dist/
-├── index.html
-├── assets/
-│   ├── index-xxx.js
-│   └── index-xxx.css
-└── ...
-```
-
+Verify the build:
 ```bash
-# Exit back to root
+ls dist/
+# Should show: index.html  assets/
+```
+
+Exit back to root:
+```bash
 exit
 ```
 
----
+### 4.3 Set correct permissions for Nginx
 
-### Phase 5: Nginx Configuration
-
-#### Step 14: Create Nginx Configuration
 ```bash
-nano /etc/nginx/sites-available/evo-tfx
+chmod -R 755 /home/flasqo
+chmod -R 755 /home/flasqo/app/frontend/dist
 ```
 
-**Add this configuration** (replace `your-subdomain.yourdomain.com` with your actual domain):
+---
+
+## Phase 5 — Nginx Configuration
+
+### 5.1 Create Nginx site config
+
+```bash
+nano /etc/nginx/sites-available/flasqo
+```
+
+Paste the full configuration:
+
 ```nginx
-# Main application
 server {
     listen 80;
-    server_name your-subdomain.yourdomain.com;
+    server_name flasqo.evolune.in;
+
+    # Redirect all HTTP to HTTPS (Certbot will add this automatically,
+    # but include it here for clarity)
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name flasqo.evolune.in;
+
+    # SSL certificates (Certbot will fill these in)
+    # ssl_certificate /etc/letsencrypt/live/flasqo.evolune.in/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/flasqo.evolune.in/privkey.pem;
 
     # Frontend static files
-    root /home/appuser/app/frontend/dist;
+    root /home/flasqo/app/frontend/dist;
     index index.html;
+
+    # File upload size limit (matches MAX_UPLOAD_SIZE in .env)
+    client_max_body_size 10M;
 
     # Gzip compression
     gzip on;
     gzip_vary on;
     gzip_min_length 1000;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-
-    # Frontend - SPA routing
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # API endpoints
-    location /api {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-
-    # OAuth callbacks
-    location /auth {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+    gzip_types text/plain text/css application/json application/javascript
+               text/xml application/xml text/javascript image/svg+xml;
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
-    # File upload size limit
-    client_max_body_size 10M;
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # ─── Backend API routes ───────────────────────────────────────────────────
+
+    location /api {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    location /auth {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /history {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    location /flows {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    location /report {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /dashboard {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /regression {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    location /contract {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    location /graphql {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    location /teams {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /github {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ─── Frontend SPA (catch-all — must be last) ──────────────────────────────
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
 }
 ```
 
-#### Step 15: Enable Site and Test Nginx
+### 5.2 Enable the site
+
 ```bash
-# Create symbolic link to enable site
-ln -s /etc/nginx/sites-available/evo-tfx /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/flasqo /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
 
-# Remove default site
-rm /etc/nginx/sites-enabled/default
-
-# Test configuration
 nginx -t
 ```
 
-**Expected Output:**
+Expected:
 ```
 nginx: configuration file /etc/nginx/nginx.conf test is successful
 ```
 
 ```bash
-# Restart Nginx
 systemctl restart nginx
-systemctl status nginx
+systemctl enable nginx
 ```
 
 ---
 
-### Phase 6: Domain Configuration
+## Phase 6 — DNS Configuration
 
-#### Step 16: Configure DNS Records
-Go to your domain registrar's DNS management panel (e.g., GoDaddy, Namecheap, Cloudflare)
-
-**Add these A records:**
+Log into your domain registrar's DNS panel for `evolune.in` and add:
 
 | Type | Name | Value | TTL |
-|------|------|-------|-----|
-| A | your-subdomain | your-contabo-ip | 3600 |
-| A | api.your-subdomain | your-contabo-ip | 3600 |
+|---|---|---|---|
+| A | `flasqo` | `YOUR_CONTABO_IP` | 3600 |
 
-**Example:**
-- If your domain is `example.com` and subdomain is `app`
-- Add A record: `app` → `123.45.67.89`
-- Add A record: `api.app` → `123.45.67.89`
+This creates `flasqo.evolune.in` → your server.
 
-**Wait 5-15 minutes for DNS propagation**
-
-#### Step 17: Verify DNS Propagation
+**Verify DNS propagation** (wait 5–15 minutes first):
 ```bash
-# Check if DNS is propagated
-nslookup your-subdomain.yourdomain.com
-
-# Or use
-dig your-subdomain.yourdomain.com
-
-# Check from external tool
-# Visit: https://dnschecker.org
+nslookup flasqo.evolune.in
+# Should return your Contabo IP
 ```
 
-**Expected Output:**
-```
-Server:     8.8.8.8
-Address:    8.8.8.8#53
-
-Name:   your-subdomain.yourdomain.com
-Address: your-contabo-ip
-```
+Or check online: https://dnschecker.org/#A/flasqo.evolune.in
 
 ---
 
-### Phase 7: SSL Certificate (HTTPS)
+## Phase 7 — SSL Certificate
 
-#### Step 18: Install SSL Certificate with Certbot
+> DNS must be propagated before this step.
+
 ```bash
-# Make sure DNS is propagated first!
-certbot --nginx -d your-subdomain.yourdomain.com
+certbot --nginx -d flasqo.evolune.in
 ```
 
-**Follow the prompts:**
-1. Enter email address: `your-email@example.com`
+Follow the prompts:
+1. Enter your email address
 2. Agree to terms: `Y`
-3. Share email with EFF: `N` (optional)
-4. Choose redirect option: `2` (Redirect HTTP to HTTPS)
+3. Share with EFF: `N`
+4. Redirect option: `2` (Redirect HTTP → HTTPS)
 
-**Expected Output:**
-```
-Successfully received certificate.
-Certificate is saved at: /etc/letsencrypt/live/your-subdomain.yourdomain.com/fullchain.pem
-Key is saved at:         /etc/letsencrypt/live/your-subdomain.yourdomain.com/privkey.pem
-```
+Certbot will automatically update your Nginx config.
 
-#### Step 19: Verify SSL Certificate
+**Verify certificate:**
 ```bash
-# Check certificate
 certbot certificates
+# Shows expiry date
 
-# Test auto-renewal
 certbot renew --dry-run
+# Tests auto-renewal — should succeed
 ```
 
-**Visit your site:**
-```
-https://your-subdomain.yourdomain.com
-```
-
-You should see a padlock icon indicating secure HTTPS connection.
+Visit: `https://flasqo.evolune.in` — you should see the Flasqo app with a padlock.
 
 ---
 
-### Phase 8: OAuth Configuration
+## Phase 8 — OAuth Configuration
 
-#### Step 20: Update Google OAuth Settings
+### 8.1 Google OAuth
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Navigate to **APIs & Services** → **Credentials**
-3. Click on your OAuth 2.0 Client ID
-4. Under **Authorized JavaScript origins**, add:
-   - `https://your-subdomain.yourdomain.com`
-5. Under **Authorized redirect URIs**, add:
-   - `https://your-subdomain.yourdomain.com/auth/google/callback`
-6. Click **Save**
+1. Go to [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services** → **Credentials**
+2. Click your OAuth 2.0 Client ID
+3. Under **Authorized JavaScript origins** add:
+   ```
+   https://flasqo.evolune.in
+   ```
+4. Under **Authorized redirect URIs** add:
+   ```
+   https://flasqo.evolune.in/auth/google/callback
+   ```
+5. Click **Save**
 
-#### Step 21: Update GitHub OAuth Settings
+### 8.2 GitHub OAuth — Auth App
 
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Click on your OAuth App
-3. Update **Homepage URL**: `https://your-subdomain.yourdomain.com`
-4. Update **Authorization callback URL**: `https://your-subdomain.yourdomain.com/auth/github/callback`
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers) → **OAuth Apps**
+2. Click your auth OAuth app
+3. Update **Homepage URL**:
+   ```
+   https://flasqo.evolune.in
+   ```
+4. Update **Authorization callback URL**:
+   ```
+   https://flasqo.evolune.in/auth/github/callback
+   ```
 5. Click **Update application**
 
+### 8.3 GitHub OAuth — Repo Access App
+
+1. In the same Developer Settings, click your repo access OAuth app
+2. Update **Homepage URL**:
+   ```
+   https://flasqo.evolune.in
+   ```
+3. Update **Authorization callback URL**:
+   ```
+   https://flasqo.evolune.in/github/callback
+   ```
+4. Click **Update application**
+
 ---
 
-### Phase 9: Final Testing
+## Phase 9 — Verification
 
-#### Step 22: Test All Components
+### 9.1 Check all services are running
 
-**Backend Health Check:**
 ```bash
-curl https://your-subdomain.yourdomain.com/api/health
+systemctl status flasqo-backend   # active (running)
+systemctl status nginx             # active (running)
+systemctl status postgresql        # active (running)
+systemctl status redis-server      # active (running)
+```
+
+### 9.2 Test backend health
+
+```bash
+curl https://flasqo.evolune.in/health
 # or
 curl http://localhost:8000/health
 ```
 
-**Database Connection:**
+### 9.3 Test backend logs
+
 ```bash
-su - appuser
-cd /home/appuser/app/backend
-source venv/bin/activate
-python3 -c "from backend import engine; print('Database connected successfully!')"
-exit
+journalctl -u flasqo-backend -f
 ```
 
-**Frontend:**
-- Visit: `https://your-subdomain.yourdomain.com`
-- Should load React app without errors
+### 9.4 Test the full app
 
-**Check Logs:**
+1. Open `https://flasqo.evolune.in` — Flasqo landing page loads
+2. Click **Sign in with Google** — redirects to Google, comes back logged in
+3. Click **Sign in with GitHub** — redirects to GitHub, comes back logged in
+4. Navigate to any testing suite — loads correctly
+5. Run a quick Smoke test against `https://jsonplaceholder.typicode.com/posts/1` — results appear
+
+### 9.5 Check Nginx logs
+
 ```bash
-# Backend logs
-journalctl -u evo-tfx-backend -f
-
-# Nginx access logs
+# Access log
 tail -f /var/log/nginx/access.log
 
-# Nginx error logs
+# Error log
 tail -f /var/log/nginx/error.log
 ```
 
-**Test OAuth Flows:**
-1. Visit your site
-2. Click "Sign in with Google" - should redirect to Google
-3. Click "Sign in with GitHub" - should redirect to GitHub
-4. Complete authentication
-5. Should redirect back to your app
-
 ---
 
-### Phase 10: Monitoring & Maintenance
+## Updating the App
 
-#### Step 23: Set Up Log Rotation
+After pushing new code to Git, run this on the server:
+
 ```bash
-nano /etc/logrotate.d/evo-tfx
+nano /home/flasqo/update.sh
 ```
 
-**Add:**
-```
-/var/log/nginx/*.log {
-    daily
-    missingok
-    rotate 14
-    compress
-    delaycompress
-    notifempty
-    create 0640 www-data adm
-    sharedscripts
-    postrotate
-        systemctl reload nginx > /dev/null 2>&1
-    endscript
-}
-```
-
-#### Step 24: Create Deployment Update Script
-```bash
-nano /home/appuser/update.sh
-```
-
-**Add:**
+Paste:
 ```bash
 #!/bin/bash
 set -e
 
-echo "Starting deployment update..."
+echo "=== Flasqo Update ==="
 
-# Navigate to app directory
-cd /home/appuser/app
+cd /home/flasqo/app
 
-# Pull latest changes
-echo "Pulling latest code..."
+echo "[1/5] Pulling latest code..."
 git pull origin master
 
-# Update backend
-echo "Updating backend..."
+echo "[2/5] Updating backend dependencies..."
 cd backend
 source venv/bin/activate
 pip install -r requirements.txt
+deactivate
 cd ..
 
-# Update frontend
-echo "Updating frontend..."
+echo "[3/5] Building frontend..."
 cd frontend
 npm install
 npm run build
 cd ..
 
-# Restart backend service
-echo "Restarting backend service..."
-sudo systemctl restart evo-tfx-backend
+echo "[4/5] Restarting backend..."
+sudo systemctl restart flasqo-backend
 
-echo "Deployment update completed!"
-echo "Check status: sudo systemctl status evo-tfx-backend"
+echo "[5/5] Done!"
+sudo systemctl status flasqo-backend --no-pager
 ```
 
-**Make executable:**
+Make it executable:
 ```bash
-chmod +x /home/appuser/update.sh
-chown appuser:appuser /home/appuser/update.sh
-
-# Allow appuser to restart service without password
-nano /etc/sudoers.d/appuser
+chmod +x /home/flasqo/update.sh
+chown flasqo:flasqo /home/flasqo/update.sh
 ```
 
-**Add:**
-```
-appuser ALL=(ALL) NOPASSWD: /bin/systemctl restart evo-tfx-backend
-```
-
-#### Step 25: Set Up Monitoring (Optional but Recommended)
+Allow flasqo user to restart the service without a password:
 ```bash
-# Install htop for resource monitoring
-apt install htop
-
-# Create monitoring script
-nano /home/appuser/monitor.sh
+echo "flasqo ALL=(ALL) NOPASSWD: /bin/systemctl restart flasqo-backend, /bin/systemctl status flasqo-backend" \
+  > /etc/sudoers.d/flasqo
 ```
 
-**Add:**
+**Run an update:**
 ```bash
-#!/bin/bash
-echo "=== System Resources ==="
-free -h
-df -h /
-echo ""
-echo "=== Backend Service Status ==="
-systemctl status evo-tfx-backend --no-pager
-echo ""
-echo "=== Nginx Status ==="
-systemctl status nginx --no-pager
-echo ""
-echo "=== Recent Backend Logs ==="
-journalctl -u evo-tfx-backend -n 20 --no-pager
-```
-
-```bash
-chmod +x /home/appuser/monitor.sh
+su - flasqo
+/home/flasqo/update.sh
 ```
 
 ---
 
-## Configuration Checklist
+## Maintenance & Monitoring
 
-### Pre-Deployment Checklist
-- [ ] Contabo VPS is accessible via SSH
-- [ ] Domain/subdomain DNS is configured
-- [ ] All OAuth credentials are obtained
-- [ ] OpenAI API key is ready
-- [ ] Database password is generated and saved
-
-### Post-Deployment Checklist
-- [ ] Backend service is running (`systemctl status evo-tfx-backend`)
-- [ ] Nginx is running (`systemctl status nginx`)
-- [ ] PostgreSQL is running (`systemctl status postgresql`)
-- [ ] SSL certificate is installed (https works)
-- [ ] Frontend loads correctly
-- [ ] API endpoints are accessible
-- [ ] Google OAuth login works
-- [ ] GitHub OAuth login works
-- [ ] Database connections are successful
-- [ ] Firewall is configured (`ufw status`)
-- [ ] Auto-renewal is set up (`certbot renew --dry-run`)
-
----
-
-## Maintenance
-
-### Regular Tasks
-
-**Weekly:**
+### Daily check
 ```bash
-# Check service status
-systemctl status evo-tfx-backend
-systemctl status nginx
-systemctl status postgresql
-
-# Check disk space
-df -h
-
-# Check logs for errors
-journalctl -u evo-tfx-backend --since "1 week ago" | grep -i error
+systemctl status flasqo-backend nginx postgresql redis-server
+df -h          # Disk space
+free -h        # Memory
 ```
 
-**Monthly:**
+### View logs
 ```bash
-# Update system packages
-apt update && apt upgrade -y
-
-# Check SSL certificate expiry
-certbot certificates
-
-# Review logs
-journalctl -u evo-tfx-backend --since "1 month ago" | grep -i error
+journalctl -u flasqo-backend -n 50           # Last 50 log lines
+journalctl -u flasqo-backend --since today   # Today's logs
+tail -f /var/log/nginx/error.log             # Nginx errors live
 ```
 
-### Update Application
+### Database backup
 ```bash
-su - appuser
-/home/appuser/update.sh
+# Backup
+sudo -u postgres pg_dump flasqo_db > /home/flasqo/backup_$(date +%Y%m%d).sql
+
+# Restore
+sudo -u postgres psql flasqo_db < /home/flasqo/backup_20260101.sql
 ```
 
-### Backup Database
+### Automated daily backup (cron)
 ```bash
-# Create backup
-sudo -u postgres pg_dump evo_tfx_db > /home/appuser/backup_$(date +%Y%m%d).sql
-
-# Restore from backup
-sudo -u postgres psql evo_tfx_db < /home/appuser/backup_20240101.sql
+crontab -e
+```
+Add:
+```
+0 2 * * * sudo -u postgres pg_dump flasqo_db > /home/flasqo/backup_$(date +\%Y\%m\%d).sql && find /home/flasqo -name "backup_*.sql" -mtime +7 -delete
 ```
 
-### Restart Services
+### SSL renewal (automatic — just verify it works)
 ```bash
-# Restart backend only
-systemctl restart evo-tfx-backend
-
-# Restart nginx only
-systemctl restart nginx
-
-# Restart everything
-systemctl restart evo-tfx-backend nginx postgresql
-```
-
----
-
-## Useful Commands Reference
-
-### Service Management
-```bash
-# Start service
-systemctl start evo-tfx-backend
-
-# Stop service
-systemctl stop evo-tfx-backend
-
-# Restart service
-systemctl restart evo-tfx-backend
-
-# Check status
-systemctl status evo-tfx-backend
-
-# View logs (real-time)
-journalctl -u evo-tfx-backend -f
-
-# View last 100 logs
-journalctl -u evo-tfx-backend -n 100
-```
-
-### Nginx Commands
-```bash
-# Test configuration
-nginx -t
-
-# Reload configuration (no downtime)
-nginx -s reload
-
-# Restart nginx
-systemctl restart nginx
-
-# View access logs
-tail -f /var/log/nginx/access.log
-
-# View error logs
-tail -f /var/log/nginx/error.log
-```
-
-### Database Commands
-```bash
-# Connect to database
-sudo -u postgres psql evo_tfx_db
-
-# List databases
-sudo -u postgres psql -c "\l"
-
-# List tables
-sudo -u postgres psql evo_tfx_db -c "\dt"
-
-# Backup database
-sudo -u postgres pg_dump evo_tfx_db > backup.sql
-
-# Restore database
-sudo -u postgres psql evo_tfx_db < backup.sql
-```
-
-### SSL/Certificate Commands
-```bash
-# List certificates
-certbot certificates
-
-# Renew certificates manually
-certbot renew
-
-# Test auto-renewal
 certbot renew --dry-run
-
-# Revoke certificate
-certbot revoke --cert-path /etc/letsencrypt/live/your-domain/cert.pem
 ```
 
-### Monitoring Commands
+### Weekly system update
 ```bash
-# Check disk usage
-df -h
-
-# Check memory usage
-free -h
-
-# Check CPU usage
-top
-
-# Interactive process monitor
-htop
-
-# Check open ports
-netstat -tulpn
-
-# Check if port is in use
-lsof -i :8000
-
-# Check process by name
-ps aux | grep gunicorn
+apt update && apt upgrade -y
 ```
 
 ---
 
 ## Troubleshooting
 
-### Backend Won't Start
-
-**Check logs:**
+### Backend won't start
 ```bash
-journalctl -u evo-tfx-backend -n 50
-```
+journalctl -u flasqo-backend -n 100
 
-**Common issues:**
-
-1. **Module not found:**
-```bash
-su - appuser
-cd /home/appuser/app/backend
+# Common fix — reinstall dependencies
+su - flasqo
+cd /home/flasqo/app/backend
 source venv/bin/activate
 pip install -r requirements.txt
 exit
-systemctl restart evo-tfx-backend
+systemctl restart flasqo-backend
 ```
 
-2. **Database connection error:**
+### 502 Bad Gateway
 ```bash
-# Verify DATABASE_URL in .env
-cat /home/appuser/app/backend/.env | grep DATABASE_URL
+# Check if backend is running
+systemctl status flasqo-backend
 
-# Test database connection
-sudo -u postgres psql evo_tfx_db
+# Check if it's listening on port 8000
+ss -tlnp | grep 8000
+
+# Restart
+systemctl restart flasqo-backend
 ```
 
-3. **Port already in use:**
+### Frontend shows blank page
 ```bash
-# Find process using port 8000
-lsof -i :8000
+# Check Nginx error log
+tail -f /var/log/nginx/error.log
 
-# Kill the process
-kill -9 <PID>
+# Check permissions
+ls -la /home/flasqo/app/frontend/dist/
+chmod -R 755 /home/flasqo/app/frontend/dist/
 
-# Restart service
-systemctl restart evo-tfx-backend
-```
-
-### Frontend Shows Blank Page
-
-**Check browser console:** Press F12 and look for errors
-
-**Common issues:**
-
-1. **API connection failed:**
-   - Check API URL in frontend config
-   - Verify backend is running: `systemctl status evo-tfx-backend`
-   - Test API: `curl http://localhost:8000`
-
-2. **Build issues:**
-```bash
-su - appuser
-cd /home/appuser/app/frontend
+# Rebuild
+su - flasqo
+cd /home/flasqo/app/frontend
 rm -rf dist node_modules
-npm install
-npm run build
+npm install && npm run build
 exit
 ```
 
-3. **Nginx not serving files:**
+### Google/GitHub OAuth not working
+1. Confirm `HTTPS_ONLY=True` and `SESSION_SAME_SITE=none` in `.env`
+2. Confirm redirect URIs in Google/GitHub match exactly (including `https://`)
+3. Restart backend after any `.env` change: `systemctl restart flasqo-backend`
+4. Check backend logs: `journalctl -u flasqo-backend -f`
+
+### Database connection error
 ```bash
-# Check nginx error logs
-tail -f /var/log/nginx/error.log
-
-# Verify file permissions
-ls -la /home/appuser/app/frontend/dist/
-
-# Fix permissions if needed
-chmod -R 755 /home/appuser/app/frontend/dist/
-```
-
-### SSL Certificate Issues
-
-**Certificate not installing:**
-```bash
-# Make sure DNS is propagated
-nslookup your-subdomain.yourdomain.com
-
-# Check nginx configuration
-nginx -t
-
-# Try manual installation
-certbot --nginx -d your-subdomain.yourdomain.com --dry-run
-certbot --nginx -d your-subdomain.yourdomain.com
-```
-
-**Certificate expired:**
-```bash
-# Renew immediately
-certbot renew --force-renewal
-
-# Restart nginx
-systemctl restart nginx
-```
-
-### Database Connection Issues
-
-**Can't connect to database:**
-```bash
-# Check PostgreSQL status
 systemctl status postgresql
-
-# Check if PostgreSQL is listening
-netstat -tulpn | grep 5432
-
-# Restart PostgreSQL
 systemctl restart postgresql
 
 # Test connection
-psql -U evo_tfx_user -d evo_tfx_db -h localhost
+psql -U flasqo_user -d flasqo_db -h localhost
 ```
 
-**Permission denied:**
+### Redis connection error
 ```bash
-# Edit pg_hba.conf
-nano /etc/postgresql/*/main/pg_hba.conf
-
-# Ensure this line exists:
-# local   all   evo_tfx_user   md5
-
-# Restart PostgreSQL
-systemctl restart postgresql
+systemctl status redis-server
+systemctl restart redis-server
+redis-cli ping   # Should return PONG
 ```
 
-### OAuth Login Not Working
-
-**Google OAuth fails:**
-1. Check Google Console redirect URIs
-2. Verify FRONTEND_URL in backend `.env`
-3. Check backend logs: `journalctl -u evo-tfx-backend -f`
-4. Ensure HTTPS is working
-
-**GitHub OAuth fails:**
-1. Check GitHub OAuth app callback URL
-2. Verify GitHub credentials in `.env`
-3. Test redirect: `https://your-domain.com/auth/github/callback`
-
-### High Memory/CPU Usage
-
-**Check resource usage:**
+### Nginx config error
 ```bash
-htop
+nginx -t          # Test config
+systemctl reload nginx
 ```
 
-**Optimize Gunicorn workers:**
+### Port 8000 already in use
 ```bash
-nano /etc/systemd/system/evo-tfx-backend.service
-
-# Change workers: -w 2 (for 1GB RAM server)
-# Change workers: -w 4 (for 2GB+ RAM server)
-
-systemctl daemon-reload
-systemctl restart evo-tfx-backend
-```
-
-### Nginx 502 Bad Gateway
-
-**Backend is not running:**
-```bash
-systemctl status evo-tfx-backend
-systemctl restart evo-tfx-backend
-```
-
-**Backend crashed:**
-```bash
-journalctl -u evo-tfx-backend -n 100
-```
-
-**Port mismatch:**
-```bash
-# Check if backend is listening on 8000
-netstat -tulpn | grep 8000
-
-# Check nginx proxy_pass configuration
-cat /etc/nginx/sites-enabled/evo-tfx | grep proxy_pass
+ss -tlnp | grep 8000
+kill -9 $(lsof -t -i:8000)
+systemctl restart flasqo-backend
 ```
 
 ---
 
-## Security Best Practices
-
-### Implemented Security Measures
-- [x] Non-root user for application
-- [x] UFW firewall enabled
-- [x] HTTPS with SSL certificate
-- [x] Secure database password
-- [x] Environment variables for secrets
-- [x] Security headers in Nginx
-
-### Additional Recommendations
-
-**1. Enable Fail2Ban (Prevent brute force):**
-```bash
-apt install fail2ban
-systemctl enable fail2ban
-systemctl start fail2ban
-```
-
-**2. Regular security updates:**
-```bash
-# Enable automatic security updates
-apt install unattended-upgrades
-dpkg-reconfigure --priority=low unattended-upgrades
-```
-
-**3. Change SSH port (optional):**
-```bash
-nano /etc/ssh/sshd_config
-# Change: Port 22 → Port 2222
-systemctl restart sshd
-ufw allow 2222
-```
-
-**4. Disable root login via SSH:**
-```bash
-nano /etc/ssh/sshd_config
-# Set: PermitRootLogin no
-systemctl restart sshd
-```
-
-**5. Regular backups:**
-```bash
-# Create backup script
-nano /home/appuser/backup.sh
-```
+## Quick Reference
 
 ```bash
-#!/bin/bash
-BACKUP_DIR="/home/appuser/backups"
-DATE=$(date +%Y%m%d_%H%M%S)
+# ── Service control ────────────────────────────────────────
+systemctl start   flasqo-backend
+systemctl stop    flasqo-backend
+systemctl restart flasqo-backend
+systemctl status  flasqo-backend
 
-mkdir -p $BACKUP_DIR
+# ── Logs ──────────────────────────────────────────────────
+journalctl -u flasqo-backend -f          # Live backend logs
+journalctl -u flasqo-backend -n 100      # Last 100 lines
+tail -f /var/log/nginx/access.log        # Nginx access
+tail -f /var/log/nginx/error.log         # Nginx errors
 
-# Backup database
-sudo -u postgres pg_dump evo_tfx_db > $BACKUP_DIR/db_$DATE.sql
+# ── Nginx ─────────────────────────────────────────────────
+nginx -t                                 # Test config
+systemctl reload nginx                   # Reload (no downtime)
+systemctl restart nginx
 
-# Backup application files
-tar -czf $BACKUP_DIR/app_$DATE.tar.gz /home/appuser/app
+# ── Database ──────────────────────────────────────────────
+sudo -u postgres psql flasqo_db          # Connect to DB
+sudo -u postgres pg_dump flasqo_db > backup.sql
 
-# Keep only last 7 days
-find $BACKUP_DIR -type f -mtime +7 -delete
+# ── SSL ───────────────────────────────────────────────────
+certbot certificates                     # List certs + expiry
+certbot renew --dry-run                  # Test auto-renewal
 
-echo "Backup completed: $DATE"
-```
+# ── System ────────────────────────────────────────────────
+htop                                     # Resource monitor
+df -h                                    # Disk space
+free -h                                  # Memory
+ss -tlnp                                 # Open ports
 
-```bash
-chmod +x /home/appuser/backup.sh
-
-# Add to crontab (daily at 2 AM)
-crontab -e
-# Add: 0 2 * * * /home/appuser/backup.sh
+# ── Update app ────────────────────────────────────────────
+su - flasqo && /home/flasqo/update.sh
 ```
 
 ---
 
-## Performance Optimization
+## Post-Deployment Checklist
 
-### Nginx Caching
-```bash
-nano /etc/nginx/sites-available/evo-tfx
-```
-
-Add inside server block:
-```nginx
-# Browser caching for static assets
-location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2)$ {
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-}
-```
-
-### Gunicorn Optimization
-```bash
-nano /etc/systemd/system/evo-tfx-backend.service
-```
-
-Optimize workers:
-```ini
-# Formula: (2 x CPU cores) + 1
-# For 2 CPU cores: -w 5
-# For 4 CPU cores: -w 9
-ExecStart=/home/appuser/app/backend/venv/bin/gunicorn backend:app -w 5 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000 --timeout 120 --keep-alive 5
-```
-
-### PostgreSQL Optimization
-```bash
-nano /etc/postgresql/*/main/postgresql.conf
-```
-
-Adjust based on your RAM:
-```conf
-# For 2GB RAM server
-shared_buffers = 512MB
-effective_cache_size = 1536MB
-maintenance_work_mem = 128MB
-```
+- [ ] `https://flasqo.evolune.in` loads the landing page
+- [ ] Google OAuth login works end-to-end
+- [ ] GitHub OAuth login works end-to-end
+- [ ] All testing suites load and run
+- [ ] `certbot renew --dry-run` succeeds
+- [ ] `systemctl status flasqo-backend` shows `active (running)`
+- [ ] `systemctl status nginx` shows `active (running)`
+- [ ] `systemctl status postgresql` shows `active (running)`
+- [ ] `systemctl status redis-server` shows `active (running)`
+- [ ] Firewall configured: `ufw status`
+- [ ] Database backup cron is set up
 
 ---
 
-## Cost Estimation
-
-### Monthly Costs
-- **Contabo VPS**: €5-15/month (depending on plan)
-- **Domain**: $10-15/year
-- **SSL Certificate**: FREE (Let's Encrypt)
-- **OpenAI API**: Variable (pay-as-you-go)
-
-### Total Initial Setup Cost
-- **One-time**: ~$10-15 (domain)
-- **Monthly**: ~€5-15 (VPS) + OpenAI usage
-
----
-
-## Support & Resources
-
-### Official Documentation
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [React Documentation](https://react.dev/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Nginx Documentation](https://nginx.org/en/docs/)
-- [Certbot Documentation](https://certbot.eff.org/docs/)
-
-### Useful Tools
-- **DNS Checker**: https://dnschecker.org
-- **SSL Checker**: https://www.sslshopper.com/ssl-checker.html
-- **Server Speed Test**: https://tools.pingdom.com
-
-### Community Help
-- Stack Overflow
-- FastAPI Discord
-- React Community Forum
-
----
-
-## Deployment Summary
-
-### What Was Deployed
-- ✅ FastAPI backend running on Gunicorn with Uvicorn workers
-- ✅ React frontend built and served by Nginx
-- ✅ PostgreSQL database with secure configuration
-- ✅ Nginx reverse proxy with SSL/HTTPS
-- ✅ Systemd service for automatic restarts
-- ✅ Firewall configured (UFW)
-- ✅ OAuth integration (Google & GitHub)
-- ✅ SSL certificate with auto-renewal
-
-### Server Configuration
-- **OS**: Ubuntu (Contabo VPS)
-- **Web Server**: Nginx
-- **Application Server**: Gunicorn + Uvicorn
-- **Database**: PostgreSQL
-- **SSL**: Let's Encrypt
-- **Process Manager**: Systemd
-
-### Access Points
-- **Frontend**: https://your-subdomain.yourdomain.com
-- **API**: https://your-subdomain.yourdomain.com/api
-- **OAuth Callbacks**: https://your-subdomain.yourdomain.com/auth/*
-
----
-
-## Quick Reference Card
-
-```bash
-# Essential Commands
-systemctl status evo-tfx-backend      # Check backend
-journalctl -u evo-tfx-backend -f      # View logs
-systemctl restart evo-tfx-backend     # Restart backend
-nginx -t                              # Test nginx config
-systemctl restart nginx               # Restart nginx
-certbot renew                         # Renew SSL
-su - appuser && /home/appuser/update.sh  # Update app
-
-# Emergency Commands
-systemctl stop evo-tfx-backend        # Stop backend
-kill -9 $(lsof -t -i:8000)           # Force kill port 8000
-nginx -s stop                         # Stop nginx
-rm /var/run/nginx.pid                 # Fix nginx PID issue
-
-# Monitoring
-htop                                  # System resources
-df -h                                 # Disk space
-free -h                               # Memory usage
-netstat -tulpn                        # Open ports
-```
-
----
-
-## Version History
-
-- **v1.0** - Initial deployment guide
-- **Date**: 2026-01-02
-- **Application**: Evo TFX (FastAPI + React)
-
----
-
-## License & Credits
-
-This deployment guide is provided as-is for the Evo TFX application.
-
-**Author**: Generated for Evo TFX deployment
-**Last Updated**: 2026-01-02
-
----
-
-**End of Deployment Guide**
-
-For issues or questions, refer to the troubleshooting section or check application logs.
+**Domain:** `flasqo.evolune.in`
+**Last Updated:** 2026-06-05

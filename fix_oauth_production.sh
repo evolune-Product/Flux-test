@@ -26,16 +26,16 @@ if [ "$USER" != "appuser" ]; then
     exit 1
 fi
 
-# Navigate to app directory (handle both /app and /app/Flux-test)
+# Navigate to app directory (handle both /app and /app/Flasqo)
 if [ -d "/home/appuser/app/backend" ]; then
     cd /home/appuser/app
-elif [ -d "/home/appuser/app/Flux-test/backend" ]; then
-    cd /home/appuser/app/Flux-test
+elif [ -d "/home/appuser/app/Flasqo/backend" ]; then
+    cd /home/appuser/app/Flasqo
 else
     echo -e "${RED}Failed to find app directory${NC}"
     echo "Looking in:"
     echo "  /home/appuser/app"
-    echo "  /home/appuser/app/Flux-test"
+    echo "  /home/appuser/app/Flasqo"
     exit 1
 fi
 
@@ -78,8 +78,8 @@ update_env() {
 }
 
 # Get domain from user or use default
-read -p "Enter your domain (default: https://fluxtest.evolune.in): " DOMAIN
-DOMAIN=${DOMAIN:-https://fluxtest.evolune.in}
+read -p "Enter your domain (default: https://Flasqo.evolune.in): " DOMAIN
+DOMAIN=${DOMAIN:-https://Flasqo.evolune.in}
 
 echo ""
 echo "Updating environment variables..."
@@ -178,24 +178,24 @@ cd ..
 echo ""
 
 echo -e "${YELLOW}Step 7: Restarting backend service...${NC}"
-sudo systemctl restart evo-tfx-backend
+sudo systemctl restart flasqo-backend
 
 # Wait for service to start
 sleep 3
 
 # Check if service is running
-if sudo systemctl is-active --quiet evo-tfx-backend; then
+if sudo systemctl is-active --quiet flasqo-backend; then
     echo -e "${GREEN}✓${NC} Backend service restarted successfully"
 else
     echo -e "${RED}✗${NC} Backend service failed to start"
     echo "Checking logs..."
-    sudo journalctl -u evo-tfx-backend -n 20 --no-pager
+    sudo journalctl -u flasqo-backend -n 20 --no-pager
     exit 1
 fi
 echo ""
 
 echo -e "${YELLOW}Step 8: Checking service status...${NC}"
-sudo systemctl status evo-tfx-backend --no-pager | head -15
+sudo systemctl status flasqo-backend --no-pager | head -15
 echo ""
 
 echo -e "${BLUE}========================================${NC}"
@@ -214,7 +214,7 @@ echo "3. Test OAuth login at:"
 echo "   ${DOMAIN}"
 echo ""
 echo "4. Monitor backend logs:"
-echo "   sudo journalctl -u evo-tfx-backend -f"
+echo "   sudo journalctl -u flasqo-backend -f"
 echo ""
 echo -e "${YELLOW}Configuration backup saved at:${NC}"
 echo "   backend/.env.backup.*"

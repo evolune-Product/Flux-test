@@ -2992,7 +2992,7 @@ def main():
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("""
         <div style='text-align: center; color: #9ca3af; padding: 2rem;'>
-            <p style='margin: 0;'>🚀 E-TFX by EvoluneEdge</p>
+            <p style='margin: 0;'>🚀 Flasqo by EvoluneEdge</p>
             <p style='margin: 0; font-size: 0.9rem;'>Launch flawless APIs with Evolune.</p>
         </div>
     """, unsafe_allow_html=True)

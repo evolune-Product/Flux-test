@@ -111,7 +111,7 @@ export default function SharedFlowApp({ token }) {
             href="/"
             className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Go to FluxTest
+            <ArrowLeft className="w-4 h-4" /> Go to Flasqo
           </a>
         </div>
       </div>
@@ -131,7 +131,7 @@ export default function SharedFlowApp({ token }) {
               className="shrink-0 flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="font-semibold text-white">FluxTest</span>
+              <span className="font-semibold text-white">Flasqo</span>
             </a>
             <div className="w-px h-5 bg-slate-600 shrink-0" />
             <div className="min-w-0">

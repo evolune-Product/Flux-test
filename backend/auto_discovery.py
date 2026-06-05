@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Auto-Discovery Module for Evo-TFX
+Auto-Discovery Module for Flasqo
 Zero-config API discovery with security scoring and test generation.
 This module is fully isolated and can be removed without affecting the rest of the app.
 """
@@ -202,7 +202,7 @@ class BaseDiscoverer:
     def _get_headers(self) -> Dict[str, str]:
         """Build headers based on auth config"""
         headers = {
-            "User-Agent": "Evo-TFX Auto-Discovery/1.0",
+            "User-Agent": "Flasqo Auto-Discovery/1.0",
             "Accept": "application/json, */*"
         }
 

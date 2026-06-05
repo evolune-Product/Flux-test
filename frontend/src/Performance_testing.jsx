@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, Zap, TrendingUp, AlertCircle, Clock, Users, Target, Repeat, Home, ArrowLeft, Github, FileText, BarChart3, Settings } from 'lucide-react';
 import GitHubIntegration from './GitHubIntegration.jsx';
@@ -19,6 +19,8 @@ const PerformanceTestingApp = () => {
   const [showGitHub, setShowGitHub] = useState(false);
   const [activeTab, setActiveTab] = useState('results'); // 'results' or 'logs'
   const [configTab, setConfigTab] = useState('basic'); // 'basic', 'request', or 'testtype'
+  const abortControllerRef = useRef(null);
+  const cancelledRef = useRef(false);
 
   // Get user from localStorage for GitHub integration
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -108,9 +110,14 @@ const PerformanceTestingApp = () => {
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const makeRequest = async (url) => {
+  const makeRequest = async (url, signal) => {
     const startTime = performance.now();
     let responseSize = 0;
+
+    // Per-request timeout of 10 seconds
+    const timeoutId = setTimeout(() => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    }, 10000);
 
     try {
       // Parse custom headers if provided
@@ -129,6 +136,7 @@ const PerformanceTestingApp = () => {
         method: httpMethod,
         mode: 'cors',
         headers: headers,
+        signal,
       };
 
       // Add body for POST, PUT, PATCH methods
@@ -141,6 +149,7 @@ const PerformanceTestingApp = () => {
       }
 
       const response = await fetch(url, options);
+      clearTimeout(timeoutId);
 
       // Get response size
       const responseText = await response.text();
@@ -157,13 +166,14 @@ const PerformanceTestingApp = () => {
         size: responseSize
       };
     } catch (error) {
+      clearTimeout(timeoutId);
       const endTime = performance.now();
       return {
         success: false,
         status: 0,
-        statusText: 'Network Error',
+        statusText: error.name === 'AbortError' ? 'Cancelled' : 'Network Error',
         duration: endTime - startTime,
-        error: error.message,
+        error: error.name === 'AbortError' ? 'Request cancelled' : error.message,
         size: 0
       };
     }
@@ -187,6 +197,11 @@ const PerformanceTestingApp = () => {
     return { avg, min, max, p50, p95, p99 };
   };
 
+  const cancelTest = () => {
+    cancelledRef.current = true;
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+  };
+
   const runPerformanceTest = async () => {
     if (!apiEndpoint) {
       addLog('Please enter an API endpoint', 'error');
@@ -197,6 +212,9 @@ const PerformanceTestingApp = () => {
     setProgress(0);
     setResults(null);
     setLogs([]);
+    cancelledRef.current = false;
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
 
     const config = testConfigs[testType];
     addLog(`Starting ${config.name}...`, 'info');
@@ -216,11 +234,19 @@ const PerformanceTestingApp = () => {
         const promises = [];
 
         for (let i = 0; i < batchSize; i++) {
-          promises.push(makeRequest(apiEndpoint));
+          promises.push(makeRequest(apiEndpoint, signal));
         }
 
         const batchResults = await Promise.all(promises);
-        
+
+        // Stop processing if cancelled
+        if (cancelledRef.current) {
+          addLog('⛔ Test cancelled by user.', 'warning');
+          setIsRunning(false);
+          setProgress(0);
+          return;
+        }
+
         batchResults.forEach(result => {
           results.push(result);
           if (result.success) {
@@ -233,22 +259,21 @@ const PerformanceTestingApp = () => {
         const currentProgress = ((batch + 1) / batches) * 100;
         setProgress(currentProgress);
         addLog(`Batch ${batch + 1}/${batches} completed: ${batchResults.length} requests`, 'success');
-
-        // Small delay between batches to prevent overwhelming
-        if (batch < batches - 1) {
-          await sleep(100);
-        }
       }
 
       const endTime = Date.now();
       const totalDuration = (endTime - startTime) / 1000;
 
-      // Calculate statistics
-      const successfulDurations = results
-        .filter(r => r.success)
+      // Calculate statistics from all requests that got a real server response
+      // (status > 0 means server responded, even if 4xx/5xx)
+      // Network failures (status === 0, "Failed to fetch") are excluded
+      const respondedDurations = results
+        .filter(r => r.status > 0)
         .map(r => r.duration);
 
-      const stats = calculateStats(successfulDurations);
+      // Fall back to all durations if every request was a network failure
+      const durationsForStats = respondedDurations.length > 0 ? respondedDurations : results.map(r => r.duration);
+      const stats = calculateStats(durationsForStats);
       const throughput = config.requests / totalDuration;
 
       // Calculate total data transferred
@@ -272,6 +297,7 @@ const PerformanceTestingApp = () => {
         totalDataTransferred: (totalSize / 1024).toFixed(2), // KB
         avgResponseSize: (avgSize / 1024).toFixed(2), // KB
         errorTypes: errorTypes,
+        hasValidStats: respondedDurations.length > 0, // true if server responded (even with 4xx/5xx)
         stats: {
           avg: stats.avg.toFixed(2),
           min: stats.min.toFixed(2),
@@ -296,20 +322,27 @@ const PerformanceTestingApp = () => {
       addLog(`Total Duration: ${totalDuration.toFixed(2)}s | Throughput: ${throughput.toFixed(2)} req/s`, 'info');
       
       // Performance assessment
-      if (stats.avg < 200) {
-        addLog('✅ Excellent: Average response time < 200ms', 'success');
-      } else if (stats.avg < 500) {
-        addLog('⚠️ Good: Average response time < 500ms', 'warning');
+      if (respondedDurations.length === 0) {
+        addLog('❌ All requests failed at network level — no performance data available. Check the URL, method, and CORS settings.', 'error');
       } else {
-        addLog('❌ Poor: Average response time > 500ms - Optimization needed', 'error');
-      }
+        if (successCount === 0) {
+          addLog(`⚠️ Server responded to all requests but returned HTTP errors (see Error Distribution). Response times below are based on actual server responses.`, 'warning');
+        }
+        if (stats.avg < 200) {
+          addLog('✅ Excellent: Average response time < 200ms', 'success');
+        } else if (stats.avg < 500) {
+          addLog('⚠️ Good: Average response time < 500ms', 'warning');
+        } else {
+          addLog('❌ Poor: Average response time > 500ms - Optimization needed', 'error');
+        }
 
-      if (stats.p95 < 500) {
-        addLog('✅ Excellent: P95 response time < 500ms', 'success');
-      } else if (stats.p95 < 1000) {
-        addLog('⚠️ Good: P95 response time < 1000ms', 'warning');
-      } else {
-        addLog('❌ Poor: P95 response time > 1000ms - Optimization needed', 'error');
+        if (stats.p95 < 500) {
+          addLog('✅ Excellent: P95 response time < 500ms', 'success');
+        } else if (stats.p95 < 1000) {
+          addLog('⚠️ Good: P95 response time < 1000ms', 'warning');
+        } else {
+          addLog('❌ Poor: P95 response time > 1000ms - Optimization needed', 'error');
+        }
       }
 
     } catch (error) {
@@ -538,12 +571,12 @@ const PerformanceTestingApp = () => {
               )}
             </div>
 
-            {/* Run Button - Always visible below tabs */}
-            <div className="mt-4">
+            {/* Run / Cancel Buttons */}
+            <div className="mt-4 flex gap-3">
               <button
                 onClick={runPerformanceTest}
                 disabled={isRunning || !apiEndpoint}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                className={`flex-1 py-4 rounded-xl font-bold text-lg transition-all ${
                   isRunning || !apiEndpoint
                     ? 'bg-gray-600 cursor-not-allowed'
                     : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
@@ -558,6 +591,15 @@ const PerformanceTestingApp = () => {
                   'Start Performance Test'
                 )}
               </button>
+              {isRunning && (
+                <button
+                  onClick={cancelTest}
+                  className="px-6 py-4 rounded-xl font-bold text-lg bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
 
               {/* Progress Bar */}
               {isRunning && (
@@ -570,7 +612,6 @@ const PerformanceTestingApp = () => {
                   </div>
                 </div>
               )}
-            </div>
           </div>
 
           {/* Right Panel - Tabbed Results and Logs */}
@@ -726,14 +767,24 @@ const PerformanceTestingApp = () => {
                 </div>
 
                 {/* Performance Assessment */}
-                <div className="mt-4 p-4 bg-purple-500/20 border border-purple-400/30 rounded-lg">
-                  <h4 className="font-bold text-white mb-2">Performance Assessment:</h4>
-                  <ul className="space-y-1 text-sm text-purple-200">
-                    <li>✅ Average &lt; 200ms = Excellent</li>
-                    <li>⚠️ Average 200-500ms = Good</li>
-                    <li>❌ Average &gt; 500ms = Needs Optimization</li>
-                  </ul>
-                </div>
+                {!results.hasValidStats ? (
+                  <div className="mt-4 p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
+                    <h4 className="font-bold text-white mb-2">Performance Assessment:</h4>
+                    <p className="text-red-300 text-sm">❌ All requests failed at network level — no performance data available. Check the URL, HTTP method, and ensure the server allows cross-origin requests (CORS).</p>
+                  </div>
+                ) : (
+                  <div className="mt-4 p-4 bg-purple-500/20 border border-purple-400/30 rounded-lg">
+                    <h4 className="font-bold text-white mb-2">Performance Assessment:</h4>
+                    {results.successCount === 0 && (
+                      <p className="text-yellow-300 text-sm mb-2">⚠️ Server responded with HTTP errors — response times below reflect actual server latency.</p>
+                    )}
+                    <ul className="space-y-1 text-sm text-purple-200">
+                      <li>{parseFloat(results.stats.avg) < 200 ? '✅' : parseFloat(results.stats.avg) < 500 ? '⚠️' : '❌'} Average response time: {results.stats.avg}ms — {parseFloat(results.stats.avg) < 200 ? 'Excellent' : parseFloat(results.stats.avg) < 500 ? 'Good' : 'Needs Optimization'}</li>
+                      <li>{parseFloat(results.stats.p95) < 500 ? '✅' : parseFloat(results.stats.p95) < 1000 ? '⚠️' : '❌'} P95 response time: {results.stats.p95}ms — {parseFloat(results.stats.p95) < 500 ? 'Excellent' : parseFloat(results.stats.p95) < 1000 ? 'Good' : 'Needs Optimization'}</li>
+                      <li>{parseFloat(results.stats.p99) < 1000 ? '✅' : parseFloat(results.stats.p99) < 2000 ? '⚠️' : '❌'} P99 response time: {results.stats.p99}ms — {parseFloat(results.stats.p99) < 1000 ? 'Excellent' : parseFloat(results.stats.p99) < 2000 ? 'Good' : 'Needs Optimization'}</li>
+                    </ul>
+                  </div>
+                )}
                 </div>
               )}
 

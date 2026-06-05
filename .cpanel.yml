@@ -1,11 +1,11 @@
 
   deployment:
     tasks:
-      - export DEPLOYPATH=/home/evolunei/public_html/Flux-test/
+      - export DEPLOYPATH=/home/evolunei/public_html/Flasqo/
       - /bin/mkdir -p $DEPLOYPATH
       - /bin/cp -R frontend/dist/* $DEPLOYPATH
 
-      - export BACKENDPATH=/home/evolunei/Flux-test-backend/
+      - export BACKENDPATH=/home/evolunei/Flasqo-backend/
       - /bin/mkdir -p $BACKENDPATH
       - /bin/cp -R backend/* $BACKENDPATH
 

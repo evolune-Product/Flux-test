@@ -43,10 +43,10 @@ jobs:
 
             # Restart backend service
             echo "Restarting backend service..."
-            sudo systemctl restart evo-tfx-backend
+            sudo systemctl restart Flasqo-backend
 
             # Check service status
             echo "Checking service status..."
-            sudo systemctl status evo-tfx-backend --no-pager
+            sudo systemctl status Flasqo-backend --no-pager
 
             echo "=== Deployment Completed Successfully ==="

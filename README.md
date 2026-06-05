@@ -1,8 +1,8 @@
-# Evo-TFX - AI-Powered API Testing Platform
+# Flasqo - AI-Powered API Testing Platform
 
-## 🚀 What is Evo-TFX?
+## 🚀 What is Flasqo?
 
-Evo-TFX is an **all-in-one API testing platform** that uses AI to automatically generate and execute comprehensive test suites. Built for modern development teams who want to test smarter and ship faster.
+Flasqo is an **all-in-one API testing platform** that uses AI to automatically generate and execute comprehensive test suites. Built for modern development teams who want to test smarter and ship faster.
 
 ## 🎯 Core Features
 
@@ -38,11 +38,11 @@ Evo-TFX is an **all-in-one API testing platform** that uses AI to automatically 
 - Rate limiting tests
 - System resilience validation
 
-## 🔥 Why Choose Evo-TFX?
+## 🔥 Why Choose Flasqo?
 
 ### **vs Traditional Tools (Postman, Katalon, JMeter)**
 
-| Feature | Evo-TFX | Traditional Tools |
+| Feature | Flasqo | Traditional Tools |
 |---------|---------|-------------------|
 | AI Test Generation | ✅ Automatic | ❌ Manual |
 | All Testing Types | ✅ One Platform | ❌ Multiple Tools |

@@ -522,7 +522,7 @@ function App({ user, onLogout }) {
 
         {/* Brand + Home */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">🚀 Evo-TFX</span>
+          <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">🚀 Flasqo</span>
           <button
             onClick={() => navigate('/')}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all"

@@ -120,7 +120,7 @@ export function useClearAllStorage() {
     if (typeof window !== 'undefined') {
       const keys = Object.keys(window.localStorage);
       const appKeys = keys.filter(key =>
-        key.startsWith('evotfx_') ||
+        key.startsWith('flasqo_') ||
         key.startsWith('functional_') ||
         key.startsWith('smoke_') ||
         key.startsWith('performance_') ||

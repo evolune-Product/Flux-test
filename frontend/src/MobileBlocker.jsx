@@ -94,7 +94,7 @@ const MobileBlocker = ({ children }) => {
 
         {/* Message */}
         <p className="text-gray-300 text-center mb-6 leading-relaxed">
-          <span className="font-semibold text-purple-300">Evo-TFX</span> is optimized for
+          <span className="font-semibold text-purple-300">Flasqo</span> is optimized for
           <span className="text-cyan-300 font-semibold"> desktop, laptop, or tablet</span> devices.
           For the best experience, please use a larger screen.
         </p>
@@ -147,7 +147,7 @@ const MobileBlocker = ({ children }) => {
         {/* Brand */}
         <div className="mt-6 pt-4 border-t border-white/10 text-center">
           <p className="text-xs text-gray-500">
-            Powered by <span className="text-purple-400 font-semibold">Evo-TFX</span> by EvoluneEdgeTech
+            Powered by <span className="text-purple-400 font-semibold">Flasqo</span> by EvoluneEdgeTech
           </p>
         </div>
       </div>

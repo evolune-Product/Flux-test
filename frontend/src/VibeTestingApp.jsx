@@ -1136,7 +1136,7 @@ function VibeTestingApp({ user, onLogout }) {
 
       {/* Footer */}
       <div className="text-center py-4 text-[11px] text-gray-600">
-        Vibe Testing • Evo-TFX by EvoluneEdgeTech
+        Vibe Testing • Flasqo by EvoluneEdgeTech
       </div>
     </div>
   );

@@ -18,7 +18,8 @@ import {
   Search,
   Sparkles,
   Globe,
-  Workflow
+  Workflow,
+  Link2
 } from 'lucide-react';
 
 function TestingTypesLanding({ user, onLogout }) {
@@ -214,6 +215,23 @@ function TestingTypesLanding({ user, onLogout }) {
       color: 'fuchsia'
     },
     {
+      id: 'integration',
+      title: 'Integration Testing',
+      description: 'Test how multiple services communicate. Define services, build cross-service scenarios, and validate inter-service data flow with variable passing between steps.',
+      icon: Link2,
+      gradient: 'from-purple-600 via-violet-600 to-indigo-600',
+      features: [
+        'Multi-Service Registry',
+        'Cross-Service Scenarios',
+        'Variable Extraction & Injection',
+        'Per-Service Breakdown',
+        'AI Failure Analysis'
+      ],
+      route: '/integration',
+      color: 'purple',
+      badge: 'NEW'
+    },
+    {
       id: 'flow-builder',
       title: 'Visual Flow Builder',
       description: 'Drag-and-drop canvas for multi-step API flows. Chain requests, extract response variables, and inject them into subsequent steps.',
@@ -280,7 +298,7 @@ function TestingTypesLanding({ user, onLogout }) {
                 {/* Brand text */}
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
-                    Evo-TFX
+                    Flasqo
                   </h1>
                   <p className="text-xs text-blue-400/80 font-medium tracking-wider">by EvoluneEdgeTech</p>
                 </div>
@@ -1311,7 +1329,7 @@ function TestingTypesLanding({ user, onLogout }) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                  Evo-TFX
+                  Flasqo
                 </span>
                 <span className="text-gray-600">•</span>
                 <a

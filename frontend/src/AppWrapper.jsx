@@ -17,6 +17,7 @@ import SharedDashboardApp from './SharedDashboardApp.jsx';
 import FullSendApp from './FullSendApp.jsx';
 import FullSendReportApp from './FullSendReportApp.jsx';
 import VisualBuilderApp from './VisualBuilderApp.jsx';
+import IntegrationTestingApp from './IntegrationTestingApp.jsx';
 import SharedFlowApp from './SharedFlowApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
 import LandingPage from './LandingPage.jsx';
@@ -163,6 +164,22 @@ function AppWrapper() {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+
+    // Clear all testing suite state so results don't persist across sessions
+    const testingKeys = [
+      'performanceTestingState',
+      'smokeTestingState',
+      'chaosTestingState',
+      'fuzzTestingState',
+      'regressionTestingState',
+      'contractTestingState',
+      'graphqlTestingState',
+      'autoDiscoveryState',
+      'discoveryData',
+      'github_redirect_path',
+    ];
+    testingKeys.forEach(key => localStorage.removeItem(key));
+
     setLoggingOut(false);
   };
 
@@ -173,13 +190,13 @@ function AppWrapper() {
     const isOAuthCallback = urlParams.get('token') && urlParams.get('user_id');
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center overflow-hidden">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Floating orbs */}
-          <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl" style={{ animation: 'floatOrb 8s ease-in-out infinite' }} />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" style={{ animation: 'floatOrb 10s ease-in-out infinite reverse' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500/15 rounded-full blur-3xl" style={{ animation: 'pulseOrb 4s ease-in-out infinite' }} />
+          <div className="absolute top-20 left-20 w-72 h-72 bg-blue-600/15 rounded-full blur-3xl" style={{ animation: 'floatOrb 8s ease-in-out infinite' }} />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl" style={{ animation: 'floatOrb 10s ease-in-out infinite reverse' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" style={{ animation: 'pulseOrb 4s ease-in-out infinite' }} />
 
           {/* Floating particles */}
           {[...Array(20)].map((_, i) => (
@@ -203,15 +220,15 @@ function AppWrapper() {
             <div
               className="absolute inset-0 rounded-full border-2 border-transparent"
               style={{
-                borderTopColor: '#8b5cf6',
-                borderRightColor: '#ec4899',
+                borderTopColor: '#3b82f6',
+                borderRightColor: '#06b6d4',
                 animation: 'spinRing 1.5s linear infinite'
               }}
             />
 
             {/* Middle pulsing ring */}
             <div
-              className="absolute inset-3 rounded-full border-2 border-purple-400/30"
+              className="absolute inset-3 rounded-full border-2 border-blue-400/30"
               style={{ animation: 'pulseRing 2s ease-in-out infinite' }}
             />
 
@@ -228,7 +245,7 @@ function AppWrapper() {
             {/* Center logo */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div
-                className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-2xl shadow-purple-500/50"
+                className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/50"
                 style={{ animation: 'logoFloat 3s ease-in-out infinite' }}
               >
                 <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2">
@@ -242,7 +259,7 @@ function AppWrapper() {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full shadow-lg shadow-cyan-500/50" />
             </div>
             <div className="absolute inset-0" style={{ animation: 'spinRing 4s linear infinite reverse' }}>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full shadow-lg shadow-pink-500/50" />
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full shadow-lg shadow-cyan-500/50" />
             </div>
           </div>
 
@@ -250,7 +267,7 @@ function AppWrapper() {
           <div style={{ animation: 'fadeInUp 0.6s ease-out' }}>
             <h2 className="text-3xl font-bold mb-3">
               <span
-                className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent"
                 style={{ backgroundSize: '200% 200%', animation: 'gradientShift 3s ease-in-out infinite' }}
               >
                 {isOAuthCallback ? 'Welcome Back!' : 'Loading'}
@@ -264,7 +281,7 @@ function AppWrapper() {
             {/* Progress bar */}
             <div className="w-64 mx-auto h-1 bg-slate-700/50 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full"
+                className="h-full bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-400 rounded-full"
                 style={{
                   width: '100%',
                   animation: 'progressSlide 2s ease-in-out infinite'
@@ -284,7 +301,7 @@ function AppWrapper() {
                   <span>Loading profile</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full" style={{ animation: 'pulse 1s ease-in-out 0.6s infinite' }} />
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full" style={{ animation: 'pulse 1s ease-in-out 0.6s infinite' }} />
                   <span>Almost ready</span>
                 </div>
               </div>
@@ -345,10 +362,10 @@ function AppWrapper() {
   // Logout loading screen - Creative Animation
   if (loggingOut) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center overflow-hidden">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" style={{ animation: 'shrinkOrb 1.5s ease-in-out forwards' }} />
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl" style={{ animation: 'shrinkOrb 1.5s ease-in-out forwards' }} />
           <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" style={{ animation: 'shrinkOrb 1.5s ease-in-out 0.2s forwards' }} />
         </div>
 
@@ -357,7 +374,7 @@ function AppWrapper() {
           <div className="relative w-28 h-28 mx-auto mb-8">
             {/* Fading rings */}
             <div
-              className="absolute inset-0 rounded-full border-2 border-purple-400/40"
+              className="absolute inset-0 rounded-full border-2 border-blue-400/40"
               style={{ animation: 'fadeOutRing 1.5s ease-out forwards' }}
             />
             <div
@@ -368,7 +385,7 @@ function AppWrapper() {
             {/* Center icon */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div
-                className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center"
+                className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center"
                 style={{ animation: 'waveGoodbye 1.5s ease-in-out forwards' }}
               >
                 <span className="text-2xl">👋</span>
@@ -394,7 +411,7 @@ function AppWrapper() {
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-2 h-2 bg-purple-400 rounded-full"
+                className="w-2 h-2 bg-blue-400 rounded-full"
                 style={{ animation: `dotFade 1s ease-in-out ${i * 0.2}s infinite` }}
               />
             ))}
@@ -479,6 +496,7 @@ function AppWrapper() {
           <Route path="/history" element={<ErrorBoundary><TestHistoryApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/fullsend" element={<ErrorBoundary><FullSendApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/flow-builder" element={<ErrorBoundary><VisualBuilderApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/integration" element={<ErrorBoundary><IntegrationTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

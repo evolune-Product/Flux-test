@@ -81,7 +81,7 @@ export default function SharedReportApp({ token }) {
         <p className="text-sm text-slate-300">
           Shared via{' '}
           <span className="font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Evo-TFX
+            Flasqo
           </span>
           {' '}· API Testing Platform by EvoluneEdgeTech
         </p>
@@ -200,7 +200,7 @@ export default function SharedReportApp({ token }) {
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-purple-500/20"
           >
             <Shield size={16} />
-            Try Evo-TFX for free
+            Try Flasqo for free
             <ExternalLink size={14} />
           </a>
           <p className="text-slate-600 text-xs mt-4">No credit card required</p>

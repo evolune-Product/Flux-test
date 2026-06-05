@@ -132,7 +132,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-modalBackdrop">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-modalSlide">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6 relative">
+        <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 p-6 relative">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all text-white"
@@ -144,7 +144,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
             <div className="relative">
               <div className="absolute inset-0 bg-white rounded-2xl blur-xl opacity-60 animate-pulse"></div>
               <div className="relative bg-white p-4 rounded-2xl shadow-2xl">
-                <Zap size={40} className="text-purple-600" strokeWidth={2.5} />
+                <Zap size={40} className="text-blue-600" strokeWidth={2.5} />
               </div>
             </div>
           </div>
@@ -184,14 +184,14 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
               disabled={loading || oauthLoading}
               className={`relative w-full flex items-center justify-center gap-3 px-4 py-3 border-2 rounded-xl font-medium transition-all duration-300 overflow-hidden ${
                 oauthLoading === 'google'
-                  ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600'
+                  ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
               } disabled:cursor-not-allowed`}
             >
               {oauthLoading === 'google' ? (
                 <>
                   {/* Animated background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-100/50 via-purple-100/50 to-pink-100/50" style={{ backgroundSize: '200% 100%', animation: 'shimmer 1s linear infinite' }} />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-100/50 via-cyan-100/50 to-blue-50/50" style={{ backgroundSize: '200% 100%', animation: 'shimmer 1s linear infinite' }} />
 
                   {/* Spinning loader */}
                   <div className="relative flex items-center gap-3">
@@ -200,7 +200,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
                   </div>
 
                   {/* Progress bar */}
-                  <div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400" style={{ animation: 'progressBar 0.8s ease-out forwards' }} />
+                  <div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500" style={{ animation: 'progressBar 0.8s ease-out forwards' }} />
                 </>
               ) : (
                 <>
@@ -278,7 +278,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
                 name="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder="johndoe"
                 disabled={loading}
                 required
@@ -295,7 +295,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-gray-900"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
                   placeholder="you@example.com"
                   disabled={loading}
                   required
@@ -312,7 +312,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder="••••••••"
                 disabled={loading}
                 required
@@ -322,10 +322,10 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
             {isLogin && (
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 text-purple-600 rounded" />
+                  <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
                   <span className="text-gray-600">Remember me</span>
                 </label>
-                <button type="button" className="text-purple-600 hover:text-purple-700 font-medium">
+                <button type="button" className="text-blue-600 hover:text-blue-700 font-medium">
                   Forgot password?
                 </button>
               </div>
@@ -334,7 +334,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-3 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (
                 <>
@@ -355,7 +355,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
             <button
               onClick={switchMode}
               disabled={loading}
-              className="text-purple-600 hover:text-purple-700 font-semibold disabled:opacity-50"
+              className="text-blue-600 hover:text-blue-700 font-semibold disabled:opacity-50"
             >
               {isLogin ? 'Sign up for free' : 'Sign in'}
             </button>
@@ -364,9 +364,9 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
           {!isLogin && (
             <p className="mt-6 text-xs text-center text-gray-500">
               By creating an account, you agree to our{' '}
-              <button className="text-purple-600 hover:underline">Terms of Service</button>
+              <button className="text-blue-600 hover:underline">Terms of Service</button>
               {' '}and{' '}
-              <button className="text-purple-600 hover:underline">Privacy Policy</button>
+              <button className="text-blue-600 hover:underline">Privacy Policy</button>
             </p>
           )}
         </div>
