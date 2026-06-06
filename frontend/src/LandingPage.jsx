@@ -257,6 +257,38 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       gradient: 'from-indigo-500 to-blue-500',
       description: 'Schema & queries',
       delay: '400'
+    },
+    {
+      name: 'FullSend',
+      icon: Rocket,
+      color: 'pink',
+      gradient: 'from-pink-500 to-rose-500',
+      description: 'Full app health scan',
+      delay: '450'
+    },
+    {
+      name: 'Vibe Testing',
+      icon: Brain,
+      color: 'fuchsia',
+      gradient: 'from-fuchsia-500 to-purple-500',
+      description: 'AI exploratory testing',
+      delay: '500'
+    },
+    {
+      name: 'Integration',
+      icon: Layers,
+      color: 'teal',
+      gradient: 'from-teal-500 to-cyan-500',
+      description: 'Multi-service testing',
+      delay: '550'
+    },
+    {
+      name: 'Flow Builder',
+      icon: GitBranch,
+      color: 'amber',
+      gradient: 'from-amber-500 to-orange-500',
+      description: 'Visual API flows',
+      delay: '600'
     }
   ];
 
@@ -879,7 +911,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               <div className="absolute inset-[1px] bg-slate-950 rounded-full" />
             </div>
             <Target size={16} className="relative text-blue-400" />
-            <span className="relative text-sm font-semibold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">9 Specialized Modules</span>
+            <span className="relative text-sm font-semibold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">13 Specialized Modules</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent">
             Complete Testing Suite
