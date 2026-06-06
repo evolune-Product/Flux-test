@@ -33,7 +33,7 @@ from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 
 # SQLAlchemy imports
-from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Text, Integer, Float, ForeignKey
+from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Text, Integer, Float, ForeignKey, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.exc import IntegrityError
@@ -1795,7 +1795,7 @@ async def health_check(db: Session = Depends(get_db)):
     github_oauth_configured = bool(os.getenv('GITHUB_CLIENT_ID'))
 
     try:
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
