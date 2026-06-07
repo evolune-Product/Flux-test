@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List, ArrowLeft, LogOut, RefreshCw } from 'lucide-react';
 import Toast from './Toast';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
 
-const GraphQLTestingApp = () => {
+const GraphQLTestingApp = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [graphqlEndpoint, setGraphqlEndpoint] = useState('');
   const [authConfig, setAuthConfig] = useState({ type: 'none' });
@@ -314,6 +316,20 @@ const GraphQLTestingApp = () => {
     }
   };
 
+  const resetSession = () => {
+    setStep(1);
+    setGraphqlEndpoint('');
+    setSchema(null);
+    setGeneratedTests([]);
+    setTestResults(null);
+    setCustomQuery('');
+    setNlDescription('');
+    setGeneratedQuery('');
+    setQueryExplanation('');
+    setSchemaSearch('');
+    localStorage.removeItem('graphqlTestingState');
+  };
+
   // Download report
   const downloadReport = async (format) => {
     try {
@@ -351,7 +367,7 @@ const GraphQLTestingApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
       {toast.show && (
         <Toast
           message={toast.message}
@@ -360,16 +376,59 @@ const GraphQLTestingApp = () => {
         />
       )}
 
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Database className="w-10 h-10 text-purple-400" />
-          <h1 className="text-4xl font-bold text-white">GraphQL API Testing</h1>
+      {/* Sticky Header */}
+      <div className="bg-gradient-to-r from-purple-900/60 via-violet-900/60 to-indigo-900/60 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              title="Back to Home"
+            >
+              <ArrowLeft size={22} className="text-white" />
+            </button>
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center">
+              <Database size={22} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white">GraphQL API Testing</h1>
+              <p className="text-xs text-purple-300">Schema introspection · N+1 detection · AI validation</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {step > 1 && (
+              <button
+                onClick={resetSession}
+                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white rounded-lg transition-all text-sm"
+                title="Clear session and start over"
+              >
+                <RefreshCw size={15} />
+                <span className="hidden sm:inline">New Test</span>
+              </button>
+            )}
+            {user && (
+              <>
+                <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg border border-white/20">
+                  <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-violet-500 rounded-full flex items-center justify-center font-bold text-white text-xs">
+                    {user.username?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm text-white">{user.username}</span>
+                </div>
+                <button
+                  onClick={onLogout}
+                  className="flex items-center gap-2 px-3 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-all text-sm"
+                >
+                  <LogOut size={16} />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
-        <p className="text-gray-300 text-lg">
-          AI-powered GraphQL testing with schema introspection, N+1 detection, and advanced validations
-        </p>
       </div>
+
+      <div className="p-8">
 
       {/* Progress Steps */}
       <div className="max-w-7xl mx-auto mb-8">
@@ -1096,6 +1155,7 @@ const GraphQLTestingApp = () => {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };
