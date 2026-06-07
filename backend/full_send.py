@@ -215,12 +215,13 @@ async def _crawl_async(url: str, scan_id: str, max_pages: int = 12) -> Dict:
     async with async_playwright() as pw:
         # Try system Chrome first (no binary download needed),
         # fall back to Playwright's own Chromium build if not found.
+        _browser_args = ["--no-sandbox", "--disable-dev-shm-usage"]
         try:
             browser = await pw.chromium.launch(
-                channel="chrome", headless=True, args=["--no-sandbox"]
+                channel="chrome", headless=True, args=_browser_args
             )
         except Exception:
-            browser = await pw.chromium.launch(headless=True, args=["--no-sandbox"])
+            browser = await pw.chromium.launch(headless=True, args=_browser_args)
 
         semaphore = asyncio.Semaphore(4)  # 4 concurrent pages
 
