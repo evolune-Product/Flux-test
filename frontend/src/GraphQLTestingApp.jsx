@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp } from 'lucide-react';
+import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List } from 'lucide-react';
 import Toast from './Toast';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
@@ -28,9 +28,38 @@ const GraphQLTestingApp = () => {
   const [nlGenerating, setNlGenerating] = useState(false);
   const [generatedQuery, setGeneratedQuery] = useState('');
   const [queryExplanation, setQueryExplanation] = useState('');
+  const [expandedSections, setExpandedSections] = useState({ queries: true, mutations: true, types: false });
+  const [schemaSearch, setSchemaSearch] = useState('');
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
+  };
+
+  const addTestFromSchemaExplorer = (operation, opType) => {
+    const resolveType = (t) => (typeof t === 'string' ? t : t?.name || 'Any');
+    const args = operation.args || [];
+    const argsDef = args.map(a => `$${a.name}: ${resolveType(a.type)}`).join(', ');
+    const argsCall = args.map(a => `${a.name}: $${a.name}`).join(', ');
+    const callStr = argsCall ? `${operation.name}(${argsCall})` : operation.name;
+    const varStr = argsDef ? `(${argsDef})` : '';
+
+    const query = opType === 'mutation'
+      ? `mutation${varStr} {\n  ${callStr} {\n    id\n  }\n}`
+      : `query${varStr} {\n  ${callStr} {\n    id\n    name\n  }\n}`;
+
+    const newTest = {
+      type: opType,
+      name: `Explorer: ${operation.name}`,
+      query,
+      description: `Added from schema explorer`
+    };
+
+    setGeneratedTests(prev => {
+      const updated = [...prev, newTest];
+      if (updated.length === 1) setStep(3);
+      return updated;
+    });
+    showToast(`Added test for ${operation.name}`, 'success');
   };
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -532,6 +561,183 @@ const GraphQLTestingApp = () => {
                   <div className="text-gray-300 text-sm">Types</div>
                 </div>
               </div>
+            </div>
+
+            {/* Schema Explorer */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <List className="w-5 h-5 text-purple-400" />
+                  Schema Explorer
+                </h3>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={schemaSearch}
+                    onChange={(e) => setSchemaSearch(e.target.value)}
+                    placeholder="Search operations..."
+                    className="pl-9 pr-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 w-52"
+                  />
+                </div>
+              </div>
+              <p className="text-gray-400 text-xs mb-3">
+                Browse discovered operations. Hover any row and click <span className="text-purple-400">+</span> to cherry-pick individual tests, or use <strong>Generate AI Tests</strong> below for full coverage.
+              </p>
+
+              <div className="space-y-3">
+                {/* Queries */}
+                {schema.queries?.length > 0 && (
+                  <div className="bg-gray-900/60 border border-purple-500/30 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedSections(s => ({ ...s, queries: !s.queries }))}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-700/40 transition-all"
+                    >
+                      {expandedSections.queries
+                        ? <ChevronDown className="w-4 h-4 text-purple-400" />
+                        : <ChevronRight className="w-4 h-4 text-purple-400" />}
+                      <span className="text-purple-300 font-semibold text-sm">QUERIES</span>
+                      <span className="px-2 py-0.5 bg-purple-600/40 text-purple-300 text-xs rounded-full">{schema.queries.length}</span>
+                    </button>
+                    {expandedSections.queries && (
+                      <div className="border-t border-purple-500/20 divide-y divide-gray-700/50 max-h-60 overflow-y-auto">
+                        {schema.queries
+                          .filter(q => !schemaSearch || q.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
+                          .map((q, idx) => (
+                            <div key={idx} className="flex items-start justify-between px-4 py-3 hover:bg-gray-700/30 group">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-white font-mono text-sm font-medium">{q.name}</span>
+                                  {q.type && (
+                                    <span className="text-xs text-purple-400 font-mono">
+                                      → {typeof q.type === 'string' ? q.type : q.type?.name || 'Object'}
+                                    </span>
+                                  )}
+                                </div>
+                                {q.args?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {q.args.map((arg, i) => (
+                                      <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
+                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'Any'}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => addTestFromSchemaExplorer(q, 'query')}
+                                title={`Add test for ${q.name}`}
+                                className="ml-3 p-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Mutations */}
+                {schema.mutations?.length > 0 && (
+                  <div className="bg-gray-900/60 border border-green-500/30 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedSections(s => ({ ...s, mutations: !s.mutations }))}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-700/40 transition-all"
+                    >
+                      {expandedSections.mutations
+                        ? <ChevronDown className="w-4 h-4 text-green-400" />
+                        : <ChevronRight className="w-4 h-4 text-green-400" />}
+                      <span className="text-green-300 font-semibold text-sm">MUTATIONS</span>
+                      <span className="px-2 py-0.5 bg-green-600/40 text-green-300 text-xs rounded-full">{schema.mutations.length}</span>
+                    </button>
+                    {expandedSections.mutations && (
+                      <div className="border-t border-green-500/20 divide-y divide-gray-700/50 max-h-60 overflow-y-auto">
+                        {schema.mutations
+                          .filter(m => !schemaSearch || m.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
+                          .map((m, idx) => (
+                            <div key={idx} className="flex items-start justify-between px-4 py-3 hover:bg-gray-700/30 group">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-white font-mono text-sm font-medium">{m.name}</span>
+                                  {m.type && (
+                                    <span className="text-xs text-green-400 font-mono">
+                                      → {typeof m.type === 'string' ? m.type : m.type?.name || 'Object'}
+                                    </span>
+                                  )}
+                                </div>
+                                {m.args?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {m.args.map((arg, i) => (
+                                      <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
+                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'Any'}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => addTestFromSchemaExplorer(m, 'mutation')}
+                                title={`Add test for ${m.name}`}
+                                className="ml-3 p-1.5 rounded-lg bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Types */}
+                {schema.types?.length > 0 && (
+                  <div className="bg-gray-900/60 border border-blue-500/30 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedSections(s => ({ ...s, types: !s.types }))}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-700/40 transition-all"
+                    >
+                      {expandedSections.types
+                        ? <ChevronDown className="w-4 h-4 text-blue-400" />
+                        : <ChevronRight className="w-4 h-4 text-blue-400" />}
+                      <span className="text-blue-300 font-semibold text-sm">TYPES</span>
+                      <span className="px-2 py-0.5 bg-blue-600/40 text-blue-300 text-xs rounded-full">{schema.types.length}</span>
+                    </button>
+                    {expandedSections.types && (
+                      <div className="border-t border-blue-500/20 divide-y divide-gray-700/50 max-h-60 overflow-y-auto">
+                        {schema.types
+                          .filter(t => !schemaSearch || t.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
+                          .map((t, idx) => (
+                            <div key={idx} className="px-4 py-3 hover:bg-gray-700/30">
+                              <div className="text-white font-mono text-sm font-medium mb-1">{t.name}</div>
+                              {t.fields?.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {t.fields.map((field, i) => (
+                                    <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
+                                      {field.name}: {typeof field.type === 'string' ? field.type : field.type?.name || 'Any'}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {generatedTests.length > 0 && (
+                <div className="mt-3 flex items-center justify-between bg-purple-900/20 border border-purple-500/30 rounded-lg px-4 py-2">
+                  <span className="text-purple-300 text-sm">{generatedTests.length} test{generatedTests.length !== 1 ? 's' : ''} cherry-picked</span>
+                  <button
+                    onClick={() => setStep(3)}
+                    className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all"
+                  >
+                    Review Selected →
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Test Type Selection */}
