@@ -36,7 +36,7 @@ const GraphQLTestingApp = () => {
   };
 
   const addTestFromSchemaExplorer = (operation, opType) => {
-    const resolveType = (t) => (typeof t === 'string' ? t : t?.name || 'Any');
+    const resolveType = (t) => (typeof t === 'string' ? t : t?.name || 'String');
     const args = operation.args || [];
     const argsDef = args.map(a => `$${a.name}: ${resolveType(a.type)}`).join(', ');
     const argsCall = args.map(a => `${a.name}: $${a.name}`).join(', ');
@@ -618,7 +618,7 @@ const GraphQLTestingApp = () => {
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {q.args.map((arg, i) => (
                                       <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
-                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'Any'}
+                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'String'}
                                       </span>
                                     ))}
                                   </div>
@@ -670,7 +670,7 @@ const GraphQLTestingApp = () => {
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {m.args.map((arg, i) => (
                                       <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
-                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'Any'}
+                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'String'}
                                       </span>
                                     ))}
                                   </div>
@@ -714,7 +714,7 @@ const GraphQLTestingApp = () => {
                                 <div className="flex flex-wrap gap-1">
                                   {t.fields.map((field, i) => (
                                     <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
-                                      {field.name}: {typeof field.type === 'string' ? field.type : field.type?.name || 'Any'}
+                                      {field.name}: {typeof field.type === 'string' ? field.type : field.type?.name || 'String'}
                                     </span>
                                   ))}
                                 </div>
