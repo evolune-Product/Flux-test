@@ -23,4 +23,5 @@ reportlab
 pillow
 beautifulsoup4
 lxml
+pyyaml
 playwright
