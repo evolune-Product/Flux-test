@@ -248,42 +248,73 @@ class OpenAPIDiscoverer(BaseDiscoverer):
         "/.well-known/openapi.json",
     ]
 
+    def _is_direct_spec_url(self) -> bool:
+        """Check if the base_url is already pointing directly at a spec file"""
+        url_lower = self.base_url.lower()
+        direct_indicators = [
+            url_lower.endswith(".json"),
+            url_lower.endswith(".yaml"),
+            url_lower.endswith(".yml"),
+            "/raw/" in url_lower,
+            "githubusercontent.com" in url_lower,
+            "raw.github.com" in url_lower,
+            "gist.github.com" in url_lower,
+            "pastebin.com/raw" in url_lower,
+        ]
+        return any(direct_indicators)
+
+    async def _fetch_and_parse_spec(self, client: httpx.AsyncClient, url: str) -> List[DiscoveredEndpoint]:
+        """Fetch a URL and attempt to parse it as an OpenAPI spec"""
+        try:
+            response = await client.get(url, headers=self._get_headers())
+            if response.status_code != 200:
+                return []
+
+            text = response.text
+            spec = None
+
+            # Try JSON first
+            try:
+                spec = json.loads(text)
+            except json.JSONDecodeError:
+                pass
+
+            # Try YAML if JSON failed
+            if spec is None:
+                try:
+                    parsed = yaml.safe_load(text)
+                    if isinstance(parsed, dict):
+                        spec = parsed
+                except yaml.YAMLError:
+                    pass
+
+            if spec and self._is_valid_openapi(spec):
+                return self._parse_openapi(spec)
+
+        except httpx.RequestError:
+            pass
+
+        return []
+
     async def discover(self) -> List[DiscoveredEndpoint]:
         """Try to find and parse OpenAPI/Swagger spec"""
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+
+            # If the URL itself looks like a direct spec file, fetch it directly
+            # and do NOT fall through to path probing — it would generate wrong URLs
+            if self._is_direct_spec_url():
+                endpoints = await self._fetch_and_parse_spec(client, self.base_url)
+                self.endpoints = endpoints
+                return self.endpoints
+
+            # Otherwise probe common spec paths under the base URL
             for path in self.SPEC_PATHS:
                 try:
                     url = f"{self.base_url}{path}"
-                    response = await client.get(url, headers=self._get_headers())
-
-                    if response.status_code == 200:
-                        content_type = response.headers.get("content-type", "")
-                        text = response.text
-
-                        # Try parsing as JSON or YAML
-                        spec = None
-                        if "json" in content_type or path.endswith(".json"):
-                            try:
-                                spec = json.loads(text)
-                            except json.JSONDecodeError:
-                                pass
-
-                        if spec is None and ("yaml" in content_type or path.endswith(".yaml") or path.endswith(".yml")):
-                            try:
-                                spec = yaml.safe_load(text)
-                            except yaml.YAMLError:
-                                pass
-
-                        # Also try JSON if YAML failed
-                        if spec is None:
-                            try:
-                                spec = json.loads(text)
-                            except json.JSONDecodeError:
-                                pass
-
-                        if spec and self._is_valid_openapi(spec):
-                            self.endpoints = self._parse_openapi(spec)
-                            return self.endpoints
+                    endpoints = await self._fetch_and_parse_spec(client, url)
+                    if endpoints:
+                        self.endpoints = endpoints
+                        return self.endpoints
 
                 except httpx.RequestError:
                     continue

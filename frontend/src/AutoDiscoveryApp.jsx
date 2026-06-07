@@ -691,8 +691,53 @@ function AutoDiscoveryApp({ user, onLogout }) {
           </div>
         )}
 
+        {/* Zero endpoints found state */}
+        {discoveryState === 'complete' && discoveredEndpoints.length === 0 && (
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-amber-500/30 p-8 mb-8 text-center">
+            <AlertTriangle className="text-amber-400 mx-auto mb-4" size={48} />
+            <h2 className="text-xl font-bold text-white mb-2">No Endpoints Discovered</h2>
+            <p className="text-gray-400 mb-6 max-w-lg mx-auto">
+              No OpenAPI spec was found and the path crawler returned no active endpoints.
+              This usually means one of the following:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left max-w-2xl mx-auto mb-8">
+              <div className="bg-slate-800/60 rounded-xl p-4 border border-white/10">
+                <p className="text-amber-400 font-semibold text-sm mb-1">No OpenAPI spec exposed</p>
+                <p className="text-gray-400 text-xs">The API doesn't publish a <code className="text-emerald-400">/openapi.json</code> or <code className="text-emerald-400">/swagger.json</code> endpoint.</p>
+              </div>
+              <div className="bg-slate-800/60 rounded-xl p-4 border border-white/10">
+                <p className="text-amber-400 font-semibold text-sm mb-1">Wrong URL type</p>
+                <p className="text-gray-400 text-xs">Entered a spec file URL (Gist, raw) instead of the API base URL, or vice versa.</p>
+              </div>
+              <div className="bg-slate-800/60 rounded-xl p-4 border border-white/10">
+                <p className="text-amber-400 font-semibold text-sm mb-1">Paths blocked</p>
+                <p className="text-gray-400 text-xs">The server returns 404 for all probe paths or rate-limited the discovery requests.</p>
+              </div>
+            </div>
+            <div className="text-sm text-gray-400 mb-4">Try these working examples:</div>
+            <div className="flex flex-wrap gap-2 justify-center mb-6">
+              {[
+                'https://petstore3.swagger.io/api/v3',
+                'https://dummyjson.com',
+                'https://jsonplaceholder.typicode.com',
+              ].map(url => (
+                <button
+                  key={url}
+                  onClick={() => setTargetUrl(url)}
+                  className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs rounded-lg border border-emerald-500/30 transition-all font-mono"
+                >
+                  {url}
+                </button>
+              ))}
+            </div>
+            <p className="text-gray-500 text-xs">
+              To use a raw spec file URL (GitHub Gist, pastebin), paste the direct URL ending in <code className="text-emerald-400">.json</code> or <code className="text-emerald-400">.yaml</code>
+            </p>
+          </div>
+        )}
+
         {/* Results Section */}
-        {discoveryState === 'complete' && (
+        {discoveryState === 'complete' && discoveredEndpoints.length > 0 && (
           <>
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
