@@ -20,7 +20,8 @@ import {
   Variable,
   AlertCircle,
   Edit2,
-  X
+  X,
+  List
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -68,6 +69,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
   const [scenarioName, setScenarioName] = useState('');
   const [expandedResults, setExpandedResults] = useState({});
   const [saveConflict, setSaveConflict] = useState(null); // { id, name }
+  const [showScenariosPanel, setShowScenariosPanel] = useState(false);
 
   // Service form
   const [showServiceForm, setShowServiceForm] = useState(false);
@@ -371,6 +373,90 @@ export default function IntegrationTestingApp({ user, onLogout }) {
         </div>
       </div>
 
+      {/* Scenarios Manager Panel (full-screen overlay) */}
+      {showScenariosPanel && (
+        <div className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-xl overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            {/* Panel Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                  <FolderOpen size={20} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Saved Scenarios</h2>
+                  <p className="text-sm text-gray-400">{savedScenarios.length} scenario{savedScenarios.length !== 1 ? 's' : ''} saved</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowScenariosPanel(false)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {savedScenarios.length === 0 ? (
+              <div className="text-center py-16">
+                <FolderOpen size={48} className="text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">No scenarios saved yet.</p>
+                <p className="text-gray-500 text-sm mt-1">Build a flow in the editor and save it.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {savedScenarios.map(s => (
+                  <div key={s.id} className="bg-slate-800/70 border border-white/10 rounded-xl p-5 hover:border-purple-500/40 transition-colors">
+                    <div className="mb-3">
+                      <h3 className="font-semibold text-white text-base truncate">{s.name}</h3>
+                      {s.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{s.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Server size={12} className="text-purple-400" />
+                        {(s.services || []).length} service{(s.services || []).length !== 1 ? 's' : ''}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <List size={12} className="text-blue-400" />
+                        {(s.steps || []).length} step{(s.steps || []).length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {(s.services || []).slice(0, 3).map((svc, idx) => {
+                        const c = SERVICE_COLORS[idx % SERVICE_COLORS.length];
+                        return (
+                          <span key={svc.id} className={`text-[10px] px-2 py-0.5 rounded-full border ${c.bg} ${c.border} ${c.text}`}>
+                            {svc.name}
+                          </span>
+                        );
+                      })}
+                      {(s.services || []).length > 3 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-500">
+                          +{s.services.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { handleLoadScenario(s); setShowScenariosPanel(false); }}
+                        className="flex-1 py-1.5 text-sm rounded-lg bg-blue-600/30 border border-blue-500/40 text-blue-300 hover:bg-blue-600/50 transition-colors font-medium flex items-center justify-center gap-1"
+                      >
+                        <FolderOpen size={14} /> Load
+                      </button>
+                      <button
+                        onClick={() => handleDeleteScenario(s.id)}
+                        className="p-2 rounded-lg bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/40 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main two-column layout */}
       <div className="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6 items-start">
 
@@ -613,9 +699,20 @@ export default function IntegrationTestingApp({ user, onLogout }) {
 
           {/* Scenario Management */}
           <div className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Save size={15} className="text-green-400" />
-              <span className="text-sm font-semibold text-white">Scenario Management</span>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Save size={15} className="text-green-400" />
+                <span className="text-sm font-semibold text-white">Scenario Management</span>
+              </div>
+              {savedScenarios.length > 0 && (
+                <button
+                  onClick={() => setShowScenariosPanel(true)}
+                  className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  <List size={13} />
+                  View All ({savedScenarios.length})
+                </button>
+              )}
             </div>
             <div className="flex gap-2 mb-2">
               <input
