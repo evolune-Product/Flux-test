@@ -78,7 +78,8 @@
       "mcp__miro__layout_read",
       "mcp__claude_ai_Gamma__get_themes",
       "mcp__claude_ai_Gamma__generate",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(copy:*)"
     ],
     "deny": [],
     "ask": []
