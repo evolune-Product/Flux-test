@@ -7,8 +7,6 @@ import {
   Clock,
   Activity,
   AlertTriangle,
-  Home,
-  ArrowLeft,
   Play,
   Loader,
   Target,
@@ -16,9 +14,10 @@ import {
   Code,
   Server,
   FileText,
-  Download
+  Download,
+  User,
 } from 'lucide-react';
-
+import BackButton from './BackButton';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
 
@@ -194,363 +193,499 @@ const FuzzTestingApp = ({ user, onLogout }) => {
     return stats;
   };
 
+  // ─── Design tokens ───────────────────────────────────────────────
+  const PURPLE = '#a78bfa';
+  const PURPLE_DIM = 'rgba(167,139,250,0.15)';
+
+  const card = {
+    background: 'rgba(9,12,22,0.80)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 16,
+    backdropFilter: 'blur(20px)',
+  };
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 10,
+    color: '#e2e8f0',
+    fontSize: 14,
+    outline: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  };
+  const labelStyle = {
+    display: 'block',
+    fontSize: 12,
+    fontWeight: 600,
+    color: 'rgba(255,255,255,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom: 6,
+  };
+
+  const logColor = (type) => {
+    if (type === 'error')   return { color: '#f87171' };
+    if (type === 'warning') return { color: '#fbbf24' };
+    if (type === 'success') return { color: '#34d399' };
+    return { color: 'rgba(255,255,255,0.55)' };
+  };
+
+  const methodColor = (m) => {
+    const map = { GET:'#34d399', POST:'#60a5fa', PUT:'#fbbf24', PATCH:'#fb923c', DELETE:'#f87171' };
+    return map[m] || '#a78bfa';
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 text-white p-6">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg transition-all mb-4"
-        >
-          <ArrowLeft size={20} />
-          <span>Back to Home</span>
-        </button>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg,#020408 0%,#060c18 50%,#020408 100%)',
+      color: '#e2e8f0',
+      fontFamily: '"Inter","SF Pro Display",system-ui,sans-serif',
+      position: 'relative',
+    }}>
+      {/* Dot grid */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'radial-gradient(circle, rgba(167,139,250,0.10) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }} />
 
-        <div className="flex items-center gap-3 mb-2">
-          <Target className="text-orange-400" size={32} />
-          <h1 className="text-3xl font-bold">Fuzz Testing</h1>
+      {/* ── Sticky Header ── */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(2,4,8,0.92)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(20px)',
+        padding: '0 32px', height: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <BackButton />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 18px rgba(167,139,250,0.40)',
+            }}>
+              <Target size={17} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
+                Fuzz Testing
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -1 }}>
+                Input fuzzing &amp; vulnerability detection
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="text-slate-300">Advanced Input Fuzzing & Vulnerability Detection</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="max-w-7xl mx-auto">
-        {results && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-slate-400 text-sm font-semibold">Total Tests</p>
-                  <p className="text-3xl font-bold text-white">{getFuzzStats().total}</p>
-                </div>
-                <Activity className="w-12 h-12 text-orange-400 opacity-30" />
-              </div>
-            </div>
-
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-slate-400 text-sm font-semibold">Passed</p>
-                  <p className="text-3xl font-bold text-green-400">{getFuzzStats().passed}</p>
-                </div>
-                <CheckCircle className="w-12 h-12 text-green-400 opacity-30" />
-              </div>
-            </div>
-
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-slate-400 text-sm font-semibold">Failed</p>
-                  <p className="text-3xl font-bold text-red-400">{getFuzzStats().failed}</p>
-                </div>
-                <XCircle className="w-12 h-12 text-red-400 opacity-30" />
-              </div>
-            </div>
-
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-slate-400 text-sm font-semibold">Pass Rate</p>
-                  <p className="text-3xl font-bold text-purple-400">{getFuzzStats().passRate.toFixed(1)}%</p>
-                </div>
-                <Zap className="w-12 h-12 text-purple-400 opacity-30" />
-              </div>
-            </div>
+        {user?.username && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7,
+            padding: '5px 12px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)',
+          }}>
+            <User size={13} /> {user.username}
           </div>
         )}
+      </div>
 
-        {/* Main Content */}
-        <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-slate-700">
-            <button
-              onClick={() => setActiveTab('config')}
-              className={`px-6 py-3 font-semibold transition-all ${
-                activeTab === 'config'
-                  ? 'text-orange-400 border-b-2 border-orange-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Server className="w-5 h-5 inline-block mr-2" />
-              Configuration
-            </button>
-            <button
-              onClick={() => setActiveTab('tests')}
-              className={`px-6 py-3 font-semibold transition-all ${
-                activeTab === 'tests'
-                  ? 'text-orange-400 border-b-2 border-orange-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Code className="w-5 h-5 inline-block mr-2" />
-              Generated Tests ({generatedTests.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('results')}
-              className={`px-6 py-3 font-semibold transition-all ${
-                activeTab === 'results'
-                  ? 'text-orange-400 border-b-2 border-orange-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <FileText className="w-5 h-5 inline-block mr-2" />
-              Results
-            </button>
-            <button
-              onClick={() => setActiveTab('logs')}
-              className={`px-6 py-3 font-semibold transition-all ${
-                activeTab === 'logs'
-                  ? 'text-orange-400 border-b-2 border-orange-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Activity className="w-5 h-5 inline-block mr-2" />
-              Logs ({logs.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-6 py-3 font-semibold transition-all ${
-                activeTab === 'history'
-                  ? 'text-blue-400 border-b-2 border-blue-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              History
-            </button>
+      {/* ── Page body ── */}
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '36px 32px 60px' }}>
+
+        {/* Hero */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: PURPLE_DIM, color: PURPLE,
+              border: `1px solid rgba(167,139,250,0.30)`, letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>Fuzz Suite</span>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+              background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.40)',
+              border: '1px solid rgba(255,255,255,0.07)', letterSpacing: '0.06em',
+            }}>AI-Powered</span>
           </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', margin: 0, marginBottom: 8 }}>
+            Fuzz Testing &amp; Vulnerability Detection
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 14, margin: 0 }}>
+            Generate malformed inputs to discover hidden security flaws and edge-case failures.
+          </p>
 
-          {/* Configuration Tab */}
-          {activeTab === 'config' && (
-            <div className="space-y-6">
-              <div className="bg-orange-500/20 border-l-4 border-orange-500 p-6 rounded-lg">
-                <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                  <Bug className="w-6 h-6 text-orange-400" />
-                  What is Fuzz Testing?
-                </h3>
-                <p className="text-slate-300">
-                  Fuzz testing generates malformed, unexpected, or random data to test API robustness.
-                  It helps discover buffer overflows, memory corruption, integer overflows, format string
-                  vulnerabilities, and other critical security bugs that standard testing might miss.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-white font-semibold mb-2">API Endpoint URL</label>
-                <input
-                  type="text"
-                  value={apiUrl}
-                  onChange={(e) => setApiUrl(e.target.value)}
-                  placeholder="https://api.example.com/endpoint"
-                  className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-white font-semibold mb-2">Sample Data Structure (JSON)</label>
-                <textarea
-                  value={sampleData}
-                  onChange={(e) => setSampleData(e.target.value)}
-                  rows={8}
-                  className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
-                  placeholder='{"field": "value"}'
-                />
-              </div>
-
-              <div>
-                <label className="block text-white font-semibold mb-2">
-                  Number of Fuzz Tests: {numTests}
-                </label>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  value={numTests}
-                  onChange={(e) => setNumTests(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-600"
-                />
-                <div className="flex justify-between text-sm text-slate-400 mt-1">
-                  <span>10</span>
-                  <span>50</span>
-                  <span>100</span>
+          {/* Quick stats row */}
+          {results && (
+            <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
+              {[
+                { label: 'Total',    value: getFuzzStats().total,               color: '#e2e8f0' },
+                { label: 'Passed',   value: getFuzzStats().passed,              color: '#34d399' },
+                { label: 'Failed',   value: getFuzzStats().failed,              color: '#f87171' },
+                { label: 'Pass Rate',value: `${getFuzzStats().passRate.toFixed(1)}%`, color: PURPLE },
+              ].map(s => (
+                <div key={s.label} style={{
+                  padding: '8px 18px',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 10, fontSize: 13,
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.40)' }}>{s.label}: </span>
+                  <span style={{ color: s.color, fontWeight: 700 }}>{s.value}</span>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={handleGenerateFuzzTests}
-                  disabled={isRunning}
-                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-4 rounded-lg font-bold hover:shadow-xl transition-all disabled:opacity-50"
-                >
-                  {isRunning ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Target className="w-5 h-5" />
-                      Generate Fuzz Tests
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleRunFuzzTests}
-                  disabled={isRunning || generatedTests.length === 0}
-                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-lg font-bold hover:shadow-xl transition-all disabled:opacity-50"
-                >
-                  {isRunning ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Running...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5" />
-                      Run Fuzz Tests
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {isRunning && (
-                <div className="mt-4">
-                  <div className="bg-slate-700 rounded-full h-4 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-orange-600 to-red-600 h-full transition-all duration-500"
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-center text-sm text-slate-400 mt-2">{progress}%</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Generated Tests Tab */}
-          {activeTab === 'tests' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-white mb-4">
-                Generated Fuzz Tests ({generatedTests.length})
-              </h3>
-              {generatedTests.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
-                  <Bug className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                  <p>No fuzz tests generated yet. Configure and generate tests first.</p>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {generatedTests.map((test, index) => (
-                    <div key={index} className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="flex items-start gap-3">
-                        <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                          {test.method}
-                        </span>
-                        <div className="flex-1">
-                          <p className="font-semibold text-white">{test.description}</p>
-                          <p className="text-sm text-slate-300 mt-1">
-                            <span className="font-mono bg-slate-800 px-2 py-1 rounded">{test.endpoint || '/'}</span>
-                          </p>
-                          {test.data && (
-                            <details className="mt-2">
-                              <summary className="text-sm text-orange-400 cursor-pointer font-semibold">
-                                View Payload
-                              </summary>
-                              <pre className="mt-2 bg-slate-800 p-3 rounded border border-slate-700 text-xs overflow-x-auto text-slate-300">
-                                {JSON.stringify(test.data, null, 2)}
-                              </pre>
-                            </details>
-                          )}
-                        </div>
-                        <span className="text-xs text-slate-400">
-                          Expected: {test.expected_status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Results Tab */}
-          {activeTab === 'results' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-white mb-4">Test Results</h3>
-              {!results ? (
-                <div className="text-center py-12 text-slate-400">
-                  <FileText className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                  <p>No results yet. Run fuzz tests to see results.</p>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {results.results.map((result, index) => (
-                    <div
-                      key={index}
-                      className={`rounded-lg p-4 border-l-4 ${
-                        result.status === 'PASS'
-                          ? 'bg-green-500/20 border-green-500'
-                          : 'bg-red-500/20 border-red-500'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        {result.status === 'PASS' ? (
-                          <CheckCircle className="w-5 h-5 text-green-400 mt-1" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-400 mt-1" />
-                        )}
-                        <div className="flex-1">
-                          <p className="font-semibold text-white">{result.test}</p>
-                          <p className="text-sm text-slate-300 mt-1">{result.details}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Logs Tab */}
-          {activeTab === 'logs' && (
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white mb-4">Activity Logs</h3>
-              {logs.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
-                  <Activity className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                  <p>No logs yet.</p>
-                </div>
-              ) : (
-                <div className="bg-slate-900 rounded-lg p-4 max-h-[600px] overflow-y-auto font-mono text-sm">
-                  {logs.map((log, index) => (
-                    <div
-                      key={index}
-                      className={`py-1 ${
-                        log.type === 'error'
-                          ? 'text-red-400'
-                          : log.type === 'success'
-                          ? 'text-green-400'
-                          : log.type === 'warning'
-                          ? 'text-yellow-400'
-                          : 'text-slate-300'
-                      }`}
-                    >
-                      <span className="text-slate-500">[{log.timestamp}]</span> {log.message}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* History Tab */}
-          {activeTab === 'history' && (
-            <div className="bg-slate-900/30 rounded-xl p-4">
-              <RecentRuns module="fuzz" />
+              ))}
             </div>
           )}
         </div>
+
+        {/* ── Main card with tabs ── */}
+        <div style={{ ...card, overflow: 'hidden' }}>
+          {/* Tab bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 2,
+            padding: '0 22px',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            {[
+              { key: 'config',  label: 'Configuration',                  icon: Server,   accent: PURPLE },
+              { key: 'tests',   label: `Generated (${generatedTests.length})`, icon: Code,  accent: '#fbbf24' },
+              { key: 'results', label: 'Results',                         icon: FileText, accent: '#34d399' },
+              { key: 'logs',    label: `Logs (${logs.length})`,           icon: Activity, accent: '#60a5fa' },
+              { key: 'history', label: 'History',                         icon: Clock,    accent: '#fb923c' },
+            ].map(t => {
+              const Icon = t.icon;
+              return (
+                <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '14px 16px', fontSize: 13, fontWeight: 600,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  borderBottom: activeTab === t.key ? `2px solid ${t.accent}` : '2px solid transparent',
+                  color: activeTab === t.key ? t.accent : 'rgba(255,255,255,0.35)',
+                  marginBottom: -1, transition: 'all 0.18s',
+                }}>
+                  <Icon size={14} /> {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ padding: 28 }}>
+
+            {/* ── Config Tab ── */}
+            {activeTab === 'config' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+                {/* Info banner */}
+                <div style={{
+                  padding: '16px 20px', borderRadius: 12,
+                  background: PURPLE_DIM,
+                  border: `1px solid rgba(167,139,250,0.25)`,
+                  display: 'flex', gap: 14, alignItems: 'flex-start',
+                }}>
+                  <Bug size={20} color={PURPLE} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <div style={{ fontWeight: 700, color: PURPLE, fontSize: 14, marginBottom: 4 }}>What is Fuzz Testing?</div>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+                      Fuzz testing generates malformed, unexpected, or random data to test API robustness.
+                      It helps discover buffer overflows, memory corruption, integer overflows, format string
+                      vulnerabilities, and other critical security bugs that standard testing might miss.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+                  {/* Left column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                    <div>
+                      <label style={labelStyle}>API Endpoint URL</label>
+                      <input
+                        type="text"
+                        value={apiUrl}
+                        onChange={(e) => setApiUrl(e.target.value)}
+                        placeholder="https://api.example.com/endpoint"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>
+                        Number of Fuzz Tests — <span style={{ color: PURPLE }}>{numTests}</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="10" max="100"
+                        value={numTests}
+                        onChange={(e) => setNumTests(parseInt(e.target.value))}
+                        style={{ width: '100%', accentColor: PURPLE }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 4 }}>
+                        <span>10</span><span>50</span><span>100</span>
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <button
+                      onClick={handleGenerateFuzzTests}
+                      disabled={isRunning}
+                      style={{
+                        width: '100%', padding: '13px 0',
+                        borderRadius: 10, fontWeight: 700, fontSize: 14,
+                        border: 'none', cursor: isRunning ? 'not-allowed' : 'pointer',
+                        background: isRunning ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                        color: isRunning ? 'rgba(255,255,255,0.30)' : '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        boxShadow: isRunning ? 'none' : '0 0 20px rgba(124,58,237,0.35)',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {isRunning ? (
+                        <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generating…</>
+                      ) : (
+                        <><Target size={16} /> Generate Fuzz Tests</>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleRunFuzzTests}
+                      disabled={isRunning || generatedTests.length === 0}
+                      style={{
+                        width: '100%', padding: '13px 0',
+                        borderRadius: 10, fontWeight: 700, fontSize: 14,
+                        border: 'none',
+                        cursor: isRunning || generatedTests.length === 0 ? 'not-allowed' : 'pointer',
+                        background: isRunning || generatedTests.length === 0
+                          ? 'rgba(255,255,255,0.06)'
+                          : 'linear-gradient(135deg,#059669,#047857)',
+                        color: isRunning || generatedTests.length === 0 ? 'rgba(255,255,255,0.30)' : '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        boxShadow: isRunning || generatedTests.length === 0 ? 'none' : '0 0 20px rgba(5,150,105,0.30)',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {isRunning ? (
+                        <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Running…</>
+                      ) : (
+                        <><Play size={16} /> Run Fuzz Tests</>
+                      )}
+                    </button>
+
+                    {isRunning && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
+                          <span>Processing…</span><span>{progress}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%', borderRadius: 4,
+                            background: 'linear-gradient(90deg,#7c3aed,#059669)',
+                            width: `${progress}%`, transition: 'width 0.5s ease',
+                          }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right column: sample data */}
+                  <div>
+                    <label style={labelStyle}>Sample Data Structure (JSON)</label>
+                    <textarea
+                      value={sampleData}
+                      onChange={(e) => setSampleData(e.target.value)}
+                      rows={14}
+                      style={{
+                        ...inputStyle,
+                        fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                        fontSize: 13, resize: 'vertical',
+                      }}
+                      placeholder='{"field": "value"}'
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Generated Tests Tab ── */}
+            {activeTab === 'tests' && (
+              <div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18,
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#fff' }}>
+                    Generated Fuzz Tests
+                    <span style={{
+                      marginLeft: 10, padding: '2px 10px', borderRadius: 12,
+                      background: PURPLE_DIM, color: PURPLE, fontSize: 12, fontWeight: 700,
+                    }}>{generatedTests.length}</span>
+                  </div>
+                </div>
+
+                {generatedTests.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.20)' }}>
+                    <Bug size={44} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.2 }} />
+                    <p style={{ margin: 0, fontSize: 14 }}>No fuzz tests generated yet. Configure and generate tests first.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 560, overflowY: 'auto' }}>
+                    {generatedTests.map((test, index) => (
+                      <div key={index} style={{
+                        padding: '12px 16px', borderRadius: 10,
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                          <span style={{
+                            padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            background: 'rgba(0,0,0,0.30)',
+                            color: methodColor(test.method), flexShrink: 0,
+                            fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                          }}>
+                            {test.method}
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', marginBottom: 4 }}>
+                              {test.description}
+                            </div>
+                            <div style={{
+                              fontSize: 12, color: 'rgba(255,255,255,0.40)',
+                              fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                              background: 'rgba(255,255,255,0.03)',
+                              padding: '3px 8px', borderRadius: 5, display: 'inline-block',
+                            }}>
+                              {test.endpoint || '/'}
+                            </div>
+                            {test.data && (
+                              <details style={{ marginTop: 8 }}>
+                                <summary style={{
+                                  fontSize: 12, color: PURPLE, cursor: 'pointer', fontWeight: 600, userSelect: 'none',
+                                }}>
+                                  View Payload
+                                </summary>
+                                <pre style={{
+                                  marginTop: 8, padding: '10px 12px',
+                                  background: '#050810', border: '1px solid rgba(255,255,255,0.07)',
+                                  borderRadius: 8, fontSize: 11, overflowX: 'auto',
+                                  color: 'rgba(255,255,255,0.60)',
+                                  fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                                }}>
+                                  {JSON.stringify(test.data, null, 2)}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', flexShrink: 0, marginTop: 2 }}>
+                            {test.expected_status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Results Tab ── */}
+            {activeTab === 'results' && (
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', marginBottom: 18 }}>
+                  Test Results
+                </div>
+
+                {!results ? (
+                  <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.20)' }}>
+                    <FileText size={44} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.2 }} />
+                    <p style={{ margin: 0, fontSize: 14 }}>No results yet. Run fuzz tests to see results.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 560, overflowY: 'auto' }}>
+                    {results.results.map((result, index) => {
+                      const pass = result.status === 'PASS';
+                      return (
+                        <div key={index} style={{
+                          padding: '12px 16px', borderRadius: 10,
+                          background: pass ? 'rgba(52,211,153,0.07)' : 'rgba(248,113,113,0.07)',
+                          border: `1px solid ${pass ? 'rgba(52,211,153,0.20)' : 'rgba(248,113,113,0.20)'}`,
+                          display: 'flex', alignItems: 'flex-start', gap: 10,
+                        }}>
+                          {pass
+                            ? <CheckCircle size={16} color="#34d399" style={{ flexShrink: 0, marginTop: 1 }} />
+                            : <XCircle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
+                          }
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0' }}>{result.test}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>{result.details}</div>
+                          </div>
+                          <span style={{
+                            padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            background: pass ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.15)',
+                            color: pass ? '#34d399' : '#f87171',
+                          }}>
+                            {result.status}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Logs Tab ── */}
+            {activeTab === 'logs' && (
+              <div style={{
+                background: '#050810',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 12, overflow: 'hidden',
+              }}>
+                <div style={{
+                  padding: '9px 14px',
+                  background: 'rgba(255,255,255,0.03)',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex', alignItems: 'center', gap: 7,
+                }}>
+                  {['#ff5f57','#febc2e','#28c840'].map(c => (
+                    <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
+                  ))}
+                  <span style={{ marginLeft: 8, fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                    fuzz.log — {logs.length} entries
+                  </span>
+                </div>
+                <div style={{ padding: 14, maxHeight: 500, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
+                  {logs.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.20)', padding: '40px 0' }}>
+                      No log entries yet
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {logs.map((log, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 10, lineHeight: 1.5 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{log.timestamp}</span>
+                          <span style={logColor(log.type)}>{log.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── History Tab ── */}
+            {activeTab === 'history' && (
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 10, padding: 16,
+              }}>
+                <RecentRuns module="fuzz" />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

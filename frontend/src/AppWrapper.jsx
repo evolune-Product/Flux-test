@@ -21,6 +21,8 @@ import IntegrationTestingApp from './IntegrationTestingApp.jsx';
 import SharedFlowApp from './SharedFlowApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
 import LandingPage from './LandingPage.jsx';
+// PROD-GATE: import (remove this line to disable the module)
+import ProductionGateApp from './ProductionGateApp.jsx';
 import MobileBlocker from './MobileBlocker.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
 
@@ -497,6 +499,8 @@ function AppWrapper() {
           <Route path="/fullsend" element={<ErrorBoundary><FullSendApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/flow-builder" element={<ErrorBoundary><VisualBuilderApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/integration" element={<ErrorBoundary><IntegrationTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          {/* PROD-GATE: route (remove this line to disable the module) */}
+          <Route path="/prod-gate" element={<ErrorBoundary><ProductionGateApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

@@ -4,8 +4,6 @@ import {
   CheckCircle,
   XCircle,
   FileText,
-  Home,
-  ArrowLeft,
   Plus,
   Play,
   Trash2,
@@ -17,9 +15,10 @@ import {
   GitBranch,
   Check,
   X,
-  Sparkles
+  Sparkles,
+  User,
 } from 'lucide-react';
-
+import BackButton from './BackButton';
 import { saveTestRun } from './testHistoryUtils.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -186,7 +185,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
     }
 
     setAiLoading(true);
-    addLog('🤖 AI is generating your contract...', 'info');
+    addLog('AI is generating your contract...', 'info');
 
     try {
       const token = localStorage.getItem('token');
@@ -220,7 +219,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
           response_body_schema: JSON.stringify(contract.response_body_schema, null, 2)
         });
 
-        addLog('✅ Contract generated successfully! Review and edit below.', 'success');
+        addLog('Contract generated successfully! Review and edit below.', 'success');
         setAiDescription(''); // Clear the description
       } else {
         const error = await response.json();
@@ -310,9 +309,9 @@ const ContractTestingApp = ({ user, onLogout }) => {
         });
 
         if (data.passed) {
-          addLog('✅ Provider verification PASSED!', 'success');
+          addLog('Provider verification PASSED!', 'success');
         } else {
-          addLog(`❌ Provider verification FAILED! ${data.validation_errors.length} error(s)`, 'error');
+          addLog(`Provider verification FAILED! ${data.validation_errors.length} error(s)`, 'error');
         }
 
         setActiveTab('results');
@@ -350,603 +349,754 @@ const ContractTestingApp = ({ user, onLogout }) => {
     await fetchVerificationHistory(contract.contract_id);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-violet-900 to-slate-900 text-white p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Back Button */}
-        <div className="mb-4">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg transition-all"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <Home className="w-5 h-5" />
-            <span>Back to Home</span>
-          </button>
-        </div>
+  // ─── Design tokens ───────────────────────────────────────────────
+  const VIOLET = '#a78bfa';
+  const VIOLET_DIM = 'rgba(167,139,250,0.12)';
 
-        {/* Header */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 mb-6 border border-white/20">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-gradient-to-r from-violet-500 to-purple-500 p-3 rounded-xl">
-              <FileText className="w-8 h-8 text-white" />
+  const card = {
+    background: 'rgba(9,12,22,0.80)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 16,
+    backdropFilter: 'blur(20px)',
+  };
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 10,
+    color: '#e2e8f0',
+    fontSize: 14,
+    outline: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  };
+  const labelStyle = {
+    display: 'block',
+    fontSize: 12,
+    fontWeight: 600,
+    color: 'rgba(255,255,255,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom: 6,
+  };
+  const logColor = (type) => {
+    if (type === 'error')   return { color: '#f87171' };
+    if (type === 'warning') return { color: '#fbbf24' };
+    if (type === 'success') return { color: '#34d399' };
+    return { color: VIOLET };
+  };
+  const methodColor = (m) => {
+    const map = { GET:'#34d399', POST:'#60a5fa', PUT:'#fbbf24', PATCH:'#fb923c', DELETE:'#f87171' };
+    return map[m] || VIOLET;
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg,#020408 0%,#060c18 50%,#020408 100%)',
+      color: '#e2e8f0',
+      fontFamily: '"Inter","SF Pro Display",system-ui,sans-serif',
+      position: 'relative',
+    }}>
+      {/* Dot grid */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'radial-gradient(circle, rgba(167,139,250,0.08) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }} />
+
+      {/* ── Sticky Header ── */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(2,4,8,0.92)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(20px)',
+        padding: '0 32px', height: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <BackButton />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 18px rgba(167,139,250,0.40)',
+            }}>
+              <FileText size={17} color="#fff" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
                 Contract Testing
-              </h1>
-              <p className="text-slate-300">Consumer-Driven Contract verification</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText className="text-violet-400" size={20} />
-                <h3 className="font-semibold">Contract Definition</h3>
               </div>
-              <p className="text-sm text-slate-300">Define API expectations</p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="text-blue-400" size={20} />
-                <h3 className="font-semibold">Provider Verification</h3>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -1 }}>
+                Consumer-driven contract verification
               </div>
-              <p className="text-sm text-slate-300">Validate provider compliance</p>
-            </div>
-            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <GitBranch className="text-purple-400" size={20} />
-                <h3 className="font-semibold">Version Control</h3>
-              </div>
-              <p className="text-sm text-slate-300">Track contract changes</p>
             </div>
           </div>
         </div>
+        {user?.username && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7,
+            padding: '5px 12px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)',
+          }}>
+            <User size={13} /> {user.username}
+          </div>
+        )}
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left - Contracts List */}
-          <div className="lg:col-span-1">
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Code size={20} className="text-violet-400" />
-                  Contracts ({contracts.length})
-                </h2>
-                <button
-                  onClick={() => setActiveTab('create')}
-                  className="p-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-all"
-                  title="Create Contract"
-                >
-                  <Plus size={20} />
-                </button>
+      {/* ── Page body ── */}
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '36px 32px 60px' }}>
+
+        {/* Hero */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: VIOLET_DIM, color: VIOLET,
+              border: `1px solid rgba(167,139,250,0.25)`, letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>Contract Suite</span>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+              background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.40)',
+              border: '1px solid rgba(255,255,255,0.07)', letterSpacing: '0.06em',
+            }}>AI-Powered</span>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', margin: 0, marginBottom: 8 }}>
+            Contract Testing &amp; Provider Verification
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 14, margin: 0 }}>
+            Define consumer-driven contracts and verify provider compliance automatically.
+          </p>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Contracts', value: contracts.length, color: VIOLET },
+              { label: 'Selected', value: selectedContract?.contract_name || 'None', color: 'rgba(255,255,255,0.60)' },
+            ].map(s => (
+              <div key={s.label} style={{
+                padding: '8px 18px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 10, fontSize: 13,
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.40)' }}>{s.label}: </span>
+                <span style={{ color: s.color, fontWeight: 700 }}>{s.value}</span>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {contracts.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>No contracts yet</p>
-                    <p className="text-sm mt-2">Create your first contract</p>
-                  </div>
-                ) : (
-                  contracts.map((contract) => (
+        {/* ── 2-col layout ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 22, alignItems: 'start' }}>
+
+          {/* ═══ LEFT: Contracts list ═══ */}
+          <div style={{ ...card, padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 7,
+                  background: VIOLET_DIM,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Code size={13} color={VIOLET} />
+                </div>
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>
+                  Contracts
+                  <span style={{
+                    marginLeft: 6, padding: '1px 7px', borderRadius: 10,
+                    background: VIOLET_DIM, color: VIOLET, fontSize: 11, fontWeight: 700,
+                  }}>{contracts.length}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveTab('create')}
+                style={{
+                  width: 28, height: 28, borderRadius: 7,
+                  background: 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 10px rgba(167,139,250,0.25)',
+                }}
+                title="Create Contract"
+              >
+                <Plus size={15} color="#fff" />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 560, overflowY: 'auto' }}>
+              {contracts.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)' }}>
+                  <FileText size={36} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.2 }} />
+                  <p style={{ margin: 0, fontSize: 12 }}>No contracts yet</p>
+                </div>
+              ) : (
+                contracts.map((contract) => {
+                  const isSel = selectedContract?.contract_id === contract.contract_id;
+                  return (
                     <div
                       key={contract.contract_id}
-                      className={`bg-slate-900/50 border rounded-lg p-3 cursor-pointer transition-all ${
-                        selectedContract?.contract_id === contract.contract_id
-                          ? 'border-violet-500 bg-violet-900/20'
-                          : 'border-slate-700 hover:border-violet-700'
-                      }`}
                       onClick={() => selectContract(contract)}
+                      style={{
+                        padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
+                        background: isSel ? VIOLET_DIM : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${isSel ? 'rgba(167,139,250,0.30)' : 'rgba(255,255,255,0.06)'}`,
+                        transition: 'all 0.18s',
+                      }}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-semibold text-white mb-1">{contract.contract_name}</div>
-                          <div className="text-xs text-slate-400 mb-1">
-                            <span className="bg-violet-500/20 px-2 py-0.5 rounded">{contract.consumer_name}</span>
-                            {' → '}
-                            <span className="bg-purple-500/20 px-2 py-0.5 rounded">{contract.provider_name}</span>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: isSel ? VIOLET : '#e2e8f0', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {contract.contract_name}
                           </div>
-                          <div className="text-xs text-slate-500 mb-1">
-                            <span className="font-mono bg-slate-800 px-2 py-0.5 rounded">{contract.request_method}</span>
-                            {' '}
-                            {contract.request_path}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
+                            <span style={{
+                              padding: '1px 6px', borderRadius: 4, fontSize: 10,
+                              background: VIOLET_DIM, color: VIOLET, fontWeight: 600,
+                            }}>{contract.consumer_name}</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>→</span>
+                            <span style={{
+                              padding: '1px 6px', borderRadius: 4, fontSize: 10,
+                              background: 'rgba(167,139,250,0.07)', color: 'rgba(167,139,250,0.70)', fontWeight: 600,
+                            }}>{contract.provider_name}</span>
                           </div>
-                          <div className="text-xs text-slate-500 flex items-center gap-2">
-                            <span>v{contract.version}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{
+                              padding: '1px 5px', borderRadius: 4, fontSize: 10, fontWeight: 700,
+                              color: methodColor(contract.request_method), background: 'rgba(0,0,0,0.25)',
+                              fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                            }}>{contract.request_method}</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>v{contract.version}</span>
                             {contract.verification_count > 0 && (
                               <>
-                                <span>•</span>
-                                <span>{contract.verification_count} tests</span>
+                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.20)' }}>•</span>
                                 {contract.last_verification_passed !== null && (
-                                  contract.last_verification_passed ?
-                                    <CheckCircle size={12} className="text-green-400" /> :
-                                    <XCircle size={12} className="text-red-400" />
+                                  contract.last_verification_passed
+                                    ? <CheckCircle size={11} color="#34d399" />
+                                    : <XCircle size={11} color="#f87171" />
                                 )}
                               </>
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-1 ml-2">
-                          {selectedContract?.contract_id === contract.contract_id && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {isSel && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveTab('verify');
-                              }}
+                              onClick={(e) => { e.stopPropagation(); setActiveTab('verify'); }}
                               disabled={isLoading}
-                              className="p-2 hover:bg-green-500/20 text-green-400 rounded transition-all"
+                              style={{
+                                width: 26, height: 26, borderRadius: 6,
+                                background: 'rgba(52,211,153,0.15)',
+                                border: '1px solid rgba(52,211,153,0.25)',
+                                cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}
                               title="Verify Provider"
                             >
-                              {isLoading ? <Loader size={16} className="animate-spin" /> : <Play size={16} />}
+                              {isLoading
+                                ? <Loader size={12} color="#34d399" style={{ animation: 'spin 1s linear infinite' }} />
+                                : <Play size={12} color="#34d399" />
+                              }
                             </button>
                           )}
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteContract(contract.contract_id);
+                            onClick={(e) => { e.stopPropagation(); deleteContract(contract.contract_id); }}
+                            style={{
+                              width: 26, height: 26, borderRadius: 6,
+                              background: 'rgba(248,113,113,0.10)',
+                              border: '1px solid rgba(248,113,113,0.15)',
+                              cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
-                            className="p-2 hover:bg-red-500/20 text-red-400 rounded transition-all"
                             title="Delete"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={12} color="#f87171" />
                           </button>
                         </div>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          {/* Right - Tabs */}
-          <div className="lg:col-span-2">
-            {/* Tabs */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-t-2xl shadow-2xl border border-white/20 border-b-0">
-              <div className="flex gap-2 p-4 flex-wrap">
-                <button
-                  onClick={() => setActiveTab('contracts')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
-                    activeTab === 'contracts' ? 'bg-violet-600 text-white shadow-lg' : 'bg-white/10 text-violet-200 hover:bg-white/20'
-                  }`}
-                >
-                  <Code className="w-4 h-4" />
-                  Details
-                </button>
-                <button
-                  onClick={() => setActiveTab('create')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
-                    activeTab === 'create' ? 'bg-violet-600 text-white shadow-lg' : 'bg-white/10 text-violet-200 hover:bg-white/20'
-                  }`}
-                >
-                  <Plus className="w-4 h-4" />
-                  Create
-                </button>
-                <button
-                  onClick={() => setActiveTab('verify')}
-                  disabled={!selectedContract}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
-                    activeTab === 'verify' ? 'bg-violet-600 text-white shadow-lg' : 'bg-white/10 text-violet-200 hover:bg-white/20 disabled:opacity-50'
-                  }`}
-                >
-                  <Play className="w-4 h-4" />
-                  Verify
-                </button>
-                <button
-                  onClick={() => setActiveTab('results')}
-                  disabled={!verificationResult}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
-                    activeTab === 'results' ? 'bg-violet-600 text-white shadow-lg' : 'bg-white/10 text-violet-200 hover:bg-white/20 disabled:opacity-50'
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Results
-                </button>
-                <button
-                  onClick={() => setActiveTab('history')}
-                  disabled={!verificationHistory}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
-                    activeTab === 'history' ? 'bg-violet-600 text-white shadow-lg' : 'bg-white/10 text-violet-200 hover:bg-white/20 disabled:opacity-50'
-                  }`}
-                >
-                  <History className="w-4 h-4" />
-                  History
-                  {verificationHistory && <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{verificationHistory.verifications.length}</span>}
-                </button>
-              </div>
+          {/* ═══ RIGHT: Tabbed panel ═══ */}
+          <div style={{ ...card, overflow: 'hidden' }}>
+            {/* Tab bar */}
+            <div style={{
+              display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '0 22px',
+            }}>
+              {[
+                { key: 'contracts', label: 'Details',  icon: Code,     accent: VIOLET },
+                { key: 'create',    label: 'Create',   icon: Plus,     accent: '#60a5fa' },
+                { key: 'verify',    label: 'Verify',   icon: Play,     accent: '#34d399' },
+                { key: 'results',   label: 'Results',  icon: BarChart3,accent: '#fbbf24' },
+                { key: 'history',   label: `History${verificationHistory ? ` (${verificationHistory.verifications.length})` : ''}`, icon: History, accent: '#fb923c' },
+              ].map(t => {
+                const Icon = t.icon;
+                return (
+                  <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '14px 13px', fontSize: 13, fontWeight: 600,
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    borderBottom: activeTab === t.key ? `2px solid ${t.accent}` : '2px solid transparent',
+                    color: activeTab === t.key ? t.accent : 'rgba(255,255,255,0.35)',
+                    marginBottom: -1, transition: 'all 0.18s',
+                  }}>
+                    <Icon size={13} /> {t.label}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Tab Content */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-b-2xl shadow-2xl p-6 border border-white/20 min-h-[600px] max-h-[700px] overflow-y-auto">
-              {/* Details Tab */}
+            <div style={{ padding: 28, maxHeight: 680, overflowY: 'auto' }}>
+
+              {/* ─ Details Tab ─ */}
               {activeTab === 'contracts' && (
                 <div>
                   {selectedContract ? (
                     <div>
-                      <h2 className="text-2xl font-bold text-white mb-6">Contract Details</h2>
-                      <div className="space-y-4">
-                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <div className="text-sm text-slate-400">Contract Name</div>
-                              <div className="text-lg font-semibold">{selectedContract.contract_name}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-slate-400">Version</div>
-                              <div className="text-lg font-semibold">{selectedContract.version}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-slate-400">Consumer</div>
-                              <div className="text-sm bg-violet-500/20 px-3 py-1 rounded inline-block">{selectedContract.consumer_name}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-slate-400">Provider</div>
-                              <div className="text-sm bg-purple-500/20 px-3 py-1 rounded inline-block">{selectedContract.provider_name}</div>
-                            </div>
-                            <div className="col-span-2">
-                              <div className="text-sm text-slate-400">Request</div>
-                              <div className="font-mono text-sm bg-slate-800 px-3 py-2 rounded mt-1">
-                                {selectedContract.request_method} {selectedContract.request_path}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-slate-400">Expected Status</div>
-                              <div className="text-lg font-semibold">{selectedContract.response_status}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-slate-400">Verifications</div>
-                              <div className="text-lg font-semibold">{selectedContract.verification_count}</div>
-                            </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+                        <div style={{ fontWeight: 700, fontSize: 17, color: '#fff' }}>Contract Details</div>
+                        <button
+                          onClick={() => setActiveTab('verify')}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 7,
+                            padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13,
+                            border: 'none', cursor: 'pointer',
+                            background: 'linear-gradient(135deg,#059669,#047857)',
+                            color: '#fff',
+                            boxShadow: '0 0 14px rgba(5,150,105,0.25)',
+                          }}
+                        >
+                          <Play size={13} /> Verify Provider
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                        {[
+                          { label: 'Contract Name', value: selectedContract.contract_name },
+                          { label: 'Version',       value: selectedContract.version, mono: true },
+                          { label: 'Consumer',      value: selectedContract.consumer_name, badge: true, color: VIOLET, bg: VIOLET_DIM },
+                          { label: 'Provider',      value: selectedContract.provider_name, badge: true, color: 'rgba(167,139,250,0.70)', bg: 'rgba(167,139,250,0.07)' },
+                          { label: 'Expected Status', value: selectedContract.response_status, mono: true },
+                          { label: 'Verifications', value: selectedContract.verification_count },
+                        ].map(f => (
+                          <div key={f.label} style={{
+                            padding: '12px 14px', borderRadius: 9,
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                          }}>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.label}</div>
+                            {f.badge ? (
+                              <span style={{
+                                padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                                background: f.bg, color: f.color,
+                              }}>{f.value}</span>
+                            ) : (
+                              <div style={{
+                                fontSize: 14, fontWeight: 600, color: '#e2e8f0',
+                                fontFamily: f.mono ? '"JetBrains Mono","Fira Code",monospace' : 'inherit',
+                              }}>{f.value}</div>
+                            )}
+                          </div>
+                        ))}
+                        <div style={{
+                          gridColumn: '1/-1', padding: '12px 14px', borderRadius: 9,
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Request</div>
+                          <div style={{
+                            fontSize: 13, color: '#e2e8f0',
+                            fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                          }}>
+                            <span style={{ color: methodColor(selectedContract.request_method), fontWeight: 700 }}>{selectedContract.request_method}</span>
+                            {' '}{selectedContract.request_path}
                           </div>
                         </div>
+                      </div>
 
-                        {logs.length > 0 && (
-                          <div className="bg-black/30 rounded-lg p-4 h-48 overflow-y-auto font-mono text-sm">
-                            {logs.map((log, index) => (
-                              <div key={index} className={`mb-2 ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-violet-300'}`}>
-                                <span className="text-violet-400">[{log.timestamp}]</span> {log.message}
+                      {/* Logs */}
+                      {logs.length > 0 && (
+                        <div style={{
+                          background: '#050810',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          borderRadius: 12, overflow: 'hidden',
+                        }}>
+                          <div style={{
+                            padding: '8px 14px', background: 'rgba(255,255,255,0.03)',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            display: 'flex', alignItems: 'center', gap: 7,
+                          }}>
+                            {['#ff5f57','#febc2e','#28c840'].map(c => (
+                              <div key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c, opacity: 0.80 }} />
+                            ))}
+                            <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                              contract.log
+                            </span>
+                          </div>
+                          <div style={{ padding: 12, maxHeight: 160, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 11 }}>
+                            {logs.map((log, i) => (
+                              <div key={i} style={{ display: 'flex', gap: 8, lineHeight: 1.5, marginBottom: 2 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{log.timestamp}</span>
+                                <span style={logColor(log.type)}>{log.message}</span>
                               </div>
                             ))}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="text-center py-20">
-                      <FileText size={64} className="mx-auto text-slate-600 mb-4" />
-                      <p className="text-slate-400 text-lg">Select a contract</p>
-                      <p className="text-sm text-slate-500 mt-2">Or create a new one</p>
+                    <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.20)' }}>
+                      <FileText size={52} style={{ margin: '0 auto 14px', display: 'block', opacity: 0.15 }} />
+                      <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>Select a contract</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.20)' }}>Or create a new one</p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Create Tab */}
+              {/* ─ Create Tab ─ */}
               {activeTab === 'create' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Plus className="w-6 h-6" />
-                    Create New Contract
-                  </h2>
+                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Plus size={18} /> Create New Contract
+                  </div>
 
-                  {/* AI Assistant Section */}
-                  <div className="mb-8 bg-gradient-to-r from-violet-600/20 via-purple-600/20 to-fuchsia-600/20 border-2 border-violet-400/40 rounded-xl p-6 backdrop-blur-sm">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <Sparkles className="w-5 h-5 text-white" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* AI assistant */}
+                    <div style={{
+                      padding: '18px 20px', borderRadius: 12,
+                      background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(109,40,217,0.12))',
+                      border: '1px solid rgba(167,139,250,0.25)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 9,
+                          background: 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Sparkles size={16} color="#fff" />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: VIOLET, fontSize: 14 }}>AI Contract Assistant</div>
+                          <div style={{ fontSize: 12, color: 'rgba(167,139,250,0.65)' }}>
+                            Describe your contract — AI will generate it for you
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">AI Contract Assistant</h3>
-                        <p className="text-sm text-violet-200">Describe your contract in plain English, AI will generate it for you</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
                       <textarea
                         value={aiDescription}
                         onChange={(e) => setAiDescription(e.target.value)}
-                        placeholder="Example: I need a contract for a user registration API that accepts email and password in the request body, and returns user ID, username, email, and authentication token in the response..."
-                        className="w-full px-4 py-3 bg-slate-900/80 border border-violet-400/30 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent text-white placeholder-slate-400 resize-none"
+                        placeholder="Example: A contract for a user registration API that accepts email and password, and returns user ID, username, email, and auth token..."
                         rows={4}
                         disabled={aiLoading}
+                        style={{
+                          ...inputStyle,
+                          fontFamily: 'inherit', resize: 'vertical',
+                          background: 'rgba(167,139,250,0.06)',
+                          marginBottom: 10,
+                        }}
                       />
-
                       <button
                         onClick={generateContractWithAI}
                         disabled={aiLoading || !aiDescription.trim()}
-                        className="w-full py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-violet-500/30"
+                        style={{
+                          width: '100%', padding: '11px 0',
+                          borderRadius: 9, fontWeight: 700, fontSize: 13,
+                          border: 'none',
+                          cursor: aiLoading || !aiDescription.trim() ? 'not-allowed' : 'pointer',
+                          background: aiLoading || !aiDescription.trim()
+                            ? 'rgba(255,255,255,0.06)'
+                            : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                          color: aiLoading || !aiDescription.trim() ? 'rgba(255,255,255,0.30)' : '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          boxShadow: aiLoading || !aiDescription.trim() ? 'none' : '0 0 16px rgba(124,58,237,0.30)',
+                        }}
                       >
-                        {aiLoading ? (
-                          <>
-                            <Loader className="w-5 h-5 animate-spin" />
-                            AI is generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-5 h-5" />
-                            Generate Contract with AI
-                          </>
-                        )}
+                        {aiLoading
+                          ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> AI is generating…</>
+                          : <><Sparkles size={14} /> Generate Contract with AI</>
+                        }
                       </button>
-
-                      <div className="bg-violet-500/10 border border-violet-400/20 rounded-lg p-3">
-                        <p className="text-xs text-violet-200 leading-relaxed">
-                          <strong className="text-violet-100">💡 Tips:</strong> Be specific about your API endpoint, request/response structure,
-                          and data types. Mention consumer and provider names if you have them. The AI will generate a complete
-                          contract with proper JSON Schema that you can review and edit below.
-                        </p>
-                      </div>
                     </div>
-                  </div>
 
-                  {/* Divider */}
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="flex-1 h-px bg-violet-400/30"></div>
-                    <span className="text-sm text-violet-300 font-semibold">OR CREATE MANUALLY</span>
-                    <div className="flex-1 h-px bg-violet-400/30"></div>
-                  </div>
+                    <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>— or create manually —</div>
 
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Contract Name *</label>
-                        <input
-                          type="text"
-                          value={contractForm.contract_name}
+                        <label style={labelStyle}>Contract Name *</label>
+                        <input type="text" value={contractForm.contract_name}
                           onChange={(e) => setContractForm({ ...contractForm, contract_name: e.target.value })}
-                          placeholder="User API Contract"
-                          className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                        />
+                          placeholder="User API Contract" style={inputStyle} />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Version</label>
-                        <input
-                          type="text"
-                          value={contractForm.version}
+                        <label style={labelStyle}>Version</label>
+                        <input type="text" value={contractForm.version}
                           onChange={(e) => setContractForm({ ...contractForm, version: e.target.value })}
-                          placeholder="1.0.0"
-                          className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
-                        />
+                          placeholder="1.0.0" style={inputStyle} />
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-2">Consumer (Your App) *</label>
-                        <input
-                          type="text"
-                          value={contractForm.consumer_name}
+                        <label style={labelStyle}>Consumer (Your App) *</label>
+                        <input type="text" value={contractForm.consumer_name}
                           onChange={(e) => setContractForm({ ...contractForm, consumer_name: e.target.value })}
-                          placeholder="Mobile App"
-                          className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
-                        />
+                          placeholder="Mobile App" style={inputStyle} />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Provider (API Service) *</label>
-                        <input
-                          type="text"
-                          value={contractForm.provider_name}
+                        <label style={labelStyle}>Provider (API Service) *</label>
+                        <input type="text" value={contractForm.provider_name}
                           onChange={(e) => setContractForm({ ...contractForm, provider_name: e.target.value })}
-                          placeholder="User Service API"
-                          className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
-                        />
+                          placeholder="User Service API" style={inputStyle} />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Description</label>
-                      <input
-                        type="text"
-                        value={contractForm.description}
+                      <label style={labelStyle}>Description</label>
+                      <input type="text" value={contractForm.description}
                         onChange={(e) => setContractForm({ ...contractForm, description: e.target.value })}
-                        placeholder="Contract for user API"
-                        className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
-                      />
+                        placeholder="Contract for user API" style={inputStyle} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                       <div>
-                        <label className="block text-sm font-medium mb-2">HTTP Method</label>
-                        <select
-                          value={contractForm.request_method}
+                        <label style={labelStyle}>HTTP Method</label>
+                        <select value={contractForm.request_method}
                           onChange={(e) => setContractForm({ ...contractForm, request_method: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
-                        >
-                          <option>GET</option>
-                          <option>POST</option>
-                          <option>PUT</option>
-                          <option>PATCH</option>
-                          <option>DELETE</option>
+                          style={{ ...inputStyle, cursor: 'pointer' }}>
+                          {['GET','POST','PUT','PATCH','DELETE'].map(m => (
+                            <option key={m} value={m} style={{ background: '#0a0e1a' }}>{m}</option>
+                          ))}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Expected Status Code</label>
-                        <input
-                          type="number"
-                          value={contractForm.response_status}
+                        <label style={labelStyle}>Expected Status</label>
+                        <input type="number" value={contractForm.response_status}
                           onChange={(e) => setContractForm({ ...contractForm, response_status: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
-                        />
+                          style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Request Path *</label>
+                        <input type="text" value={contractForm.request_path}
+                          onChange={(e) => setContractForm({ ...contractForm, request_path: e.target.value })}
+                          placeholder="/api/users/1" style={inputStyle} />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Request Path *</label>
-                      <input
-                        type="text"
-                        value={contractForm.request_path}
-                        onChange={(e) => setContractForm({ ...contractForm, request_path: e.target.value })}
-                        placeholder="/api/users/1"
-                        className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Response Body Schema (JSON Schema) *</label>
+                      <label style={labelStyle}>Response Body Schema (JSON Schema) *</label>
                       <textarea
                         value={contractForm.response_body_schema}
                         onChange={(e) => setContractForm({ ...contractForm, response_body_schema: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500 font-mono text-sm"
                         rows={10}
+                        style={{ ...inputStyle, fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12, resize: 'vertical' }}
                       />
                     </div>
 
-                    <div className="bg-violet-500/20 border border-violet-400/30 rounded-lg p-4">
-                      <h4 className="font-bold text-white mb-2 text-sm">💡 JSON Schema Format</h4>
-                      <ul className="space-y-1 text-xs text-violet-200">
-                        <li>• Define the structure your app expects from the API</li>
-                        <li>• Specify field types: string, integer, number, boolean, object, array</li>
-                        <li>• Mark required fields in the "required" array</li>
-                        <li>• Provider will be tested against this schema</li>
-                      </ul>
+                    <div style={{
+                      padding: '12px 16px', borderRadius: 10,
+                      background: VIOLET_DIM, border: `1px solid rgba(167,139,250,0.20)`,
+                      fontSize: 12, color: 'rgba(167,139,250,0.80)', lineHeight: 1.7,
+                    }}>
+                      <strong style={{ color: VIOLET }}>JSON Schema tips:</strong> Define field types (string, integer, boolean, object, array), mark required fields in the "required" array. Provider will be tested against this schema.
                     </div>
 
                     <button
                       onClick={createContract}
                       disabled={isLoading}
-                      className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 rounded-lg font-bold transition-all disabled:opacity-50"
+                      style={{
+                        width: '100%', padding: '13px 0',
+                        borderRadius: 10, fontWeight: 700, fontSize: 14,
+                        border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
+                        background: isLoading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                        color: isLoading ? 'rgba(255,255,255,0.30)' : '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        boxShadow: isLoading ? 'none' : '0 0 20px rgba(124,58,237,0.30)',
+                        transition: 'all 0.2s',
+                      }}
                     >
-                      {isLoading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Loader className="w-5 h-5 animate-spin" />
-                          Creating...
-                        </span>
-                      ) : (
-                        'Create Contract'
-                      )}
+                      {isLoading
+                        ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Creating…</>
+                        : 'Create Contract'
+                      }
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Verify Tab */}
+              {/* ─ Verify Tab ─ */}
               {activeTab === 'verify' && selectedContract && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Verify Provider</h2>
-                  <div className="space-y-4">
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700 mb-4">
-                      <div className="text-sm text-slate-400 mb-2">Testing Contract:</div>
-                      <div className="font-semibold text-lg">{selectedContract.contract_name}</div>
-                      <div className="text-sm text-slate-400 mt-1">
-                        {selectedContract.consumer_name} → {selectedContract.provider_name}
-                      </div>
-                    </div>
+                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 20 }}>Verify Provider</div>
 
+                  <div style={{
+                    padding: '14px 16px', borderRadius: 10,
+                    background: VIOLET_DIM, border: `1px solid rgba(167,139,250,0.20)`,
+                    marginBottom: 20,
+                  }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Testing Contract</div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: VIOLET }}>{selectedContract.contract_name}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                      {selectedContract.consumer_name} → {selectedContract.provider_name}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Provider Base URL *</label>
+                      <label style={labelStyle}>Provider Base URL *</label>
                       <input
                         type="text"
                         value={providerForm.provider_url}
                         onChange={(e) => setProviderForm({ ...providerForm, provider_url: e.target.value })}
                         placeholder="https://api.example.com"
-                        className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500"
+                        style={inputStyle}
                       />
-                      <div className="text-xs text-slate-500 mt-1">
-                        Full URL will be: {providerForm.provider_url || 'https://api.example.com'}{selectedContract.request_path}
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 5, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                        Full: {providerForm.provider_url || 'https://api.example.com'}{selectedContract.request_path}
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Custom Headers (JSON) - Optional</label>
+                      <label style={labelStyle}>Custom Headers (JSON) — optional</label>
                       <textarea
                         value={providerForm.custom_headers}
                         onChange={(e) => setProviderForm({ ...providerForm, custom_headers: e.target.value })}
                         placeholder='{"Authorization": "Bearer token"}'
-                        className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500 font-mono text-sm"
                         rows={3}
+                        style={{ ...inputStyle, fontFamily: '"JetBrains Mono","Fira Code",monospace', resize: 'vertical' }}
                       />
                     </div>
 
                     <button
                       onClick={verifyProvider}
                       disabled={isLoading || !providerForm.provider_url}
-                      className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg font-bold transition-all disabled:opacity-50"
+                      style={{
+                        width: '100%', padding: '13px 0',
+                        borderRadius: 10, fontWeight: 700, fontSize: 14,
+                        border: 'none',
+                        cursor: isLoading || !providerForm.provider_url ? 'not-allowed' : 'pointer',
+                        background: isLoading || !providerForm.provider_url
+                          ? 'rgba(255,255,255,0.06)'
+                          : 'linear-gradient(135deg,#059669,#047857)',
+                        color: isLoading || !providerForm.provider_url ? 'rgba(255,255,255,0.30)' : '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        boxShadow: isLoading || !providerForm.provider_url ? 'none' : '0 0 20px rgba(5,150,105,0.25)',
+                      }}
                     >
-                      {isLoading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Loader className="w-5 h-5 animate-spin" />
-                          Verifying...
-                        </span>
-                      ) : (
-                        <span className="flex items-center justify-center gap-2">
-                          <Play className="w-5 h-5" />
-                          Verify Provider
-                        </span>
-                      )}
+                      {isLoading
+                        ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Verifying…</>
+                        : <><Play size={15} /> Verify Provider</>
+                      }
                     </button>
 
+                    {/* Inline log terminal */}
                     {logs.length > 0 && (
-                      <div className="bg-black/30 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-sm">
-                        {logs.map((log, index) => (
-                          <div key={index} className={`mb-2 ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-violet-300'}`}>
-                            <span className="text-violet-400">[{log.timestamp}]</span> {log.message}
-                          </div>
-                        ))}
+                      <div style={{
+                        background: '#050810', border: '1px solid rgba(255,255,255,0.07)',
+                        borderRadius: 12, overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          padding: '8px 14px', background: 'rgba(255,255,255,0.03)',
+                          borderBottom: '1px solid rgba(255,255,255,0.06)',
+                          display: 'flex', alignItems: 'center', gap: 7,
+                        }}>
+                          {['#ff5f57','#febc2e','#28c840'].map(c => (
+                            <div key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c, opacity: 0.80 }} />
+                          ))}
+                          <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>verify.log</span>
+                        </div>
+                        <div style={{ padding: 12, maxHeight: 200, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 11 }}>
+                          {logs.map((log, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 8, lineHeight: 1.5, marginBottom: 2 }}>
+                              <span style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{log.timestamp}</span>
+                              <span style={logColor(log.type)}>{log.message}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Results Tab */}
+              {/* ─ Results Tab ─ */}
               {activeTab === 'results' && verificationResult && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Verification Results</h2>
+                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 20 }}>Verification Results</div>
 
-                  {/* Status */}
-                  <div className={`rounded-lg p-6 text-center mb-6 ${
-                    verificationResult.passed ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'
-                  }`}>
-                    {verificationResult.passed ? (
-                      <CheckCircle size={48} className="mx-auto text-green-400 mb-2" />
-                    ) : (
-                      <XCircle size={48} className="mx-auto text-red-400 mb-2" />
-                    )}
-                    <h3 className="text-2xl font-bold mb-2">
+                  {/* Status banner */}
+                  <div style={{
+                    padding: '20px', borderRadius: 12, textAlign: 'center', marginBottom: 20,
+                    background: verificationResult.passed ? 'rgba(52,211,153,0.09)' : 'rgba(248,113,113,0.09)',
+                    border: `1px solid ${verificationResult.passed ? 'rgba(52,211,153,0.25)' : 'rgba(248,113,113,0.25)'}`,
+                  }}>
+                    {verificationResult.passed
+                      ? <CheckCircle size={42} color="#34d399" style={{ margin: '0 auto 10px', display: 'block' }} />
+                      : <XCircle size={42} color="#f87171" style={{ margin: '0 auto 10px', display: 'block' }} />
+                    }
+                    <div style={{ fontWeight: 800, fontSize: 18, color: verificationResult.passed ? '#34d399' : '#f87171', marginBottom: 4 }}>
                       {verificationResult.passed ? 'Contract Verified!' : 'Contract Violation!'}
-                    </h3>
-                    <p className="text-sm">
-                      {verificationResult.passed ? '✅ Provider meets all contract requirements' : `❌ ${verificationResult.validation_errors.length} validation error(s)`}
-                    </p>
-                  </div>
-
-                  {/* Summary */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400">Status Code</div>
-                      <div className={`text-2xl font-bold ${verificationResult.status_code_match ? 'text-green-400' : 'text-red-400'}`}>
-                        {verificationResult.status_code_match ? '✓' : '✗'} {verificationResult.response_received.status_code}
-                      </div>
                     </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400">Schema Match</div>
-                      <div className={`text-2xl font-bold ${verificationResult.schema_match ? 'text-green-400' : 'text-red-400'}`}>
-                        {verificationResult.schema_match ? '✓ PASS' : '✗ FAIL'}
-                      </div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400">Response Time</div>
-                      <div className="text-2xl font-bold">{verificationResult.response_time_ms}ms</div>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
+                      {verificationResult.passed ? 'Provider meets all contract requirements' : `${verificationResult.validation_errors.length} validation error(s)`}
                     </div>
                   </div>
 
-                  {/* Validation Errors */}
+                  {/* Summary stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 20 }}>
+                    {[
+                      { label: 'Status Code', value: `${verificationResult.status_code_match ? '✓' : '✗'} ${verificationResult.response_received.status_code}`, color: verificationResult.status_code_match ? '#34d399' : '#f87171' },
+                      { label: 'Schema Match', value: verificationResult.schema_match ? '✓ PASS' : '✗ FAIL', color: verificationResult.schema_match ? '#34d399' : '#f87171' },
+                      { label: 'Response Time', value: `${verificationResult.response_time_ms}ms`, color: '#e2e8f0' },
+                    ].map(s => (
+                      <div key={s.label} style={{
+                        padding: '14px', borderRadius: 10,
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Validation errors */}
                   {verificationResult.validation_errors && verificationResult.validation_errors.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="font-semibold mb-3 text-lg">Validation Errors:</h3>
-                      <div className="space-y-3">
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', marginBottom: 10 }}>Validation Errors</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {verificationResult.validation_errors.map((error, index) => (
-                          <div key={index} className="bg-red-900/20 border border-red-700/30 rounded-lg p-4">
-                            <div className="flex items-start gap-2">
-                              <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
-                              <div className="flex-1">
-                                <div className="font-semibold text-red-300">{error.type.replace('_', ' ').toUpperCase()}</div>
-                                <div className="text-sm text-red-200 mt-1">{error.message}</div>
-                                {error.path && <div className="text-xs text-red-300 mt-1 font-mono">Path: {error.path}</div>}
-                                {error.expected && <div className="text-xs text-red-300 mt-1">Expected: {JSON.stringify(error.expected)}</div>}
-                                {error.actual !== undefined && <div className="text-xs text-red-300">Actual: {JSON.stringify(error.actual)}</div>}
+                          <div key={index} style={{
+                            padding: '14px 16px', borderRadius: 10,
+                            background: 'rgba(248,113,113,0.07)',
+                            border: '1px solid rgba(248,113,113,0.20)',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                              <AlertTriangle size={15} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#f87171', fontSize: 13 }}>
+                                  {error.type.replace('_', ' ').toUpperCase()}
+                                </div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{error.message}</div>
+                                {error.path && (
+                                  <div style={{ fontSize: 11, color: 'rgba(248,113,113,0.70)', marginTop: 3, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                                    Path: {error.path}
+                                  </div>
+                                )}
+                                {error.expected !== undefined && (
+                                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 2 }}>
+                                    Expected: {JSON.stringify(error.expected)}
+                                  </div>
+                                )}
+                                {error.actual !== undefined && (
+                                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>
+                                    Actual: {JSON.stringify(error.actual)}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -955,96 +1105,93 @@ const ContractTestingApp = ({ user, onLogout }) => {
                     </div>
                   )}
 
-                  {/* Response */}
-                  <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                    <h4 className="font-semibold mb-2 text-sm text-slate-400">Provider Response</h4>
-                    <pre className="text-xs bg-black/30 p-3 rounded overflow-auto max-h-64">
+                  {/* Provider response */}
+                  <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Provider Response</div>
+                    <pre style={{
+                      margin: 0, padding: '10px 12px',
+                      background: '#050810', borderRadius: 7,
+                      fontSize: 11, overflowX: 'auto', maxHeight: 200,
+                      color: 'rgba(255,255,255,0.55)',
+                      fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                    }}>
                       {JSON.stringify(verificationResult.response_received.body, null, 2)}
                     </pre>
                   </div>
                 </div>
               )}
 
-              {/* History Tab */}
+              {/* ─ History Tab ─ */}
               {activeTab === 'history' && verificationHistory && (
                 <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-white">Verification History</h2>
-                    <div className="text-sm text-slate-400">
-                      {verificationHistory.verifications.length} test(s)
-                    </div>
-                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 20 }}>Verification History</div>
 
-                  {/* Statistics */}
-                  <div className="grid grid-cols-4 gap-4 mb-6">
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400">Total</div>
-                      <div className="text-2xl font-bold">{verificationHistory.statistics.total_verifications}</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400">Passed</div>
-                      <div className="text-2xl font-bold text-green-400">{verificationHistory.statistics.passed}</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400">Failed</div>
-                      <div className="text-2xl font-bold text-red-400">{verificationHistory.statistics.failed}</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400">Pass Rate</div>
-                      <div className={`text-2xl font-bold ${verificationHistory.statistics.pass_rate >= 80 ? 'text-green-400' : 'text-yellow-400'}`}>
-                        {verificationHistory.statistics.pass_rate}%
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
+                    {[
+                      { label: 'Total',     value: verificationHistory.statistics.total_verifications, color: '#e2e8f0' },
+                      { label: 'Passed',    value: verificationHistory.statistics.passed,              color: '#34d399' },
+                      { label: 'Failed',    value: verificationHistory.statistics.failed,              color: '#f87171' },
+                      { label: 'Pass Rate', value: `${verificationHistory.statistics.pass_rate}%`,     color: verificationHistory.statistics.pass_rate >= 80 ? '#34d399' : '#fbbf24' },
+                    ].map(s => (
+                      <div key={s.label} style={{
+                        padding: '12px', borderRadius: 9,
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>{s.value}</div>
                       </div>
-                    </div>
+                    ))}
                   </div>
 
-                  {/* Timeline */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold mb-3">Verification Timeline:</h3>
-                    {verificationHistory.verifications.map((verification, index) => (
-                      <div
-                        key={verification.verification_id}
-                        className={`rounded-lg p-4 border ${
-                          verification.passed ? 'bg-green-900/10 border-green-700/30' : 'bg-red-900/10 border-red-700/30'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {verification.passed ? (
-                              <CheckCircle size={20} className="text-green-400" />
-                            ) : (
-                              <XCircle size={20} className="text-red-400" />
-                            )}
-                            <div>
-                              <div className="font-semibold">{verification.passed ? 'Passed' : 'Failed'}</div>
-                              <div className="text-xs text-slate-400">{new Date(verification.created_at).toLocaleString()}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {verificationHistory.verifications.map((v) => (
+                      <div key={v.verification_id} style={{
+                        padding: '12px 16px', borderRadius: 10,
+                        background: v.passed ? 'rgba(52,211,153,0.06)' : 'rgba(248,113,113,0.06)',
+                        border: `1px solid ${v.passed ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.18)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          {v.passed
+                            ? <CheckCircle size={16} color="#34d399" />
+                            : <XCircle size={16} color="#f87171" />
+                          }
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: v.passed ? '#34d399' : '#f87171' }}>
+                              {v.passed ? 'Passed' : 'Failed'}
                             </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-sm">
-                              <span className="text-slate-400">Status:</span> <span className={verification.status_code_match ? 'text-green-400' : 'text-red-400'}>{verification.status_code_match ? '✓' : '✗'}</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="text-slate-400">Schema:</span> <span className={verification.schema_match ? 'text-green-400' : 'text-red-400'}>{verification.schema_match ? '✓' : '✗'}</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="text-slate-400">Time:</span> <span className="font-mono">{verification.response_time_ms}ms</span>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>
+                              {new Date(v.created_at).toLocaleString()}
                             </div>
                           </div>
                         </div>
-                        {verification.error_message && (
-                          <div className="mt-2 text-xs text-red-300 bg-red-900/20 rounded p-2">
-                            {verification.error_message}
+                        <div style={{ display: 'flex', gap: 16, fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
+                          <div>
+                            <span style={{ color: 'rgba(255,255,255,0.35)' }}>Status </span>
+                            <span style={{ color: v.status_code_match ? '#34d399' : '#f87171', fontWeight: 700 }}>{v.status_code_match ? '✓' : '✗'}</span>
                           </div>
-                        )}
+                          <div>
+                            <span style={{ color: 'rgba(255,255,255,0.35)' }}>Schema </span>
+                            <span style={{ color: v.schema_match ? '#34d399' : '#f87171', fontWeight: 700 }}>{v.schema_match ? '✓' : '✗'}</span>
+                          </div>
+                          <div>
+                            <span style={{ color: 'rgba(255,255,255,0.35)' }}>Time </span>
+                            <span style={{ color: VIOLET, fontWeight: 700 }}>{v.response_time_ms}ms</span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
             </div>
           </div>
         </div>
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

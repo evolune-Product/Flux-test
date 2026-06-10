@@ -15,6 +15,8 @@ import os
 import secrets
 import uuid
 import time
+import asyncio
+import base64
 from dotenv import load_dotenv
 import httpx
 
@@ -410,6 +412,37 @@ class IntegrationScenarioDB(Base):
     steps       = Column(JSONB)   # [{service_id, name, method, endpoint, body, params, headers, expected_status, extractions, assertions}]
     created_at  = Column(DateTime, default=datetime.utcnow)
     updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  PROD-GATE MODULE — DB Models                               ║
+# ║  To remove: delete this block + PROD-GATE routes below      ║
+# ╚══════════════════════════════════════════════════════════════╝
+# PROD-GATE: START
+class ProdGateProfileDB(Base):
+    __tablename__ = "prod_gate_profiles"
+    profile_id   = Column(String, primary_key=True)
+    user_id      = Column(String, ForeignKey("users.user_id"), nullable=False)
+    name         = Column(String, nullable=False)
+    base_url     = Column(String, nullable=False)
+    auth_config  = Column(JSONB, default=dict)
+    custom_headers = Column(JSONB, default=dict)
+    load_config  = Column(JSONB, default=dict)
+    endpoints    = Column(JSONB, default=list)
+    created_at   = Column(DateTime, default=datetime.utcnow)
+    updated_at   = Column(DateTime, default=datetime.utcnow)
+
+class ProdGateSessionDB(Base):
+    __tablename__ = "prod_gate_sessions"
+    session_id    = Column(String, primary_key=True)
+    user_id       = Column(String, ForeignKey("users.user_id"), nullable=False)
+    profile_name  = Column(String, nullable=True)
+    base_url      = Column(String, nullable=False)
+    score         = Column(Integer, default=0)
+    gate_decision = Column(String, default="UNKNOWN")
+    suites_run    = Column(JSONB, default=list)
+    result_json   = Column(JSONB, default=dict)
+    executed_at   = Column(DateTime, default=datetime.utcnow)
+# PROD-GATE: END (models)
 
 Base.metadata.create_all(bind=engine)
 
@@ -5926,6 +5959,404 @@ async def delete_integration_scenario(
     db.delete(scenario)
     db.commit()
     return {'success': True}
+
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  PROD-GATE MODULE — Routes & Suite Runners                  ║
+# ║  To remove: delete this entire block down to PROD-GATE: END ║
+# ╚══════════════════════════════════════════════════════════════╝
+# PROD-GATE: START
+
+async def _pg_build_headers(auth_config: dict, custom_headers: dict) -> dict:
+    h = {"Content-Type": "application/json", "User-Agent": "Flasqo-ProdGate/1.0"}
+    h.update(custom_headers or {})
+    atype = (auth_config or {}).get("type", "none")
+    if atype == "bearer":
+        h["Authorization"] = f"Bearer {auth_config.get('token', '')}"
+    elif atype == "api_key":
+        h[auth_config.get("header", "X-API-Key")] = auth_config.get("key", "")
+    elif atype == "basic":
+        raw = f"{auth_config.get('username', '')}:{auth_config.get('password', '')}"
+        h["Authorization"] = "Basic " + base64.b64encode(raw.encode()).decode()
+    return h
+
+
+async def _pg_health_suite(client, base_url, endpoints, logs):
+    tests, findings = [], []
+    probes = [(base_url, "GET")] + [
+        (base_url.rstrip("/") + ep.get("path", "/"), ep.get("method", "GET"))
+        for ep in (endpoints or [])[:4]
+    ]
+    for url, method in probes[:5]:
+        try:
+            t0 = time.time()
+            r = await client.request(method, url)
+            ms = (time.time() - t0) * 1000
+            ok = r.status_code < 500
+            tests.append({"name": f"{method} {url}", "status": "PASS" if ok else "FAIL",
+                           "detail": f"HTTP {r.status_code} in {ms:.0f}ms", "latency": round(ms)})
+            logs.append(f"[health] {method} {url} → {r.status_code} ({ms:.0f}ms)")
+            if ms > 3000:
+                findings.append({"severity": "WARN", "message": f"Slow: {url} took {ms:.0f}ms"})
+            if r.status_code >= 500:
+                findings.append({"severity": "CRITICAL", "message": f"{url} returned HTTP {r.status_code}"})
+        except Exception as e:
+            tests.append({"name": f"{method} {url}", "status": "FAIL",
+                           "detail": str(e)[:120], "latency": 0})
+            findings.append({"severity": "CRITICAL", "message": f"Cannot reach {url}: {str(e)[:80]}"})
+
+    passed = sum(1 for t in tests if t["status"] == "PASS")
+    latencies = [t["latency"] for t in tests if t["latency"] > 0]
+    avg_ms = sum(latencies) / len(latencies) if latencies else 0
+    score = round((passed / len(tests)) * 100) if tests else 0
+    if avg_ms > 2000: score = min(score, 70)
+    elif avg_ms > 1000: score = min(score, 85)
+    return {
+        "suiteId": "health", "score": score,
+        "status": "PASS" if score >= 80 else ("WARN" if score >= 50 else "FAIL"),
+        "tests": tests, "findings": findings,
+        "summary": f"{passed}/{len(tests)} endpoints healthy · avg {avg_ms:.0f}ms",
+    }
+
+
+async def _pg_security_suite(client, base_url, endpoints, logs):
+    tests, findings = [], []
+    probes = [
+        ("sql_injection",  "' OR '1'='1"),
+        ("sql_union",      "'; SELECT 1--"),
+        ("xss_basic",      "<script>alert(1)</script>"),
+        ("path_traversal", "../../etc/passwd"),
+        ("null_byte",      "test\x00payload"),
+        ("oversized",      "A" * 4096),
+        ("template_inject","{{7*7}}${7*7}"),
+    ]
+    test_url = (base_url.rstrip("/") + endpoints[0].get("path", "/")) if endpoints else base_url
+    for probe_name, payload in probes:
+        try:
+            t0 = time.time()
+            r = await client.post(test_url, json={"input": payload, "query": payload, "id": payload}, timeout=6.0)
+            ms = (time.time() - t0) * 1000
+            safe = r.status_code in (400, 401, 403, 422, 429)
+            internal_err = r.status_code >= 500
+            body = r.text[:500].lower()
+            reflected = (len(payload) < 30 and payload[:15].lower() in body and r.status_code == 200)
+            status = "PASS" if safe else ("FAIL" if (internal_err or reflected) else "WARN")
+            tests.append({"name": f"Probe: {probe_name}", "status": status,
+                           "detail": f"HTTP {r.status_code} in {ms:.0f}ms", "latency": round(ms)})
+            logs.append(f"[security] {probe_name} → {r.status_code}")
+            if internal_err:
+                findings.append({"severity": "CRITICAL", "message": f"'{probe_name}' caused HTTP {r.status_code} — unhandled error"})
+            elif reflected:
+                findings.append({"severity": "CRITICAL", "message": f"'{probe_name}' reflected in response — possible injection"})
+            elif not safe:
+                findings.append({"severity": "WARN", "message": f"'{probe_name}' returned {r.status_code} — review input validation"})
+        except Exception:
+            tests.append({"name": f"Probe: {probe_name}", "status": "PASS",
+                           "detail": "Connection rejected (good)", "latency": 0})
+            logs.append(f"[security] {probe_name} → rejected by server")
+
+    passed = sum(1 for t in tests if t["status"] == "PASS")
+    warns  = sum(1 for t in tests if t["status"] == "WARN")
+    score  = round(((passed + warns * 0.5) / len(tests)) * 100) if tests else 0
+    return {
+        "suiteId": "security", "score": score,
+        "status": "PASS" if score >= 80 else ("WARN" if score >= 55 else "FAIL"),
+        "tests": tests, "findings": findings,
+        "summary": f"{passed}/{len(tests)} probes handled safely · {len(findings)} findings",
+    }
+
+
+async def _pg_load_suite(client, base_url, endpoints, concurrent_users, timeout_s, logs):
+    test_url = (base_url.rstrip("/") + endpoints[0].get("path", "/")) if endpoints else base_url
+    n = min(max(int(concurrent_users), 5), 50)
+
+    async def single():
+        t0 = time.time()
+        try:
+            r = await client.get(test_url, timeout=timeout_s)
+            return {"ok": r.status_code < 500, "ms": (time.time() - t0) * 1000, "sc": r.status_code}
+        except Exception:
+            return {"ok": False, "ms": (time.time() - t0) * 1000, "sc": 0}
+
+    logs.append(f"[load] Sending {n} concurrent requests → {test_url}")
+    t_wall = time.time()
+    responses = await asyncio.gather(*[single() for _ in range(n)])
+    wall_ms = (time.time() - t_wall) * 1000
+
+    lats = sorted(r["ms"] for r in responses)
+    ok_n = sum(1 for r in responses if r["ok"])
+    err_rate = (n - ok_n) / n * 100
+    avg_ms = sum(lats) / len(lats) if lats else 0
+    p95_ms = lats[int(len(lats) * 0.95)] if lats else 0
+    p99_ms = lats[int(len(lats) * 0.99)] if lats else 0
+    rps    = n / (wall_ms / 1000) if wall_ms > 0 else 0
+
+    logs.append(f"[load] {ok_n}/{n} ok · avg {avg_ms:.0f}ms · p95 {p95_ms:.0f}ms · {rps:.1f} req/s")
+    tests = [
+        {"name": "Concurrent Availability",
+         "status": "PASS" if err_rate < 5 else ("WARN" if err_rate < 20 else "FAIL"),
+         "detail": f"{ok_n}/{n} succeeded ({100-err_rate:.0f}%)", "latency": round(avg_ms)},
+        {"name": "Avg Response Time",
+         "status": "PASS" if avg_ms < 500 else ("WARN" if avg_ms < 2000 else "FAIL"),
+         "detail": f"{avg_ms:.0f}ms average", "latency": round(avg_ms)},
+        {"name": "P95 Latency",
+         "status": "PASS" if p95_ms < 1000 else ("WARN" if p95_ms < 3000 else "FAIL"),
+         "detail": f"{p95_ms:.0f}ms at p95", "latency": round(p95_ms)},
+        {"name": "P99 Latency",
+         "status": "PASS" if p99_ms < 2000 else ("WARN" if p99_ms < 5000 else "FAIL"),
+         "detail": f"{p99_ms:.0f}ms at p99", "latency": round(p99_ms)},
+        {"name": "Throughput",
+         "status": "PASS", "detail": f"{rps:.1f} req/s", "latency": 0},
+    ]
+    findings = []
+    if err_rate >= 20: findings.append({"severity": "CRITICAL", "message": f"High error rate under load: {err_rate:.0f}% failed"})
+    elif err_rate >= 5: findings.append({"severity": "WARN",     "message": f"Some failures under load: {err_rate:.0f}% failed"})
+    if p95_ms > 3000:  findings.append({"severity": "WARN",     "message": f"P95 latency {p95_ms:.0f}ms is high — check connection pooling"})
+    if avg_ms > 1000:  findings.append({"severity": "WARN",     "message": f"Avg latency {avg_ms:.0f}ms under {n} concurrent users"})
+
+    passed = sum(1 for t in tests if t["status"] == "PASS")
+    score  = round((passed / len(tests)) * 100)
+    if err_rate >= 20: score = min(score, 40)
+    elif err_rate >= 10: score = min(score, 65)
+    return {
+        "suiteId": "load", "score": score,
+        "status": "PASS" if score >= 80 else ("WARN" if score >= 55 else "FAIL"),
+        "tests": tests, "findings": findings,
+        "summary": f"{ok_n}/{n} ok · p95={p95_ms:.0f}ms · {rps:.1f} req/s",
+    }
+
+
+async def _pg_functional_suite(client, base_url, endpoints, logs):
+    if not endpoints:
+        return {"suiteId": "functional", "score": 0, "status": "WARN", "tests": [],
+                "findings": [{"severity": "WARN", "message": "No endpoints provided — add paths in profile config"}],
+                "summary": "No endpoints configured"}
+    tests, findings = [], []
+    for ep in (endpoints or [])[:5]:
+        url    = base_url.rstrip("/") + ep.get("path", "/")
+        method = ep.get("method", "GET")
+        try:
+            t0 = time.time()
+            r  = await client.request(method, url, timeout=8.0)
+            ms = (time.time() - t0) * 1000
+            ct = r.headers.get("content-type", "")
+            try: r.json(); json_ok = True
+            except Exception: json_ok = False
+            ok = r.status_code < 400
+            tests.append({"name": f"{method} {ep.get('path','/')}",
+                           "status": "PASS" if (ok and json_ok) else ("WARN" if ok else "FAIL"),
+                           "detail": f"HTTP {r.status_code} · {'JSON' if json_ok else 'non-JSON'} · {ms:.0f}ms",
+                           "latency": round(ms)})
+            logs.append(f"[functional] {method} {url} → {r.status_code}")
+            if ok and not json_ok:
+                findings.append({"severity": "WARN", "message": f"{url} not returning JSON (got: {ct[:40]})"})
+        except Exception as e:
+            tests.append({"name": f"{method} {ep.get('path','/')}", "status": "FAIL",
+                           "detail": str(e)[:100], "latency": 0})
+            findings.append({"severity": "CRITICAL", "message": f"Cannot reach {url}: {str(e)[:80]}"})
+
+    passed = sum(1 for t in tests if t["status"] == "PASS")
+    warns  = sum(1 for t in tests if t["status"] == "WARN")
+    score  = round(((passed + warns * 0.7) / len(tests)) * 100) if tests else 0
+    return {
+        "suiteId": "functional", "score": score,
+        "status": "PASS" if score >= 80 else ("WARN" if score >= 55 else "FAIL"),
+        "tests": tests, "findings": findings,
+        "summary": f"{passed}/{len(tests)} endpoints functional",
+    }
+
+
+async def _pg_rate_limit_suite(client, base_url, endpoints, logs):
+    test_url = (base_url.rstrip("/") + endpoints[0].get("path", "/")) if endpoints else base_url
+    logs.append(f"[rate-limit] Burst of 15 requests → {test_url}")
+    resps = []
+    for _ in range(15):
+        try:
+            r = await client.get(test_url, timeout=5.0)
+            resps.append({"sc": r.status_code, "hdrs": dict(r.headers)})
+        except Exception:
+            resps.append({"sc": 0, "hdrs": {}})
+
+    got_429    = any(r["sc"] == 429 for r in resps)
+    has_rl_hdr = any(any(k.lower().startswith(("x-ratelimit", "ratelimit", "x-rate-limit"))
+                         for k in r["hdrs"]) for r in resps)
+    retry_after = any("retry-after" in r["hdrs"] for r in resps)
+
+    tests = [
+        {"name": "Rate-Limit Headers", "status": "PASS" if has_rl_hdr else "WARN",
+         "detail": "X-RateLimit-* headers present" if has_rl_hdr else "No rate-limit headers in responses", "latency": 0},
+        {"name": "429 Throttle Response", "status": "PASS" if got_429 else "WARN",
+         "detail": "Got 429 Too Many Requests" if got_429 else "No 429 after burst — unlimited?", "latency": 0},
+        {"name": "Retry-After Header", "status": "PASS" if retry_after else "WARN",
+         "detail": "Retry-After header present" if retry_after else "No Retry-After header", "latency": 0},
+    ]
+    findings = []
+    if not has_rl_hdr:
+        findings.append({"severity": "WARN", "message": "Add X-RateLimit-Limit/Remaining/Reset headers to responses"})
+    if not got_429:
+        findings.append({"severity": "WARN", "message": "No throttling detected — configure rate limiting for production"})
+
+    passed = sum(1 for t in tests if t["status"] == "PASS")
+    score  = round((passed / len(tests)) * 100)
+    return {
+        "suiteId": "rate_limit", "score": score,
+        "status": "PASS" if score >= 80 else "WARN",
+        "tests": tests, "findings": findings,
+        "summary": "Rate limiting detected" if (got_429 or has_rl_hdr) else "No rate limiting detected",
+    }
+
+
+async def _pg_data_integrity_suite(client, base_url, endpoints, logs):
+    if not endpoints:
+        return {"suiteId": "data_integrity", "score": 50, "status": "WARN", "tests": [],
+                "findings": [{"severity": "WARN", "message": "No endpoints configured for consistency check"}],
+                "summary": "No endpoints configured"}
+    test_url = base_url.rstrip("/") + endpoints[0].get("path", "/")
+    logs.append(f"[data-integrity] 3-sample consistency check → {test_url}")
+    runs = []
+    for _ in range(3):
+        try:
+            r = await client.get(test_url, timeout=8.0)
+            runs.append({"sc": r.status_code, "ct": r.headers.get("content-type", ""), "body": r.text[:500]})
+        except Exception as e:
+            runs.append({"sc": 0, "ct": "", "body": "", "err": str(e)})
+
+    valid = [r for r in runs if r["sc"] > 0]
+    sc_ok = len(set(r["sc"] for r in valid)) <= 1
+    ct_ok = len(set(r["ct"].split(";")[0] for r in valid)) <= 1
+    has_json_ct = any("json" in r["ct"] for r in valid)
+
+    tests = [
+        {"name": "Status Code Consistency", "status": "PASS" if sc_ok else "FAIL",
+         "detail": "Same status across 3 requests" if sc_ok else "Status varies — possible flap", "latency": 0},
+        {"name": "Content-Type Consistency", "status": "PASS" if ct_ok else "WARN",
+         "detail": "Consistent Content-Type" if ct_ok else "Content-Type varies between requests", "latency": 0},
+        {"name": "JSON Content-Type", "status": "PASS" if has_json_ct else "WARN",
+         "detail": "application/json returned" if has_json_ct else "Non-JSON Content-Type", "latency": 0},
+    ]
+    findings = []
+    if not sc_ok:    findings.append({"severity": "WARN", "message": "Inconsistent status codes — possible flapping endpoint"})
+    if not has_json_ct: findings.append({"severity": "WARN", "message": "API not returning application/json Content-Type"})
+
+    passed = sum(1 for t in tests if t["status"] == "PASS")
+    score  = round((passed / len(tests)) * 100) if tests else 0
+    return {
+        "suiteId": "data_integrity", "score": score,
+        "status": "PASS" if score >= 80 else "WARN",
+        "tests": tests, "findings": findings,
+        "summary": "Consistent" if (sc_ok and ct_ok) else "Consistency issues detected",
+    }
+
+
+@app.post("/prod-gate/suite")
+async def prod_gate_run_suite(data: dict, username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    suite_id = data.get("suiteId", "health")
+    base_url = (data.get("baseUrl") or "").rstrip("/")
+    if not base_url:
+        raise HTTPException(status_code=400, detail="baseUrl is required")
+
+    auth_config    = data.get("authConfig", {}) or {}
+    raw_headers    = data.get("customHeaders", {}) or {}
+    custom_headers = raw_headers if isinstance(raw_headers, dict) else {}
+    endpoints      = data.get("endpoints", []) or []
+    load_cfg       = data.get("loadConfig", {}) or {}
+    concurrent     = int(load_cfg.get("concurrentUsers", 20))
+    timeout_s      = float(load_cfg.get("timeout", 5000)) / 1000.0
+    logs           = []
+
+    try:
+        headers = await _pg_build_headers(auth_config, custom_headers)
+        async with httpx.AsyncClient(headers=headers, timeout=max(timeout_s, 10.0),
+                                     follow_redirects=True, verify=False) as client:
+            if suite_id == "health":
+                result = await _pg_health_suite(client, base_url, endpoints, logs)
+            elif suite_id == "security":
+                result = await _pg_security_suite(client, base_url, endpoints, logs)
+            elif suite_id == "load":
+                result = await _pg_load_suite(client, base_url, endpoints, concurrent, timeout_s, logs)
+            elif suite_id == "functional":
+                result = await _pg_functional_suite(client, base_url, endpoints, logs)
+            elif suite_id == "rate_limit":
+                result = await _pg_rate_limit_suite(client, base_url, endpoints, logs)
+            elif suite_id == "data_integrity":
+                result = await _pg_data_integrity_suite(client, base_url, endpoints, logs)
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown suite: {suite_id}")
+        result["logs"] = logs
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"suiteId": suite_id, "score": 0, "status": "FAIL", "tests": [],
+                "findings": [{"severity": "CRITICAL", "message": str(e)[:200]}],
+                "logs": logs + [f"Suite error: {str(e)[:200]}"],
+                "summary": f"Suite failed: {str(e)[:80]}"}
+
+
+@app.post("/prod-gate/profiles")
+async def save_prod_gate_profile(data: dict, username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user: raise HTTPException(status_code=404, detail="User not found")
+    profile = ProdGateProfileDB(
+        profile_id=secrets.token_urlsafe(12), user_id=user.user_id,
+        name=data.get("name", "Untitled"), base_url=data.get("baseUrl", ""),
+        auth_config=data.get("authConfig", {}), custom_headers=data.get("customHeaders", {}),
+        load_config=data.get("loadConfig", {}), endpoints=data.get("endpoints", []),
+        created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
+    )
+    db.add(profile); db.commit()
+    return {"success": True, "profileId": profile.profile_id}
+
+
+@app.get("/prod-gate/profiles")
+async def get_prod_gate_profiles(username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user: raise HTTPException(status_code=404, detail="User not found")
+    rows = db.query(ProdGateProfileDB).filter(ProdGateProfileDB.user_id == user.user_id)\
+              .order_by(ProdGateProfileDB.updated_at.desc()).all()
+    return [{"profileId": p.profile_id, "name": p.name, "baseUrl": p.base_url,
+             "authConfig": p.auth_config, "customHeaders": p.custom_headers,
+             "loadConfig": p.load_config, "endpoints": p.endpoints,
+             "createdAt": p.created_at.isoformat()} for p in rows]
+
+
+@app.delete("/prod-gate/profiles/{profile_id}")
+async def delete_prod_gate_profile(profile_id: str, username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user: raise HTTPException(status_code=404, detail="User not found")
+    p = db.query(ProdGateProfileDB).filter(ProdGateProfileDB.profile_id == profile_id,
+                                            ProdGateProfileDB.user_id == user.user_id).first()
+    if not p: raise HTTPException(status_code=404, detail="Profile not found")
+    db.delete(p); db.commit()
+    return {"success": True}
+
+
+@app.post("/prod-gate/sessions")
+async def save_prod_gate_session(data: dict, username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user: raise HTTPException(status_code=404, detail="User not found")
+    s = ProdGateSessionDB(
+        session_id=secrets.token_urlsafe(12), user_id=user.user_id,
+        profile_name=data.get("profileName", ""), base_url=data.get("baseUrl", ""),
+        score=int(data.get("score", 0)), gate_decision=data.get("gateDecision", "UNKNOWN"),
+        suites_run=data.get("suitesRun", []), result_json=data.get("resultJson", {}),
+        executed_at=datetime.utcnow(),
+    )
+    db.add(s); db.commit()
+    return {"success": True, "sessionId": s.session_id}
+
+
+@app.get("/prod-gate/sessions")
+async def get_prod_gate_sessions(username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user: raise HTTPException(status_code=404, detail="User not found")
+    rows = db.query(ProdGateSessionDB).filter(ProdGateSessionDB.user_id == user.user_id)\
+              .order_by(ProdGateSessionDB.executed_at.desc()).limit(20).all()
+    return [{"sessionId": s.session_id, "profileName": s.profile_name, "baseUrl": s.base_url,
+             "score": s.score, "gateDecision": s.gate_decision, "suitesRun": s.suites_run,
+             "executedAt": s.executed_at.isoformat()} for s in rows]
+
+# PROD-GATE: END
 
 
 if __name__ == "__main__":

@@ -1,24 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CheckCircle,
-  XCircle,
-  Zap,
-  Clock,
-  Activity,
-  AlertTriangle,
-  Home,
-  ArrowLeft,
-  Github,
-  Play,
-  Loader,
-  Plus,
-  Trash2,
-  Edit3,
-  Server,
-  Database,
-  Globe,
-  Shield
+  CheckCircle, XCircle, Zap, Clock, Activity, AlertTriangle,
+  Home, ArrowLeft, Github, Play, Loader, Plus, Trash2, Edit3,
+  Server, Database, Globe, Shield
 } from 'lucide-react';
 import GitHubIntegration from './GitHubIntegration.jsx';
 import { saveTestRun } from './testHistoryUtils.js';
@@ -27,927 +12,704 @@ import RecentRuns from './RecentRuns.jsx';
 const SmokeTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();
 
-  // State management
+  // ─── State (unchanged) ────────────────────────────────────────────────────
   const [endpoints, setEndpoints] = useState([
     { id: 1, name: 'Health Check', url: '', method: 'GET', maxTime: 2000, critical: true },
-    { id: 2, name: 'API Status', url: '', method: 'GET', maxTime: 2000, critical: true }
+    { id: 2, name: 'API Status',   url: '', method: 'GET', maxTime: 2000, critical: true }
   ]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [showGitHub, setShowGitHub] = useState(false);
-  const [activeTab, setActiveTab] = useState('results');
-  const [editingEndpoint, setEditingEndpoint] = useState(null);
-
-  // Form state for adding/editing endpoints
-  const [endpointForm, setEndpointForm] = useState({
-    name: '',
-    url: '',
-    method: 'GET',
-    maxTime: 2000,
-    critical: true,
-    headers: '',
-    expectedStatus: 200
+  const [isRunning,        setIsRunning]        = useState(false);
+  const [progress,         setProgress]         = useState(0);
+  const [results,          setResults]          = useState(null);
+  const [logs,             setLogs]             = useState([]);
+  const [showGitHub,       setShowGitHub]       = useState(false);
+  const [activeTab,        setActiveTab]        = useState('results');
+  const [editingEndpoint,  setEditingEndpoint]  = useState(null);
+  const [endpointForm,     setEndpointForm]     = useState({
+    name: '', url: '', method: 'GET', maxTime: 2000,
+    critical: true, headers: '', expectedStatus: 200
   });
-  const [nlTestInput, setNlTestInput] = useState('');
+  const [nlTestInput,  setNlTestInput]  = useState('');
   const [nlGenerating, setNlGenerating] = useState(false);
 
+  const logsEndRef = useRef(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-  // Load saved state from localStorage on mount
+  // ─── Effects (unchanged) ──────────────────────────────────────────────────
   useEffect(() => {
-    // First check for discovery data (from Auto-Discovery navigation)
     const discoveryDataStr = localStorage.getItem('discoveryData');
     if (discoveryDataStr) {
       try {
         const discoveryData = JSON.parse(discoveryDataStr);
-        if (discoveryData.endpoints && discoveryData.endpoints.length > 0) {
+        if (discoveryData.endpoints?.length > 0) {
           setEndpoints(discoveryData.endpoints);
           addLog(`Loaded ${discoveryData.endpoints.length} endpoints from Auto-Discovery`, 'success');
-          // Clear the discovery data after loading
           localStorage.removeItem('discoveryData');
-          return; // Don't load saved state if we got discovery data
+          return;
         }
-      } catch (e) {
-        console.error('Failed to parse discovery data:', e);
-      }
+      } catch (e) { console.error(e); }
     }
-
-    // Load saved smoke testing state
     const savedState = localStorage.getItem('smokeTestingState');
     if (savedState) {
       try {
         const state = JSON.parse(savedState);
-        if (state.endpoints && state.endpoints.length > 0) {
-          setEndpoints(state.endpoints);
-        }
+        if (state.endpoints?.length > 0) setEndpoints(state.endpoints);
         if (state.results) setResults(state.results);
-      } catch (e) {
-        console.error('Failed to load saved Smoke Testing state:', e);
-      }
+      } catch (e) { console.error(e); }
     }
   }, []);
 
-  // Save state to localStorage whenever endpoints or results change
   useEffect(() => {
-    const stateToSave = {
-      endpoints,
-      results,
-      savedAt: new Date().toISOString()
-    };
-    localStorage.setItem('smokeTestingState', JSON.stringify(stateToSave));
+    localStorage.setItem('smokeTestingState', JSON.stringify({ endpoints, results, savedAt: new Date().toISOString() }));
   }, [endpoints, results]);
 
+  useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+
+  // ─── Logic (unchanged) ────────────────────────────────────────────────────
   const handleGenerateFromNL = async () => {
     if (!nlTestInput.trim()) return;
     setNlGenerating(true);
     try {
       const response = await fetch(`${API_BASE_URL}/generate-test-from-nl`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: nlTestInput, base_url: 'http://api.example.com' })
       });
       if (!response.ok) throw new Error('Failed to generate');
       const data = await response.json();
-      setEndpointForm({
-        name: data.description,
-        url: data.endpoint || '',
-        method: data.method || 'GET',
-        maxTime: 2000,
-        critical: true,
-        headers: '',
-        expectedStatus: data.expected_status || 200
-      });
+      setEndpointForm({ name: data.description, url: data.endpoint || '', method: data.method || 'GET',
+        maxTime: 2000, critical: true, headers: '', expectedStatus: data.expected_status || 200 });
       setNlTestInput('');
-      addLog('✅ Test generated! Review and click "Save Endpoint"', 'success');
-    } catch (error) {
-      addLog(`❌ Error: ${error.message}`, 'error');
-    } finally {
-      setNlGenerating(false);
-    }
+      addLog('Test generated from AI — review and save', 'success');
+    } catch (error) { addLog(`Error: ${error.message}`, 'error'); }
+    finally { setNlGenerating(false); }
   };
 
-  // Logging function
   const addLog = (message, type = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     setLogs(prev => [...prev, { timestamp, message, type }]);
   };
 
-  // Add or update endpoint
   const handleSaveEndpoint = () => {
     if (!endpointForm.name.trim() || !endpointForm.url.trim()) {
-      addLog('Endpoint name and URL are required', 'error');
-      return;
+      addLog('Endpoint name and URL are required', 'error'); return;
     }
-
     if (editingEndpoint !== null) {
-      // Update existing endpoint
-      setEndpoints(endpoints.map(ep =>
-        ep.id === editingEndpoint ? { ...endpointForm, id: editingEndpoint } : ep
-      ));
-      addLog(`Updated endpoint: ${endpointForm.name}`, 'success');
+      setEndpoints(endpoints.map(ep => ep.id === editingEndpoint ? { ...endpointForm, id: editingEndpoint } : ep));
+      addLog(`Updated: ${endpointForm.name}`, 'success');
     } else {
-      // Add new endpoint
-      const newEndpoint = {
-        ...endpointForm,
-        id: Date.now()
-      };
-      setEndpoints([...endpoints, newEndpoint]);
-      addLog(`Added endpoint: ${endpointForm.name}`, 'success');
+      setEndpoints([...endpoints, { ...endpointForm, id: Date.now() }]);
+      addLog(`Added: ${endpointForm.name}`, 'success');
     }
-
-    // Reset form
-    setEndpointForm({
-      name: '',
-      url: '',
-      method: 'GET',
-      maxTime: 2000,
-      critical: true,
-      headers: '',
-      expectedStatus: 200
-    });
+    setEndpointForm({ name: '', url: '', method: 'GET', maxTime: 2000, critical: true, headers: '', expectedStatus: 200 });
     setEditingEndpoint(null);
   };
 
-  // Edit endpoint
-  const handleEditEndpoint = (endpoint) => {
-    setEndpointForm(endpoint);
-    setEditingEndpoint(endpoint.id);
-  };
+  const handleEditEndpoint = (endpoint) => { setEndpointForm(endpoint); setEditingEndpoint(endpoint.id); };
+  const handleDeleteEndpoint = (id) => { setEndpoints(endpoints.filter(ep => ep.id !== id)); addLog('Endpoint removed', 'info'); };
 
-  // Delete endpoint
-  const handleDeleteEndpoint = (id) => {
-    setEndpoints(endpoints.filter(ep => ep.id !== id));
-    addLog('Endpoint removed', 'info');
-  };
-
-  // Test a single endpoint
   const testEndpoint = async (endpoint) => {
     const startTime = performance.now();
-
     try {
-      // Parse headers if provided
       let headers = { 'Content-Type': 'application/json' };
       if (endpoint.headers) {
-        try {
-          const parsedHeaders = JSON.parse(endpoint.headers);
-          headers = { ...headers, ...parsedHeaders };
-        } catch (e) {
-          addLog(`Invalid headers for ${endpoint.name}, using defaults`, 'warning');
-        }
+        try { headers = { ...headers, ...JSON.parse(endpoint.headers) }; }
+        catch { addLog(`Invalid headers for ${endpoint.name}, using defaults`, 'warning'); }
       }
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), endpoint.maxTime);
-
-      const response = await fetch(endpoint.url, {
-        method: endpoint.method,
-        headers: headers,
-        signal: controller.signal,
-        mode: 'cors'
-      });
-
+      const response = await fetch(endpoint.url, { method: endpoint.method, headers, signal: controller.signal, mode: 'cors' });
       clearTimeout(timeoutId);
-      const endTime = performance.now();
-      const responseTime = endTime - startTime;
-
+      const responseTime = performance.now() - startTime;
       const passed = response.status === endpoint.expectedStatus && responseTime <= endpoint.maxTime;
-
       return {
-        name: endpoint.name,
-        url: endpoint.url,
-        method: endpoint.method,
-        passed: passed,
-        status: response.status,
-        expectedStatus: endpoint.expectedStatus,
-        responseTime: responseTime.toFixed(2),
-        maxTime: endpoint.maxTime,
-        critical: endpoint.critical,
-        message: passed
-          ? `✓ OK (${responseTime.toFixed(0)}ms)`
-          : `✗ ${response.status !== endpoint.expectedStatus ? `Expected ${endpoint.expectedStatus}, got ${response.status}` : `Timeout (${responseTime.toFixed(0)}ms > ${endpoint.maxTime}ms)`}`
+        name: endpoint.name, url: endpoint.url, method: endpoint.method, passed,
+        status: response.status, expectedStatus: endpoint.expectedStatus,
+        responseTime: responseTime.toFixed(2), maxTime: endpoint.maxTime, critical: endpoint.critical,
+        message: passed ? `OK (${responseTime.toFixed(0)}ms)`
+          : `${response.status !== endpoint.expectedStatus ? `Expected ${endpoint.expectedStatus}, got ${response.status}` : `Timeout (${responseTime.toFixed(0)}ms > ${endpoint.maxTime}ms)`}`
       };
-
     } catch (error) {
-      const endTime = performance.now();
-      const responseTime = endTime - startTime;
-
-      let message = '✗ Failed';
-      if (error.name === 'AbortError') {
-        message = `✗ Timeout (>${endpoint.maxTime}ms)`;
-      } else if (error.message.includes('Failed to fetch')) {
-        message = '✗ Network error / CORS';
-      } else {
-        message = `✗ ${error.message}`;
-      }
-
+      const responseTime = performance.now() - startTime;
       return {
-        name: endpoint.name,
-        url: endpoint.url,
-        method: endpoint.method,
-        passed: false,
-        status: 0,
-        expectedStatus: endpoint.expectedStatus,
-        responseTime: responseTime.toFixed(2),
-        maxTime: endpoint.maxTime,
-        critical: endpoint.critical,
-        message: message,
-        error: error.message
+        name: endpoint.name, url: endpoint.url, method: endpoint.method, passed: false,
+        status: 0, expectedStatus: endpoint.expectedStatus, responseTime: responseTime.toFixed(2),
+        maxTime: endpoint.maxTime, critical: endpoint.critical,
+        message: error.name === 'AbortError' ? `Timeout (>${endpoint.maxTime}ms)`
+          : error.message.includes('Failed to fetch') ? 'Network error / CORS'
+          : error.message
       };
     }
   };
 
-  // Run smoke tests
   const runSmokeTests = async () => {
-    // Validate endpoints
     const validEndpoints = endpoints.filter(ep => ep.url.trim() !== '');
-
-    if (validEndpoints.length === 0) {
-      addLog('No valid endpoints to test. Please add at least one endpoint with a URL.', 'error');
-      return;
-    }
-
-    setIsRunning(true);
-    setProgress(0);
-    setResults(null);
-    setLogs([]);
-
-    addLog(`Starting Smoke Tests...`, 'info');
-    addLog(`Testing ${validEndpoints.length} critical endpoints`, 'info');
-
+    if (validEndpoints.length === 0) { addLog('No valid endpoints. Add at least one URL.', 'error'); return; }
+    setIsRunning(true); setProgress(0); setResults(null); setLogs([]);
+    addLog(`Starting Smoke Tests — ${validEndpoints.length} endpoints`, 'info');
     const startTime = performance.now();
     const testResults = [];
-    let passedCount = 0;
-    let failedCount = 0;
-    let criticalFailures = 0;
-
+    let passedCount = 0, failedCount = 0, criticalFailures = 0;
     try {
-      // Run tests sequentially (smoke tests should be fast)
       for (let i = 0; i < validEndpoints.length; i++) {
         const endpoint = validEndpoints[i];
         addLog(`Testing: ${endpoint.name} (${endpoint.method} ${endpoint.url})`, 'info');
-
         const result = await testEndpoint(endpoint);
         testResults.push(result);
-
-        if (result.passed) {
-          passedCount++;
-          addLog(`${result.name}: ${result.message}`, 'success');
-        } else {
-          failedCount++;
-          if (endpoint.critical) {
-            criticalFailures++;
-          }
-          addLog(`${result.name}: ${result.message}`, 'error');
-        }
-
+        if (result.passed) { passedCount++; addLog(`${result.name}: ${result.message}`, 'success'); }
+        else { failedCount++; if (endpoint.critical) criticalFailures++; addLog(`${result.name}: ${result.message}`, 'error'); }
         setProgress(((i + 1) / validEndpoints.length) * 100);
-
-        // Small delay between tests
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-
-      const endTime = performance.now();
-      const totalTime = ((endTime - startTime) / 1000).toFixed(2);
-
-      // Calculate statistics
+      const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
       const avgResponseTime = (testResults.reduce((sum, r) => sum + parseFloat(r.responseTime), 0) / testResults.length).toFixed(2);
       const maxResponseTime = Math.max(...testResults.map(r => parseFloat(r.responseTime))).toFixed(2);
       const passRate = ((passedCount / testResults.length) * 100).toFixed(2);
-
-      const finalResults = {
-        totalTests: testResults.length,
-        passed: passedCount,
-        failed: failedCount,
-        criticalFailures: criticalFailures,
-        passRate: passRate,
-        totalTime: totalTime,
-        avgResponseTime: avgResponseTime,
-        maxResponseTime: maxResponseTime,
-        tests: testResults,
-        overallStatus: criticalFailures === 0 && failedCount === 0 ? 'PASS' : criticalFailures > 0 ? 'CRITICAL_FAIL' : 'FAIL',
-        timestamp: new Date().toISOString()
-      };
-
+      const overallStatus = criticalFailures === 0 && failedCount === 0 ? 'PASS' : criticalFailures > 0 ? 'CRITICAL_FAIL' : 'FAIL';
+      const finalResults = { totalTests: testResults.length, passed: passedCount, failed: failedCount,
+        criticalFailures, passRate, totalTime, avgResponseTime, maxResponseTime, tests: testResults, overallStatus,
+        timestamp: new Date().toISOString() };
       setResults(finalResults);
-
-      // Save run to history (fire-and-forget)
-      saveTestRun({
-        module: 'smoke',
-        apiUrl: endpoints[0]?.url || 'multiple endpoints',
-        totalTests: finalResults.totalTests,
-        passed: finalResults.passed,
-        failed: finalResults.failed,
-        durationMs: Math.round((finalResults.totalTime || 0) * 1000),
-        overallStatus: finalResults.overallStatus === 'PASS' ? 'PASS' : 'FAIL'
-      });
-
-      // Final summary
-      if (finalResults.overallStatus === 'PASS') {
-        addLog(`✅ All smoke tests passed! (${totalTime}s)`, 'success');
-        addLog(`🚀 System is healthy and ready for use`, 'success');
-      } else if (finalResults.overallStatus === 'CRITICAL_FAIL') {
-        addLog(`❌ CRITICAL FAILURE: ${criticalFailures} critical endpoint(s) failed`, 'error');
-        addLog(`⚠️ System may not be ready for production use`, 'error');
-      } else {
-        addLog(`⚠️ Some tests failed but no critical failures (${totalTime}s)`, 'warning');
-      }
-
-    } catch (error) {
-      addLog(`Test execution error: ${error.message}`, 'error');
-    }
-
-    setIsRunning(false);
-    setProgress(100);
+      saveTestRun({ module: 'smoke', apiUrl: endpoints[0]?.url || 'multiple endpoints',
+        totalTests: finalResults.totalTests, passed: finalResults.passed, failed: finalResults.failed,
+        durationMs: Math.round(parseFloat(totalTime) * 1000), overallStatus: overallStatus === 'PASS' ? 'PASS' : 'FAIL' });
+      if (overallStatus === 'PASS') addLog(`All smoke tests passed! (${totalTime}s)`, 'success');
+      else if (overallStatus === 'CRITICAL_FAIL') addLog(`CRITICAL FAILURE: ${criticalFailures} critical endpoint(s) failed`, 'error');
+      else addLog(`Some tests failed but no critical failures (${totalTime}s)`, 'warning');
+      setActiveTab('results');
+    } catch (error) { addLog(`Test execution error: ${error.message}`, 'error'); }
+    setIsRunning(false); setProgress(100);
   };
 
-  // Quick test presets
   const loadPreset = (preset) => {
-    switch (preset) {
-      case 'api':
-        setEndpoints([
-          { id: 1, name: 'Health Check', url: 'https://jsonplaceholder.typicode.com/', method: 'GET', maxTime: 2000, critical: true, headers: '', expectedStatus: 200 },
-          { id: 2, name: 'Users API', url: 'https://jsonplaceholder.typicode.com/users/1', method: 'GET', maxTime: 2000, critical: true, headers: '', expectedStatus: 200 },
-          { id: 3, name: 'Posts API', url: 'https://jsonplaceholder.typicode.com/posts/1', method: 'GET', maxTime: 2000, critical: false, headers: '', expectedStatus: 200 }
-        ]);
-        addLog('Loaded API example preset', 'info');
-        break;
-      case 'microservices':
-        setEndpoints([
-          { id: 1, name: 'Gateway Health', url: '', method: 'GET', maxTime: 1000, critical: true, headers: '', expectedStatus: 200 },
-          { id: 2, name: 'Auth Service', url: '', method: 'GET', maxTime: 1500, critical: true, headers: '', expectedStatus: 200 },
-          { id: 3, name: 'User Service', url: '', method: 'GET', maxTime: 1500, critical: true, headers: '', expectedStatus: 200 },
-          { id: 4, name: 'Payment Service', url: '', method: 'GET', maxTime: 2000, critical: true, headers: '', expectedStatus: 200 },
-          { id: 5, name: 'Notification Service', url: '', method: 'GET', maxTime: 2000, critical: false, headers: '', expectedStatus: 200 }
-        ]);
-        addLog('Loaded microservices preset (add your URLs)', 'info');
-        break;
-      default:
-        break;
+    if (preset === 'api') {
+      setEndpoints([
+        { id: 1, name: 'Health Check', url: 'https://jsonplaceholder.typicode.com/', method: 'GET', maxTime: 2000, critical: true, headers: '', expectedStatus: 200 },
+        { id: 2, name: 'Users API', url: 'https://jsonplaceholder.typicode.com/users/1', method: 'GET', maxTime: 2000, critical: true, headers: '', expectedStatus: 200 },
+        { id: 3, name: 'Posts API', url: 'https://jsonplaceholder.typicode.com/posts/1', method: 'GET', maxTime: 2000, critical: false, headers: '', expectedStatus: 200 }
+      ]);
+      addLog('Loaded REST API preset', 'info');
+    } else if (preset === 'microservices') {
+      setEndpoints([
+        { id: 1, name: 'Gateway Health',         url: '', method: 'GET', maxTime: 1000, critical: true,  headers: '', expectedStatus: 200 },
+        { id: 2, name: 'Auth Service',            url: '', method: 'GET', maxTime: 1500, critical: true,  headers: '', expectedStatus: 200 },
+        { id: 3, name: 'User Service',            url: '', method: 'GET', maxTime: 1500, critical: true,  headers: '', expectedStatus: 200 },
+        { id: 4, name: 'Payment Service',         url: '', method: 'GET', maxTime: 2000, critical: true,  headers: '', expectedStatus: 200 },
+        { id: 5, name: 'Notification Service',    url: '', method: 'GET', maxTime: 2000, critical: false, headers: '', expectedStatus: 200 }
+      ]);
+      addLog('Loaded microservices preset (add your URLs)', 'info');
     }
   };
 
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  const validCount = endpoints.filter(ep => ep.url.trim() !== '').length;
+  const overallColor = results
+    ? results.overallStatus === 'PASS' ? '#22c55e' : results.overallStatus === 'CRITICAL_FAIL' ? '#ef4444' : '#f59e0b'
+    : null;
+
+  const logColor = (type) => {
+    if (type === 'error')   return '#f87171';
+    if (type === 'warning') return '#fbbf24';
+    if (type === 'success') return '#4ade80';
+    return '#475569';
+  };
+
+  const methodColor = (m) => {
+    const map = { GET: '#22c55e', POST: '#3b82f6', PUT: '#f59e0b', DELETE: '#ef4444', PATCH: '#a855f7', HEAD: '#06b6d4' };
+    return map[m] || '#64748b';
+  };
+
+  // ─── Shared card style ─────────────────────────────────────────────────────
+  const card = {
+    background: 'rgba(9,12,22,0.80)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  };
+
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 8,
+    color: '#e2e8f0',
+    padding: '8px 12px',
+    fontSize: 13,
+    width: '100%',
+    outline: 'none',
+    fontFamily: 'monospace',
+  };
+
+  const labelStyle = { display: 'block', fontSize: 11, fontWeight: 500, color: '#94a3b8', marginBottom: 6 };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 text-white p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Back to Home Button */}
-        <div className="mb-4">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg transition-all"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <Home className="w-5 h-5" />
-            <span>Back to Home</span>
-          </button>
-        </div>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg,#020408 0%,#060c18 50%,#020408 100%)' }}>
 
-        {/* Header */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 mb-6 border border-white/20">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-green-500 p-3 rounded-xl">
-              <Zap className="w-8 h-8 text-white" />
+      {/* Ambient dot grid */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.035]"
+        style={{ backgroundImage: 'radial-gradient(circle,#22c55e 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
+
+      {/* ── Sticky Header ── */}
+      <div className="sticky top-0 z-40"
+        style={{ background: 'rgba(2,4,8,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/')}
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-300 transition-colors text-xs font-mono">
+              <ArrowLeft size={14} /> modules
+            </button>
+            <div className="w-px h-4 bg-slate-800" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#16a34a,#059669)', boxShadow: '0 0 16px rgba(34,197,94,0.30)' }}>
+                <Zap size={16} className="text-white" />
+              </div>
+              <div>
+                <div className="text-sm font-black text-white leading-none">Smoke Testing</div>
+                <div className="text-[9px] font-mono mt-0.5 text-emerald-900">
+                  {validCount > 0 ? `${validCount} endpoint${validCount > 1 ? 's' : ''} configured` : 'no endpoints configured'}
+                </div>
+              </div>
             </div>
+          </div>
+          {user && (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{ background: 'linear-gradient(135deg,#16a34a,#059669)' }}>
+                  {user.username?.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs text-slate-500">{user.username}</span>
+              </div>
+              <button onClick={onLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-red-500/70 hover:text-red-400 transition-colors font-mono"
+                style={{ border: '1px solid rgba(239,68,68,0.15)' }}>
+                <ArrowLeft size={12} /> Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Page Content ── */}
+      <div className="max-w-7xl mx-auto px-6 pt-7 pb-10">
+
+        {/* Hero row */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-mono text-emerald-600/70 tracking-widest uppercase">Health Check Suite</span>
+          </div>
+          <div className="flex items-end justify-between flex-wrap gap-3">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-                Smoke Testing
-              </h1>
-              <p className="text-slate-300">Quick health checks for critical API endpoints</p>
+              <h1 className="text-2xl font-black text-white">Smoke Testing</h1>
+              <p className="text-sm text-slate-500 mt-0.5">Quick go/no-go health checks for critical API endpoints before every deploy.</p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="text-green-400" size={20} />
-                <h3 className="font-semibold">Fast Execution</h3>
-              </div>
-              <p className="text-sm text-slate-300">Tests run in seconds, not minutes</p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="text-blue-400" size={20} />
-                <h3 className="font-semibold">Critical Checks</h3>
-              </div>
-              <p className="text-sm text-slate-300">Focus on must-work functionality</p>
-            </div>
-            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Activity className="text-purple-400" size={20} />
-                <h3 className="font-semibold">Go/No-Go Decision</h3>
-              </div>
-              <p className="text-sm text-slate-300">Quick pass/fail for deployments</p>
+            {/* Quick stat badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { label: 'Fast Execution', sub: '< 30s',      color: '#22c55e' },
+                { label: 'Critical Checks', sub: 'must-pass',  color: '#3b82f6' },
+                { label: 'Deploy Gate',     sub: 'pass/fail',  color: '#a855f7' },
+              ].map(b => (
+                <div key={b.label} className="rounded-lg px-3 py-1.5 text-center"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div className="text-[10px] font-bold font-mono" style={{ color: b.color }}>{b.sub}</div>
+                  <div className="text-[9px] text-slate-600 mt-0.5">{b.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel - Configuration */}
-          <div className="space-y-6">
-            {/* Quick Presets */}
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Globe size={20} className="text-green-400" />
-                Quick Presets
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => loadPreset('api')}
-                  className="px-4 py-3 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg transition-all"
-                >
-                  <Server size={18} className="mx-auto mb-1" />
-                  <div className="text-sm font-semibold">REST API</div>
+        {/* ── Main grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr,400px] gap-5">
+
+          {/* ─── LEFT: Config ─── */}
+          <div className="space-y-4">
+
+            {/* Presets */}
+            <div style={card}>
+              <div className="px-5 py-3.5 flex items-center gap-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <Globe size={14} className="text-emerald-500" />
+                <span className="text-xs font-bold text-slate-300">Quick Presets</span>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-2.5">
+                <button onClick={() => loadPreset('api')}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono transition-all hover:text-emerald-300"
+                  style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.20)', color: '#4ade80' }}>
+                  <Server size={13} /> REST API
                 </button>
-                <button
-                  onClick={() => loadPreset('microservices')}
-                  className="px-4 py-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg transition-all"
-                >
-                  <Database size={18} className="mx-auto mb-1" />
-                  <div className="text-sm font-semibold">Microservices</div>
+                <button onClick={() => loadPreset('microservices')}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono transition-all hover:text-blue-300"
+                  style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.20)', color: '#60a5fa' }}>
+                  <Database size={13} /> Microservices
                 </button>
               </div>
             </div>
 
-            {/* Add/Edit Endpoint Form */}
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Plus size={20} className="text-green-400" />
-                {editingEndpoint !== null ? 'Edit Endpoint' : 'Add Endpoint'}
-              </h2>
+            {/* AI Generate */}
+            <div style={card}>
+              <div className="px-5 py-3.5 flex items-center gap-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <span className="text-sm">✦</span>
+                <span className="text-xs font-bold text-slate-300">AI Generate from Description</span>
+                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full ml-auto"
+                  style={{ background: 'rgba(168,85,247,0.12)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.25)' }}>
+                  GPT-4
+                </span>
+              </div>
+              <div className="p-4 flex gap-2">
+                <input type="text" value={nlTestInput} onChange={e => setNlTestInput(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleGenerateFromNL()}
+                  placeholder='"Check if auth endpoint returns 200"'
+                  disabled={nlGenerating}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={handleGenerateFromNL} disabled={nlGenerating || !nlTestInput.trim()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono transition-all flex-shrink-0"
+                  style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.30)', color: '#c084fc', opacity: (!nlTestInput.trim() || nlGenerating) ? 0.4 : 1 }}>
+                  {nlGenerating ? <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> : '✦'}
+                  {nlGenerating ? 'Generating…' : 'Generate'}
+                </button>
+              </div>
+            </div>
 
-              <div className="space-y-3">
-                {editingEndpoint === null && (
-                  <>
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4">
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="text-2xl">🤖</span>
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-purple-800 mb-1">Quick: Describe in Plain English</h5>
-                          <p className="text-xs text-gray-600 mb-3">Let AI fill the form!</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={nlTestInput}
-                          onChange={(e) => setNlTestInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleGenerateFromNL()}
-                          className="flex-1 p-3 border-2 border-purple-300 rounded-lg text-sm text-gray-800"
-                          placeholder='"Check if API health endpoint returns 200"'
-                          disabled={nlGenerating}
-                        />
-                        <button
-                          onClick={handleGenerateFromNL}
-                          disabled={nlGenerating || !nlTestInput.trim()}
-                          className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold disabled:opacity-50 flex items-center gap-2"
-                        >
-                          {nlGenerating ? (
-                            <>
-                              <Loader className="animate-spin" size={18} />
-                              <span>Generating...</span>
-                            </>
-                          ) : (
-                            <span>✨ Generate</span>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-center text-sm text-gray-400">─── OR Fill Manually ───</div>
-                  </>
+            {/* Endpoint Form */}
+            <div style={card}>
+              <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center gap-2.5">
+                  <Plus size={14} className="text-emerald-500" />
+                  <span className="text-xs font-bold text-slate-300">
+                    {editingEndpoint !== null ? 'Edit Endpoint' : 'Add Endpoint'}
+                  </span>
+                </div>
+                {editingEndpoint !== null && (
+                  <button onClick={() => { setEditingEndpoint(null); setEndpointForm({ name:'',url:'',method:'GET',maxTime:2000,critical:true,headers:'',expectedStatus:200 }); }}
+                    className="text-[10px] font-mono text-slate-600 hover:text-slate-400 transition-colors">cancel</button>
                 )}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Endpoint Name *</label>
-                  <input
-                    type="text"
-                    value={endpointForm.name}
-                    onChange={(e) => setEndpointForm({ ...endpointForm, name: e.target.value })}
-                    placeholder="e.g., Health Check"
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">URL *</label>
-                  <input
-                    type="text"
-                    value={endpointForm.url}
-                    onChange={(e) => setEndpointForm({ ...endpointForm, url: e.target.value })}
-                    placeholder="https://api.example.com/health"
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Method</label>
-                    <select
-                      value={endpointForm.method}
-                      onChange={(e) => setEndpointForm({ ...endpointForm, method: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500"
-                    >
-                      <option>GET</option>
-                      <option>POST</option>
-                      <option>PUT</option>
-                      <option>DELETE</option>
-                      <option>HEAD</option>
+                    <label style={labelStyle}>Endpoint Name *</label>
+                    <input value={endpointForm.name} onChange={e => setEndpointForm({...endpointForm, name: e.target.value})}
+                      placeholder="e.g., Health Check" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>URL *</label>
+                    <input value={endpointForm.url} onChange={e => setEndpointForm({...endpointForm, url: e.target.value})}
+                      placeholder="https://api.example.com/health" style={inputStyle} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label style={labelStyle}>Method</label>
+                    <select value={endpointForm.method} onChange={e => setEndpointForm({...endpointForm, method: e.target.value})}
+                      style={{ ...inputStyle, cursor: 'pointer' }}>
+                      {['GET','POST','PUT','DELETE','HEAD'].map(m => <option key={m}>{m}</option>)}
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium mb-1">Expected Status</label>
-                    <input
-                      type="number"
-                      value={endpointForm.expectedStatus}
-                      onChange={(e) => setEndpointForm({ ...endpointForm, expectedStatus: parseInt(e.target.value) })}
-                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500"
-                    />
+                    <label style={labelStyle}>Expected Status</label>
+                    <input type="number" value={endpointForm.expectedStatus}
+                      onChange={e => setEndpointForm({...endpointForm, expectedStatus: parseInt(e.target.value)})} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Max Time (ms)</label>
+                    <input type="number" value={endpointForm.maxTime}
+                      onChange={e => setEndpointForm({...endpointForm, maxTime: parseInt(e.target.value)})} style={inputStyle} />
                   </div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium mb-1">Max Response Time (ms)</label>
-                  <input
-                    type="number"
-                    value={endpointForm.maxTime}
-                    onChange={(e) => setEndpointForm({ ...endpointForm, maxTime: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500"
-                  />
+                  <label style={labelStyle}>Custom Headers (JSON)</label>
+                  <textarea value={endpointForm.headers} onChange={e => setEndpointForm({...endpointForm, headers: e.target.value})}
+                    placeholder='{"Authorization": "Bearer token"}' rows={2}
+                    style={{ ...inputStyle, resize: 'none', fontFamily: 'monospace' }} />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Custom Headers (JSON)</label>
-                  <textarea
-                    value={endpointForm.headers}
-                    onChange={(e) => setEndpointForm({ ...endpointForm, headers: e.target.value })}
-                    placeholder='{"Authorization": "Bearer token"}'
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                    rows={2}
-                  />
+                <div className="flex items-center gap-2.5">
+                  <div
+                    onClick={() => setEndpointForm({...endpointForm, critical: !endpointForm.critical})}
+                    className="w-4 h-4 rounded cursor-pointer flex items-center justify-center flex-shrink-0"
+                    style={{ background: endpointForm.critical ? 'rgba(239,68,68,0.20)' : 'rgba(255,255,255,0.04)', border: `1px solid ${endpointForm.critical ? 'rgba(239,68,68,0.50)' : 'rgba(255,255,255,0.12)'}` }}>
+                    {endpointForm.critical && <div className="w-2 h-2 rounded-sm bg-red-400" />}
+                  </div>
+                  <span className="text-xs text-slate-500">Critical endpoint — failure blocks deployment</span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={endpointForm.critical}
-                    onChange={(e) => setEndpointForm({ ...endpointForm, critical: e.target.checked })}
-                    className="w-4 h-4 rounded"
-                  />
-                  <label className="text-sm">
-                    Critical endpoint (failure blocks deployment)
-                  </label>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveEndpoint}
-                    className="flex-1 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-all font-semibold"
-                  >
-                    {editingEndpoint !== null ? 'Update' : 'Add'} Endpoint
-                  </button>
-                  {editingEndpoint !== null && (
-                    <button
-                      onClick={() => {
-                        setEditingEndpoint(null);
-                        setEndpointForm({
-                          name: '',
-                          url: '',
-                          method: 'GET',
-                          maxTime: 2000,
-                          critical: true,
-                          headers: '',
-                          expectedStatus: 200
-                        });
-                      }}
-                      className="px-4 py-2 bg-slate-600 hover:bg-slate-700 rounded-lg transition-all"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
+                <button onClick={handleSaveEndpoint}
+                  className="w-full py-2.5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(135deg,#16a34a,#059669)', boxShadow: '0 4px 16px rgba(34,197,94,0.25)' }}>
+                  {editingEndpoint !== null ? 'Update Endpoint' : 'Save Endpoint'}
+                </button>
               </div>
             </div>
 
-            {/* Endpoints List */}
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Activity size={20} className="text-green-400" />
-                Test Endpoints ({endpoints.filter(ep => ep.url.trim() !== '').length})
-              </h2>
-
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {endpoints.map((endpoint) => (
-                  <div
-                    key={endpoint.id}
-                    className="bg-slate-900/50 border border-slate-700 rounded-lg p-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{endpoint.name}</span>
-                          {endpoint.critical && (
-                            <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded border border-red-500/30">
-                              CRITICAL
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-slate-400">
-                          <span className="font-mono bg-slate-800 px-2 py-0.5 rounded">{endpoint.method}</span>
-                          {' '}
-                          {endpoint.url || <span className="text-orange-400">No URL set</span>}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          Max: {endpoint.maxTime}ms | Expected: {endpoint.expectedStatus}
-                        </div>
+            {/* Endpoint List + Run */}
+            <div style={card}>
+              <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center gap-2.5">
+                  <Activity size={14} className="text-emerald-500" />
+                  <span className="text-xs font-bold text-slate-300">Endpoints</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                    style={{ background: 'rgba(34,197,94,0.10)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.20)' }}>
+                    {validCount} ready
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
+                {endpoints.map(ep => (
+                  <div key={ep.id} className="flex items-start gap-3 rounded-lg px-3 py-2.5"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div>
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded"
+                        style={{ background: methodColor(ep.method) + '20', color: methodColor(ep.method) }}>
+                        {ep.method}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-slate-300 truncate">{ep.name}</span>
+                        {ep.critical && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
+                            style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}>
+                            CRITICAL
+                          </span>
+                        )}
                       </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleEditEndpoint(endpoint)}
-                          className="p-2 hover:bg-slate-700 rounded transition-all"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteEndpoint(endpoint.id)}
-                          className="p-2 hover:bg-red-500/20 text-red-400 rounded transition-all"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <div className="text-[10px] font-mono text-slate-600 truncate mt-0.5">
+                        {ep.url || <span style={{ color: '#f97316' }}>No URL set</span>}
                       </div>
+                      <div className="text-[9px] font-mono text-slate-700 mt-0.5">
+                        max {ep.maxTime}ms · expect {ep.expectedStatus}
+                      </div>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button onClick={() => handleEditEndpoint(ep)}
+                        className="p-1.5 rounded text-slate-600 hover:text-slate-300 transition-colors"
+                        style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <Edit3 size={11} />
+                      </button>
+                      <button onClick={() => handleDeleteEndpoint(ep.id)}
+                        className="p-1.5 rounded text-slate-600 hover:text-red-400 transition-colors"
+                        style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <Trash2 size={11} />
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Run Tests Button */}
-              <button
-                onClick={runSmokeTests}
-                disabled={isRunning || endpoints.filter(ep => ep.url.trim() !== '').length === 0}
-                className="w-full mt-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isRunning ? (
-                  <>
-                    <Loader className="animate-spin" size={20} />
-                    Running Tests...
-                  </>
-                ) : (
-                  <>
-                    <Play size={20} />
-                    Run Smoke Tests
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Progress */}
-            {isRunning && (
-              <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                <h2 className="text-xl font-semibold mb-4">Testing Progress</h2>
-                <div className="w-full bg-slate-700 rounded-full h-3">
-                  <div
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
+              {/* Progress bar */}
+              {isRunning && (
+                <div className="px-4 pb-2">
+                  <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%`, background: 'linear-gradient(90deg,#22c55e,#10b981)' }} />
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-700 text-right mt-1">{progress.toFixed(0)}%</div>
                 </div>
-                <p className="text-center text-sm text-slate-400 mt-2">{progress.toFixed(0)}%</p>
+              )}
+
+              <div className="px-4 pb-4">
+                <button onClick={runSmokeTests}
+                  disabled={isRunning || validCount === 0}
+                  className="w-full py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    background: (isRunning || validCount === 0) ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,#16a34a,#059669)',
+                    opacity: (isRunning || validCount === 0) ? 0.5 : 1,
+                    boxShadow: (isRunning || validCount === 0) ? 'none' : '0 4px 20px rgba(34,197,94,0.30)',
+                  }}>
+                  {isRunning
+                    ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Running Tests…</>
+                    : <><Play size={15} /> Run Smoke Tests</>
+                  }
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Right Panel - Results & Logs */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Activity size={20} className="text-green-400" />
-                Results & Logs
-              </h2>
-              {results && (
-                <button
-                  onClick={() => setShowGitHub(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-lg hover:shadow-lg hover:shadow-gray-800/50 transition-all transform hover:scale-105"
-                >
-                  <Github size={18} />
-                  <span>Save to GitHub</span>
-                </button>
-              )}
-            </div>
+          {/* ─── RIGHT: Results / Logs / History ─── */}
+          <div className="lg:sticky lg:top-20 self-start">
+            <div style={card}>
+              {/* Tab bar */}
+              <div className="flex items-center gap-0 px-4 pt-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                {[
+                  { id: 'results', label: 'Results' },
+                  { id: 'logs',    label: `Logs ${logs.length > 0 ? `(${logs.length})` : ''}` },
+                  { id: 'history', label: 'History' },
+                ].map(tab => (
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                    className="px-4 py-2 text-xs font-mono transition-all"
+                    style={{
+                      color: activeTab === tab.id ? '#4ade80' : '#334155',
+                      borderBottom: activeTab === tab.id ? '2px solid #22c55e' : '2px solid transparent',
+                      marginBottom: -1,
+                    }}>
+                    {tab.label}
+                  </button>
+                ))}
+                {results && (
+                  <button onClick={() => setShowGitHub(true)}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono mb-2 transition-all hover:text-slate-200"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#64748b' }}>
+                    <Github size={12} /> GitHub
+                  </button>
+                )}
+              </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 mb-4 border-b border-slate-700">
-              <button
-                onClick={() => setActiveTab('results')}
-                className={`px-4 py-2 transition-all ${
-                  activeTab === 'results'
-                    ? 'border-b-2 border-green-400 text-green-400'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Results
-              </button>
-              <button
-                onClick={() => setActiveTab('logs')}
-                className={`px-4 py-2 transition-all ${
-                  activeTab === 'logs'
-                    ? 'border-b-2 border-green-400 text-green-400'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Logs ({logs.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`px-4 py-2 transition-all ${
-                  activeTab === 'history'
-                    ? 'border-b-2 border-blue-400 text-blue-400'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                History
-              </button>
-            </div>
-
-            {/* Results Tab */}
-            {activeTab === 'results' && (
-              <div className="space-y-4">
-                {!results ? (
-                  <div className="text-center py-20">
-                    <Zap size={64} className="mx-auto text-slate-600 mb-4" />
-                    <p className="text-slate-400">Configure endpoints and run smoke tests</p>
-                    <p className="text-sm text-slate-500 mt-2">Quick health checks in seconds</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Overall Status */}
-                    <div className={`rounded-lg p-6 text-center ${
-                      results.overallStatus === 'PASS'
-                        ? 'bg-green-500/20 border border-green-500/30'
-                        : results.overallStatus === 'CRITICAL_FAIL'
-                        ? 'bg-red-500/20 border border-red-500/30'
-                        : 'bg-yellow-500/20 border border-yellow-500/30'
-                    }`}>
-                      {results.overallStatus === 'PASS' ? (
-                        <CheckCircle size={48} className="mx-auto text-green-400 mb-2" />
-                      ) : results.overallStatus === 'CRITICAL_FAIL' ? (
-                        <XCircle size={48} className="mx-auto text-red-400 mb-2" />
-                      ) : (
-                        <AlertTriangle size={48} className="mx-auto text-yellow-400 mb-2" />
-                      )}
-                      <h3 className="text-2xl font-bold mb-2">
-                        {results.overallStatus === 'PASS' ? 'All Tests Passed!' :
-                         results.overallStatus === 'CRITICAL_FAIL' ? 'Critical Failure!' :
-                         'Some Tests Failed'}
-                      </h3>
-                      <p className="text-sm">
-                        {results.overallStatus === 'PASS'
-                          ? '🚀 System is healthy and ready for production'
-                          : results.overallStatus === 'CRITICAL_FAIL'
-                          ? '⛔ Critical endpoints failed - deployment blocked'
-                          : '⚠️ Non-critical failures detected'}
-                      </p>
+              {/* ── Results Tab ── */}
+              {activeTab === 'results' && (
+                <div className="p-4 space-y-4">
+                  {!results ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                        style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                        <Zap size={22} style={{ color: 'rgba(34,197,94,0.30)' }} />
+                      </div>
+                      <p className="text-xs font-mono text-slate-700">configure endpoints and run tests</p>
                     </div>
-
-                    {/* Summary Stats */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                        <div className="text-sm text-slate-400">Pass Rate</div>
-                        <div className="text-3xl font-bold text-green-400">{results.passRate}%</div>
-                      </div>
-                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                        <div className="text-sm text-slate-400">Total Time</div>
-                        <div className="text-3xl font-bold">{results.totalTime}s</div>
-                      </div>
-                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                        <div className="text-sm text-slate-400">Passed / Failed</div>
-                        <div className="text-2xl font-bold">
-                          <span className="text-green-400">{results.passed}</span>
-                          {' / '}
-                          <span className="text-red-400">{results.failed}</span>
+                  ) : (
+                    <>
+                      {/* Gate decision */}
+                      <div className="rounded-xl px-5 py-4 flex items-center gap-4"
+                        style={{ background: overallColor + '0D', border: `1px solid ${overallColor}30` }}>
+                        <div>
+                          {results.overallStatus === 'PASS'
+                            ? <CheckCircle size={28} style={{ color: overallColor }} />
+                            : results.overallStatus === 'CRITICAL_FAIL'
+                            ? <XCircle size={28} style={{ color: overallColor }} />
+                            : <AlertTriangle size={28} style={{ color: overallColor }} />
+                          }
+                        </div>
+                        <div>
+                          <div className="text-sm font-black" style={{ color: overallColor }}>
+                            {results.overallStatus === 'PASS' ? 'All Tests Passed'
+                              : results.overallStatus === 'CRITICAL_FAIL' ? 'Critical Failure'
+                              : 'Some Tests Failed'}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-600 mt-0.5">
+                            {results.overallStatus === 'PASS' ? 'System is healthy — deploy ready'
+                              : results.overallStatus === 'CRITICAL_FAIL' ? 'Critical endpoints failed — block deploy'
+                              : 'Non-critical failures — review before deploy'}
+                          </div>
+                        </div>
+                        <div className="ml-auto text-right">
+                          <div className="text-lg font-black font-mono" style={{ color: overallColor }}>{results.passRate}%</div>
+                          <div className="text-[9px] font-mono text-slate-700">pass rate</div>
                         </div>
                       </div>
-                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                        <div className="text-sm text-slate-400">Avg Response</div>
-                        <div className="text-3xl font-bold">{results.avgResponseTime}ms</div>
-                      </div>
-                    </div>
 
-                    {/* Individual Test Results */}
-                    <div>
-                      <h3 className="font-semibold mb-3">Individual Tests:</h3>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {results.tests.map((test, index) => (
-                          <div
-                            key={index}
-                            className={`rounded-lg p-4 border ${
-                              test.passed
-                                ? 'bg-green-900/20 border-green-700/30'
-                                : test.critical
-                                ? 'bg-red-900/20 border-red-700/30'
-                                : 'bg-yellow-900/20 border-yellow-700/30'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                {test.passed ? (
-                                  <CheckCircle size={20} className="text-green-400" />
-                                ) : (
-                                  <XCircle size={20} className="text-red-400" />
-                                )}
-                                <span className="font-semibold">{test.name}</span>
+                      {/* Stat grid */}
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {[
+                          { label: 'Passed',       value: results.passed,          color: '#22c55e' },
+                          { label: 'Failed',        value: results.failed,          color: '#ef4444' },
+                          { label: 'Total Time',    value: `${results.totalTime}s`, color: '#3b82f6' },
+                          { label: 'Avg Response',  value: `${results.avgResponseTime}ms`, color: '#a855f7' },
+                        ].map(s => (
+                          <div key={s.label} className="rounded-lg px-3 py-3"
+                            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div className="text-base font-black font-mono" style={{ color: s.color }}>{s.value}</div>
+                            <div className="text-[9px] text-slate-700 mt-0.5">{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Individual tests */}
+                      <div className="space-y-2 max-h-80 overflow-y-auto">
+                        {results.tests.map((test, i) => (
+                          <div key={i} className="rounded-lg px-3 py-2.5"
+                            style={{
+                              background: test.passed ? 'rgba(34,197,94,0.05)' : test.critical ? 'rgba(239,68,68,0.05)' : 'rgba(245,158,11,0.05)',
+                              border: `1px solid ${test.passed ? 'rgba(34,197,94,0.18)' : test.critical ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'}`,
+                            }}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                  style={{ background: test.passed ? '#22c55e' : test.critical ? '#ef4444' : '#f59e0b' }} />
+                                <span className="text-xs font-semibold text-slate-300 truncate">{test.name}</span>
                                 {test.critical && !test.passed && (
-                                  <span className="px-2 py-0.5 bg-red-500/30 text-red-300 text-xs rounded">
-                                    CRITICAL
-                                  </span>
+                                  <span className="text-[9px] font-mono flex-shrink-0 px-1.5 rounded"
+                                    style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>CRIT</span>
                                 )}
                               </div>
-                              <span className="text-sm font-mono">{test.responseTime}ms</span>
+                              <span className="text-[10px] font-mono flex-shrink-0" style={{ color: test.passed ? '#22c55e' : '#ef4444' }}>
+                                {test.responseTime}ms
+                              </span>
                             </div>
-                            <div className="text-sm text-slate-400">
-                              <div className="font-mono text-xs mb-1">
-                                {test.method} {test.url}
-                              </div>
-                              <div>{test.message}</div>
+                            <div className="text-[10px] font-mono text-slate-600 mt-1 truncate">
+                              <span style={{ color: methodColor(test.method) }}>{test.method}</span> {test.url}
+                            </div>
+                            <div className="text-[10px] font-mono mt-0.5" style={{ color: test.passed ? '#4ade80' : '#f87171' }}>
+                              {test.message}
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                    </>
+                  )}
+                </div>
+              )}
 
-            {/* Logs Tab */}
-            {activeTab === 'logs' && (
-              <div className="bg-slate-900/50 rounded-lg p-4 max-h-[600px] overflow-y-auto font-mono text-sm">
-                {logs.length === 0 ? (
-                  <div className="text-center text-slate-400 py-20">
-                    <Activity size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>No logs yet</p>
+              {/* ── Logs Tab (terminal) ── */}
+              {activeTab === 'logs' && (
+                <div className="font-mono text-xs" style={{ background: 'rgba(4,7,15,0.95)' }}>
+                  <div className="flex items-center gap-1.5 px-4 py-2.5 border-b"
+                    style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.25)' }}>
+                    <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
+                    <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
+                    <div className="w-2 h-2 rounded-full bg-[#28c840]" />
+                    <span className="ml-2 text-[9px] tracking-wider text-slate-700">smoke / test-log</span>
                   </div>
-                ) : (
-                  <div className="space-y-1">
-                    {logs.map((log, index) => (
-                      <div
-                        key={index}
-                        className={`p-2 rounded ${
-                          log.type === 'error' ? 'bg-red-900/20 text-red-300' :
-                          log.type === 'warning' ? 'bg-orange-900/20 text-orange-300' :
-                          log.type === 'success' ? 'bg-green-900/20 text-green-300' :
-                          'bg-slate-800/30 text-slate-300'
-                        }`}
-                      >
-                        <span className="text-slate-500">[{log.timestamp}]</span> {log.message}
+                  <div className="p-4 overflow-y-auto space-y-0.5" style={{ maxHeight: 480 }}>
+                    {logs.length === 0 ? (
+                      <div className="text-slate-800 py-12 text-center">$ awaiting test run...</div>
+                    ) : (
+                      logs.map((log, i) => (
+                        <div key={i} className="leading-relaxed">
+                          <span style={{ color: '#1e293b' }}>[{log.timestamp}]</span>
+                          {' '}
+                          <span style={{ color: logColor(log.type) }}>{log.message}</span>
+                        </div>
+                      ))
+                    )}
+                    <div ref={logsEndRef} />
+                    {isRunning && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span style={{ color: '#22c55e60' }}>$</span>
+                        <span className="inline-block w-1.5 h-3 ml-0.5 animate-pulse" style={{ background: '#334155' }} />
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* History Tab */}
-            {activeTab === 'history' && (
-              <div className="bg-slate-900/30 rounded-xl p-4">
-                <RecentRuns module="smoke" />
-              </div>
-            )}
+              {/* ── History Tab ── */}
+              {activeTab === 'history' && (
+                <div className="p-4">
+                  <RecentRuns module="smoke" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* GitHub Integration Modal */}
+      {/* GitHub modal */}
       {showGitHub && results && (
-        <GitHubIntegration
-          user={user}
+        <GitHubIntegration user={user}
           testResults={{
-            summary: {
-              total: results.totalTests,
-              passed: results.passed,
-              failed: results.failed,
-              pass_rate: parseFloat(results.passRate)
-            },
-            results: [{
-              test: `Smoke Test Suite - ${results.overallStatus}`,
-              status: results.overallStatus === 'PASS' ? 'PASS' : 'FAIL',
-              details: `${results.totalTests} endpoints tested | Pass Rate: ${results.passRate}% | Avg Response: ${results.avgResponseTime}ms | Total Time: ${results.totalTime}s | Critical Failures: ${results.criticalFailures}`,
+            summary: { total: results.totalTests, passed: results.passed, failed: results.failed, pass_rate: parseFloat(results.passRate) },
+            results: [{ test: `Smoke Test Suite - ${results.overallStatus}`, status: results.overallStatus === 'PASS' ? 'PASS' : 'FAIL',
+              details: `${results.totalTests} endpoints | Pass: ${results.passRate}% | Avg: ${results.avgResponseTime}ms | Time: ${results.totalTime}s`,
               timestamp: results.timestamp,
-              smokeMetrics: {
-                totalTests: results.totalTests,
-                passed: results.passed,
-                failed: results.failed,
-                criticalFailures: results.criticalFailures,
-                passRate: results.passRate,
-                totalTime: results.totalTime,
-                avgResponseTime: results.avgResponseTime,
-                maxResponseTime: results.maxResponseTime,
-                overallStatus: results.overallStatus,
-                tests: results.tests
-              }
-            }]
+              smokeMetrics: { ...results } }]
           }}
           apiUrl="Smoke Tests"
           onClose={() => setShowGitHub(false)}
         />
       )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };

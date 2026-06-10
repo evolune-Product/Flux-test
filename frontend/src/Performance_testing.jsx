@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Zap, TrendingUp, AlertCircle, Clock, Users, Target, Repeat, Home, ArrowLeft, Github, FileText, BarChart3, Settings } from 'lucide-react';
+import {
+  Activity, Zap, TrendingUp, AlertCircle, Clock, Users, Target, Repeat,
+  Github, FileText, BarChart3, Settings, Loader, Play, StopCircle, User,
+} from 'lucide-react';
+import BackButton from './BackButton';
 import GitHubIntegration from './GitHubIntegration.jsx';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
@@ -17,8 +21,8 @@ const PerformanceTestingApp = () => {
   const [results, setResults] = useState(null);
   const [logs, setLogs] = useState([]);
   const [showGitHub, setShowGitHub] = useState(false);
-  const [activeTab, setActiveTab] = useState('results'); // 'results' or 'logs'
-  const [configTab, setConfigTab] = useState('basic'); // 'basic', 'request', or 'testtype'
+  const [activeTab, setActiveTab] = useState('results');
+  const [configTab, setConfigTab] = useState('basic');
   const abortControllerRef = useRef(null);
   const cancelledRef = useRef(false);
 
@@ -28,46 +32,52 @@ const PerformanceTestingApp = () => {
   // Test configurations
   const testConfigs = {
     'response-time': {
-      name: 'Response Time Testing',
+      name: 'Response Time',
       icon: Clock,
       requests: 100,
       concurrency: 1,
-      description: 'Measures average, P95, and P99 response times'
+      description: 'Measures avg, P95, and P99 response times',
+      color: '#60a5fa',
     },
     'load-100': {
-      name: 'Load Test - 100 Users',
+      name: 'Load — 100 Users',
       icon: Users,
       requests: 1000,
       concurrency: 100,
-      description: 'Simulates 100 concurrent users'
+      description: 'Simulates 100 concurrent users',
+      color: '#34d399',
     },
     'load-1000': {
-      name: 'Load Test - 1,000 Users',
+      name: 'Load — 1,000 Users',
       icon: Users,
       requests: 10000,
       concurrency: 1000,
-      description: 'Simulates 1,000 concurrent users'
+      description: 'Simulates 1,000 concurrent users',
+      color: '#a78bfa',
     },
     'stress': {
-      name: 'Stress Testing',
+      name: 'Stress Test',
       icon: AlertCircle,
       requests: 5000,
       concurrency: 500,
-      description: 'Finds the breaking point of your API'
+      description: 'Finds the breaking point of your API',
+      color: '#f87171',
     },
     'spike': {
-      name: 'Spike Testing',
+      name: 'Spike Test',
       icon: TrendingUp,
       requests: 2000,
       concurrency: 1000,
-      description: 'Tests sudden traffic surge (10 to 10,000 users)'
+      description: 'Sudden traffic surge (10 → 10,000 users)',
+      color: '#fb923c',
     },
     'endurance': {
-      name: 'Endurance Testing',
+      name: 'Endurance Test',
       icon: Repeat,
       requests: 10000,
       concurrency: 50,
-      description: 'Long-running test for memory leaks'
+      description: 'Long-running test for memory leaks',
+      color: '#fbbf24',
     }
   };
 
@@ -91,15 +101,7 @@ const PerformanceTestingApp = () => {
 
   // Save state to localStorage whenever important data changes
   useEffect(() => {
-    const stateToSave = {
-      apiEndpoint,
-      testType,
-      httpMethod,
-      requestBody,
-      customHeaders,
-      results,
-      savedAt: new Date().toISOString()
-    };
+    const stateToSave = { apiEndpoint, testType, httpMethod, requestBody, customHeaders, results, savedAt: new Date().toISOString() };
     localStorage.setItem('performanceTestingState', JSON.stringify(stateToSave));
   }, [apiEndpoint, testType, httpMethod, requestBody, customHeaders, results]);
 
@@ -110,91 +112,81 @@ const PerformanceTestingApp = () => {
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const makeRequest = async (url, signal) => {
+  const makeRequest = async (url, cancelSignal) => {
     const startTime = performance.now();
     let responseSize = 0;
 
-    // Per-request timeout of 10 seconds
-    const timeoutId = setTimeout(() => {
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-    }, 10000);
+    // Per-request timeout controller, independent of the global cancel controller
+    const perRequestController = new AbortController();
+    const timeoutId = setTimeout(() => perRequestController.abort(), 10000);
+
+    // Forward global cancellation to this request's controller
+    const onGlobalCancel = () => perRequestController.abort();
+    cancelSignal.addEventListener('abort', onGlobalCancel);
 
     try {
-      // Parse custom headers if provided
       let headers = { 'Content-Type': 'application/json' };
       if (customHeaders) {
         try {
           const parsedHeaders = JSON.parse(customHeaders);
           headers = { ...headers, ...parsedHeaders };
-        } catch (e) {
-          // Invalid JSON, ignore custom headers
-        }
+        } catch (e) { /* ignore */ }
       }
 
-      // Prepare request options
-      const options = {
-        method: httpMethod,
-        mode: 'cors',
-        headers: headers,
-        signal,
-      };
+      const options = { method: httpMethod, mode: 'cors', headers, signal: perRequestController.signal };
 
-      // Add body for POST, PUT, PATCH methods
       if (['POST', 'PUT', 'PATCH'].includes(httpMethod) && requestBody) {
         try {
           options.body = JSON.stringify(JSON.parse(requestBody));
         } catch (e) {
-          options.body = requestBody; // Use as plain text if not valid JSON
+          options.body = requestBody;
         }
       }
 
       const response = await fetch(url, options);
       clearTimeout(timeoutId);
+      cancelSignal.removeEventListener('abort', onGlobalCancel);
 
-      // Get response size
       const responseText = await response.text();
       responseSize = new Blob([responseText]).size;
-
       const endTime = performance.now();
-      const duration = endTime - startTime;
 
       return {
         success: response.ok,
         status: response.status,
         statusText: response.statusText,
-        duration: duration,
+        duration: endTime - startTime,
         size: responseSize
       };
     } catch (error) {
       clearTimeout(timeoutId);
+      cancelSignal.removeEventListener('abort', onGlobalCancel);
       const endTime = performance.now();
+      // Distinguish user-cancelled vs per-request timeout
+      const isCancelled = cancelSignal.aborted;
       return {
         success: false,
         status: 0,
-        statusText: error.name === 'AbortError' ? 'Cancelled' : 'Network Error',
+        statusText: error.name === 'AbortError' ? (isCancelled ? 'Cancelled' : 'Timeout') : 'Network Error',
         duration: endTime - startTime,
-        error: error.name === 'AbortError' ? 'Request cancelled' : error.message,
+        error: error.name === 'AbortError' ? (isCancelled ? 'Request cancelled' : 'Request timeout') : error.message,
         size: 0
       };
     }
   };
 
   const calculateStats = (durations) => {
-    // Handle empty array case (all requests failed)
-    if (!durations || durations.length === 0) {
-      return { avg: 0, min: 0, max: 0, p50: 0, p95: 0, p99: 0 };
-    }
-
+    if (!durations || durations.length === 0) return { avg: 0, min: 0, max: 0, p50: 0, p95: 0, p99: 0 };
     const sorted = [...durations].sort((a, b) => a - b);
     const sum = sorted.reduce((a, b) => a + b, 0);
-    const avg = sum / sorted.length;
-    const min = sorted[0] || 0;
-    const max = sorted[sorted.length - 1] || 0;
-    const p50 = sorted[Math.floor(sorted.length * 0.50)] || 0;
-    const p95 = sorted[Math.floor(sorted.length * 0.95)] || 0;
-    const p99 = sorted[Math.floor(sorted.length * 0.99)] || 0;
-
-    return { avg, min, max, p50, p95, p99 };
+    return {
+      avg: sum / sorted.length,
+      min: sorted[0] || 0,
+      max: sorted[sorted.length - 1] || 0,
+      p50: sorted[Math.floor(sorted.length * 0.50)] || 0,
+      p95: sorted[Math.floor(sorted.length * 0.95)] || 0,
+      p99: sorted[Math.floor(sorted.length * 0.99)] || 0,
+    };
   };
 
   const cancelTest = () => {
@@ -203,10 +195,7 @@ const PerformanceTestingApp = () => {
   };
 
   const runPerformanceTest = async () => {
-    if (!apiEndpoint) {
-      addLog('Please enter an API endpoint', 'error');
-      return;
-    }
+    if (!apiEndpoint) { addLog('Please enter an API endpoint', 'error'); return; }
 
     setIsRunning(true);
     setProgress(0);
@@ -217,74 +206,51 @@ const PerformanceTestingApp = () => {
     const { signal } = abortControllerRef.current;
 
     const config = testConfigs[testType];
-    addLog(`Starting ${config.name}...`, 'info');
-    addLog(`Configuration: ${config.requests} requests, ${config.concurrency} concurrent users`, 'info');
+    addLog(`Starting ${config.name}…`, 'info');
+    addLog(`${config.requests} requests @ ${config.concurrency} concurrency`, 'info');
 
     const startTime = Date.now();
-    const results = [];
+    const allResults = [];
     let successCount = 0;
     let failureCount = 0;
 
     try {
-      // Batch requests based on concurrency
       const batches = Math.ceil(config.requests / config.concurrency);
-      
+
       for (let batch = 0; batch < batches; batch++) {
         const batchSize = Math.min(config.concurrency, config.requests - batch * config.concurrency);
         const promises = [];
-
-        for (let i = 0; i < batchSize; i++) {
-          promises.push(makeRequest(apiEndpoint, signal));
-        }
+        for (let i = 0; i < batchSize; i++) promises.push(makeRequest(apiEndpoint, signal));
 
         const batchResults = await Promise.all(promises);
 
-        // Stop processing if cancelled
         if (cancelledRef.current) {
-          addLog('⛔ Test cancelled by user.', 'warning');
+          addLog('Test cancelled by user.', 'warning');
           setIsRunning(false);
           setProgress(0);
           return;
         }
 
         batchResults.forEach(result => {
-          results.push(result);
-          if (result.success) {
-            successCount++;
-          } else {
-            failureCount++;
-          }
+          allResults.push(result);
+          if (result.success) successCount++; else failureCount++;
         });
 
-        const currentProgress = ((batch + 1) / batches) * 100;
-        setProgress(currentProgress);
-        addLog(`Batch ${batch + 1}/${batches} completed: ${batchResults.length} requests`, 'success');
+        setProgress(((batch + 1) / batches) * 100);
+        addLog(`Batch ${batch + 1}/${batches} — ${batchResults.length} requests`, 'success');
       }
 
       const endTime = Date.now();
       const totalDuration = (endTime - startTime) / 1000;
-
-      // Calculate statistics from all requests that got a real server response
-      // (status > 0 means server responded, even if 4xx/5xx)
-      // Network failures (status === 0, "Failed to fetch") are excluded
-      const respondedDurations = results
-        .filter(r => r.status > 0)
-        .map(r => r.duration);
-
-      // Fall back to all durations if every request was a network failure
-      const durationsForStats = respondedDurations.length > 0 ? respondedDurations : results.map(r => r.duration);
+      const respondedDurations = allResults.filter(r => r.status > 0).map(r => r.duration);
+      const durationsForStats = respondedDurations.length > 0 ? respondedDurations : allResults.map(r => r.duration);
       const stats = calculateStats(durationsForStats);
       const throughput = config.requests / totalDuration;
-
-      // Calculate total data transferred
-      const totalSize = results.reduce((sum, r) => sum + (r.size || 0), 0);
-      const avgSize = totalSize / results.length;
-
-      // Calculate error distribution
+      const totalSize = allResults.reduce((sum, r) => sum + (r.size || 0), 0);
       const errorTypes = {};
-      results.filter(r => !r.success).forEach(r => {
-        const errorKey = r.error || `HTTP ${r.status}`;
-        errorTypes[errorKey] = (errorTypes[errorKey] || 0) + 1;
+      allResults.filter(r => !r.success).forEach(r => {
+        const k = r.error || `HTTP ${r.status}`;
+        errorTypes[k] = (errorTypes[k] || 0) + 1;
       });
 
       const finalResults = {
@@ -294,57 +260,29 @@ const PerformanceTestingApp = () => {
         successRate: ((successCount / config.requests) * 100).toFixed(2),
         totalDuration: totalDuration.toFixed(2),
         throughput: throughput.toFixed(2),
-        totalDataTransferred: (totalSize / 1024).toFixed(2), // KB
-        avgResponseSize: (avgSize / 1024).toFixed(2), // KB
-        errorTypes: errorTypes,
-        hasValidStats: respondedDurations.length > 0, // true if server responded (even with 4xx/5xx)
+        totalDataTransferred: (totalSize / 1024).toFixed(2),
+        avgResponseSize: ((totalSize / allResults.length) / 1024).toFixed(2),
+        errorTypes,
+        hasValidStats: respondedDurations.length > 0,
         stats: {
-          avg: stats.avg.toFixed(2),
-          min: stats.min.toFixed(2),
-          max: stats.max.toFixed(2),
-          p50: stats.p50.toFixed(2),
-          p95: stats.p95.toFixed(2),
-          p99: stats.p99.toFixed(2)
+          avg: stats.avg.toFixed(2), min: stats.min.toFixed(2), max: stats.max.toFixed(2),
+          p50: stats.p50.toFixed(2), p95: stats.p95.toFixed(2), p99: stats.p99.toFixed(2),
         }
       };
 
       setResults(finalResults);
       saveTestRun({
-        module: 'performance',
-        apiUrl: apiEndpoint,
-        totalTests: finalResults.totalRequests,
-        passed: finalResults.successCount,
-        failed: finalResults.failureCount,
-        durationMs: Math.round(totalDuration * 1000),
+        module: 'performance', apiUrl: apiEndpoint,
+        totalTests: finalResults.totalRequests, passed: finalResults.successCount,
+        failed: finalResults.failureCount, durationMs: Math.round(totalDuration * 1000),
         overallStatus: finalResults.failureCount === 0 ? 'PASS' : 'FAIL'
       });
-      addLog(`Test completed successfully!`, 'success');
-      addLog(`Total Duration: ${totalDuration.toFixed(2)}s | Throughput: ${throughput.toFixed(2)} req/s`, 'info');
-      
-      // Performance assessment
-      if (respondedDurations.length === 0) {
-        addLog('❌ All requests failed at network level — no performance data available. Check the URL, method, and CORS settings.', 'error');
+      addLog(`Completed — ${totalDuration.toFixed(2)}s | ${throughput.toFixed(2)} req/s`, 'success');
+      if (!respondedDurations.length) {
+        addLog('All requests failed at network level. Check URL and CORS.', 'error');
       } else {
-        if (successCount === 0) {
-          addLog(`⚠️ Server responded to all requests but returned HTTP errors (see Error Distribution). Response times below are based on actual server responses.`, 'warning');
-        }
-        if (stats.avg < 200) {
-          addLog('✅ Excellent: Average response time < 200ms', 'success');
-        } else if (stats.avg < 500) {
-          addLog('⚠️ Good: Average response time < 500ms', 'warning');
-        } else {
-          addLog('❌ Poor: Average response time > 500ms - Optimization needed', 'error');
-        }
-
-        if (stats.p95 < 500) {
-          addLog('✅ Excellent: P95 response time < 500ms', 'success');
-        } else if (stats.p95 < 1000) {
-          addLog('⚠️ Good: P95 response time < 1000ms', 'warning');
-        } else {
-          addLog('❌ Poor: P95 response time > 1000ms - Optimization needed', 'error');
-        }
+        addLog(`Avg: ${stats.avg.toFixed(0)}ms | P95: ${stats.p95.toFixed(0)}ms | P99: ${stats.p99.toFixed(0)}ms`, 'info');
       }
-
     } catch (error) {
       addLog(`Test failed: ${error.message}`, 'error');
     }
@@ -354,484 +292,578 @@ const PerformanceTestingApp = () => {
   };
 
   const getStatusColor = (value, thresholds) => {
-    if (value < thresholds.good) return 'text-green-600';
-    if (value < thresholds.warning) return 'text-yellow-600';
-    return 'text-red-600';
+    if (value < thresholds.good) return '#34d399';
+    if (value < thresholds.warning) return '#fbbf24';
+    return '#f87171';
+  };
+
+  // ─── Design tokens ────────────────────────────────────────────────
+  const BLUE = '#60a5fa';
+  const BLUE_DIM = 'rgba(96,165,250,0.12)';
+
+  const card = {
+    background: 'rgba(9,12,22,0.80)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 16,
+    backdropFilter: 'blur(20px)',
+  };
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 10,
+    color: '#e2e8f0',
+    fontSize: 14,
+    outline: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  };
+  const labelStyle = {
+    display: 'block',
+    fontSize: 12,
+    fontWeight: 600,
+    color: 'rgba(255,255,255,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom: 6,
+  };
+  const logColor = (type) => {
+    if (type === 'error')   return { color: '#f87171' };
+    if (type === 'warning') return { color: '#fbbf24' };
+    if (type === 'success') return { color: '#34d399' };
+    return { color: BLUE };
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Back to Home Button */}
-        <div className="mb-4">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-lg text-white rounded-xl font-semibold transition-all duration-300 border border-white/20 hover:border-white/40 shadow-lg hover:shadow-xl"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <Home className="w-5 h-5" />
-            <span>Back to Home</span>
-          </button>
-        </div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg,#020408 0%,#060c18 50%,#020408 100%)',
+      color: '#e2e8f0',
+      fontFamily: '"Inter","SF Pro Display",system-ui,sans-serif',
+      position: 'relative',
+    }}>
+      {/* Dot grid */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'radial-gradient(circle, rgba(96,165,250,0.09) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }} />
 
-        {/* Header */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 mb-6 border border-white/20">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-purple-500 p-3 rounded-xl">
-              <Zap className="w-8 h-8 text-white" />
+      {/* ── Sticky Header ── */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(2,4,8,0.92)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(20px)',
+        padding: '0 32px', height: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <BackButton />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 18px rgba(96,165,250,0.35)',
+            }}>
+              <Zap size={17} color="#fff" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-white">Performance Testing Dashboard</h1>
-              <p className="text-purple-200">Comprehensive API Performance Analysis</p>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
+                Performance Testing
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -1 }}>
+                Load, stress &amp; endurance analysis
+              </div>
             </div>
           </div>
         </div>
+        {user?.username && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7,
+            padding: '5px 12px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)',
+          }}>
+            <User size={13} /> {user.username}
+          </div>
+        )}
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Panel - Configuration with Tabs */}
-          <div className="lg:col-span-1">
-            {/* Configuration Tabs */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-t-2xl shadow-2xl border border-white/20 border-b-0">
-              <div className="flex gap-2 p-4">
-                <button
-                  onClick={() => setConfigTab('basic')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all text-sm ${
-                    configTab === 'basic'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                  }`}
-                >
-                  <Settings className="w-4 h-4" />
-                  Basic
-                </button>
-                <button
-                  onClick={() => setConfigTab('request')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all text-sm ${
-                    configTab === 'request'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  Request
-                </button>
-                <button
-                  onClick={() => setConfigTab('testtype')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all text-sm ${
-                    configTab === 'testtype'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                  }`}
-                >
-                  <Target className="w-4 h-4" />
-                  Test Type
-                </button>
+      {/* ── Page body ── */}
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '36px 32px 60px' }}>
+
+        {/* Hero */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: BLUE_DIM, color: BLUE,
+              border: `1px solid rgba(96,165,250,0.25)`, letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>Performance Suite</span>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+              background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.40)',
+              border: '1px solid rgba(255,255,255,0.07)', letterSpacing: '0.06em',
+            }}>
+              {testConfigs[testType].name}
+            </span>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', margin: 0, marginBottom: 8 }}>
+            Performance Testing Dashboard
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 14, margin: 0 }}>
+            Comprehensive load, stress, spike, and endurance API performance analysis.
+          </p>
+
+          {/* Quick stats */}
+          {results && (
+            <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+              {[
+                { label: 'Success Rate', value: `${results.successRate}%`, color: parseFloat(results.successRate) >= 99 ? '#34d399' : '#fbbf24' },
+                { label: 'Throughput',   value: `${results.throughput} req/s`, color: BLUE },
+                { label: 'Avg',          value: `${results.stats.avg}ms`, color: getStatusColor(parseFloat(results.stats.avg), { good: 200, warning: 500 }) },
+                { label: 'P95',          value: `${results.stats.p95}ms`, color: getStatusColor(parseFloat(results.stats.p95), { good: 500, warning: 1000 }) },
+              ].map(s => (
+                <div key={s.label} style={{
+                  padding: '8px 18px',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 10, fontSize: 13,
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.40)' }}>{s.label}: </span>
+                  <span style={{ color: s.color, fontWeight: 700 }}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── 2-col layout ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+
+          {/* ═══ LEFT: Config ═══ */}
+          <div style={{ ...card, padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: BLUE_DIM,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Settings size={14} color={BLUE} />
               </div>
+              <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>Configuration</span>
             </div>
 
-            {/* Tab Content */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-b-2xl shadow-2xl p-6 border border-white/20 min-h-[500px] max-h-[600px] overflow-y-auto">
-              {/* Basic Config Tab */}
-              {configTab === 'basic' && (
+            {/* Tab bar */}
+            <div style={{
+              display: 'flex', gap: 4, marginBottom: 22,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10, padding: 4,
+            }}>
+              {[
+                { key: 'basic',    label: 'Basic',     accent: BLUE },
+                { key: 'testtype', label: 'Test Type', accent: '#a78bfa' },
+                { key: 'request',  label: 'Request',   accent: '#34d399' },
+              ].map(t => (
+                <button key={t.key} onClick={() => setConfigTab(t.key)} style={{
+                  flex: 1, padding: '7px 0', borderRadius: 7, fontSize: 13, fontWeight: 600,
+                  border: 'none', cursor: 'pointer', transition: 'all 0.18s',
+                  background: configTab === t.key ? 'rgba(255,255,255,0.07)' : 'transparent',
+                  color: configTab === t.key ? t.accent : 'rgba(255,255,255,0.35)',
+                }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ─ Basic tab ─ */}
+            {configTab === 'basic' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <div>
-                  <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Settings className="w-5 h-5" />
-                    Basic Configuration
-                  </h2>
+                  <label style={labelStyle}>API Endpoint *</label>
+                  <input
+                    type="text"
+                    value={apiEndpoint}
+                    onChange={(e) => setApiEndpoint(e.target.value)}
+                    placeholder="https://api.example.com/endpoint"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>HTTP Method</label>
+                  <select
+                    value={httpMethod}
+                    onChange={(e) => setHttpMethod(e.target.value)}
+                    disabled={isRunning}
+                    style={{ ...inputStyle, cursor: isRunning ? 'not-allowed' : 'pointer' }}
+                  >
+                    {['GET','POST','PUT','PATCH','DELETE'].map(m => (
+                      <option key={m} value={m} style={{ background: '#0a0e1a' }}>{m}</option>
+                    ))}
+                  </select>
+                </div>
 
-                  {/* API Endpoint Input */}
-                  <div className="mb-6">
-                    <label className="block text-purple-200 text-sm font-semibold mb-2">
-                      API Endpoint *
-                    </label>
-                    <input
-                      type="text"
-                      value={apiEndpoint}
-                      onChange={(e) => setApiEndpoint(e.target.value)}
-                      placeholder="https://api.example.com/endpoint"
-                      className="w-full px-4 py-3 rounded-lg bg-white/10 border border-purple-400/30 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+                {/* Selected test info */}
+                <div style={{
+                  padding: '14px 16px', borderRadius: 10,
+                  background: `rgba(${testConfigs[testType].color.slice(1).match(/../g).map(h => parseInt(h,16)).join(',')},0.08)`,
+                  border: `1px solid ${testConfigs[testType].color}30`,
+                }}>
+                  <div style={{ fontWeight: 700, color: testConfigs[testType].color, fontSize: 13, marginBottom: 4 }}>
+                    {testConfigs[testType].name}
                   </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                    {testConfigs[testType].description}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 6, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                    {testConfigs[testType].requests.toLocaleString()} requests @ {testConfigs[testType].concurrency} concurrency
+                  </div>
+                </div>
+              </div>
+            )}
 
-                  {/* HTTP Method Selection */}
-                  <div className="mb-6">
-                    <label className="block text-purple-200 text-sm font-semibold mb-2">
-                      HTTP Method
-                    </label>
-                    <select
-                      value={httpMethod}
-                      onChange={(e) => setHttpMethod(e.target.value)}
+            {/* ─ Test Type tab ─ */}
+            {configTab === 'testtype' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {Object.entries(testConfigs).map(([key, config]) => {
+                  const Icon = config.icon;
+                  const isActive = testType === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setTestType(key)}
                       disabled={isRunning}
-                      className="w-full px-4 py-3 rounded-lg bg-white/10 border border-purple-400/30 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      style={{
+                        width: '100%', padding: '12px 14px', borderRadius: 10,
+                        cursor: isRunning ? 'not-allowed' : 'pointer', textAlign: 'left',
+                        background: isActive ? `${config.color}18` : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${isActive ? config.color + '45' : 'rgba(255,255,255,0.07)'}`,
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        opacity: isRunning ? 0.5 : 1, transition: 'all 0.18s',
+                      }}
                     >
-                      <option value="GET" className="bg-slate-800">GET</option>
-                      <option value="POST" className="bg-slate-800">POST</option>
-                      <option value="PUT" className="bg-slate-800">PUT</option>
-                      <option value="PATCH" className="bg-slate-800">PATCH</option>
-                      <option value="DELETE" className="bg-slate-800">DELETE</option>
-                    </select>
-                  </div>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                        background: isActive ? `${config.color}20` : 'rgba(255,255,255,0.04)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Icon size={14} color={isActive ? config.color : 'rgba(255,255,255,0.35)'} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: isActive ? config.color : '#e2e8f0' }}>
+                          {config.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+                          {config.description}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-                  <div className="bg-purple-500/20 border border-purple-400/30 rounded-lg p-4 mt-6">
-                    <h4 className="font-bold text-white mb-2 text-sm">Quick Tips:</h4>
-                    <ul className="space-y-1 text-xs text-purple-200">
-                      <li>Enter your API endpoint URL</li>
-                      <li>Select the HTTP method to test</li>
-                      <li>Configure request data in the Request tab</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* Request Data Tab */}
-              {configTab === 'request' && (
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Request Data
-                  </h2>
-
-                  {/* Request Body (for POST, PUT, PATCH) */}
-                  {['POST', 'PUT', 'PATCH'].includes(httpMethod) && (
-                    <div className="mb-6">
-                      <label className="block text-purple-200 text-sm font-semibold mb-2">
-                        Request Body (JSON)
-                      </label>
-                      <textarea
-                        value={requestBody}
-                        onChange={(e) => setRequestBody(e.target.value)}
-                        placeholder='{"key": "value"}'
-                        disabled={isRunning}
-                        className="w-full px-4 py-3 rounded-lg bg-white/10 border border-purple-400/30 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
-                        rows={6}
-                      />
-                    </div>
-                  )}
-
-                  {/* Custom Headers */}
-                  <div className="mb-6">
-                    <label className="block text-purple-200 text-sm font-semibold mb-2">
-                      Custom Headers (JSON, Optional)
-                    </label>
+            {/* ─ Request tab ─ */}
+            {configTab === 'request' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {['POST','PUT','PATCH'].includes(httpMethod) && (
+                  <div>
+                    <label style={labelStyle}>Request Body (JSON)</label>
                     <textarea
-                      value={customHeaders}
-                      onChange={(e) => setCustomHeaders(e.target.value)}
-                      placeholder='{"Authorization": "Bearer token"}'
+                      value={requestBody}
+                      onChange={(e) => setRequestBody(e.target.value)}
+                      placeholder='{"key": "value"}'
                       disabled={isRunning}
-                      className="w-full px-4 py-3 rounded-lg bg-white/10 border border-purple-400/30 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
-                      rows={5}
+                      rows={6}
+                      style={{ ...inputStyle, fontFamily: '"JetBrains Mono","Fira Code",monospace', resize: 'vertical' }}
                     />
                   </div>
-
-                  <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mt-6">
-                    <h4 className="font-bold text-white mb-2 text-sm">Request Info:</h4>
-                    <ul className="space-y-1 text-xs text-blue-200">
-                      <li>Add custom headers for authentication</li>
-                      <li>Provide request body for POST/PUT/PATCH</li>
-                      <li>Use valid JSON format for both fields</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* Test Type Tab */}
-              {configTab === 'testtype' && (
+                )}
                 <div>
-                  <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Select Test Type
-                  </h2>
-
-                  <div className="space-y-2">
-                    {Object.entries(testConfigs).map(([key, config]) => {
-                      const Icon = config.icon;
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => setTestType(key)}
-                          disabled={isRunning}
-                          className={`w-full p-4 rounded-lg border transition-all ${
-                            testType === key
-                              ? 'bg-purple-500 border-purple-400 text-white shadow-lg'
-                              : 'bg-white/5 border-white/10 text-purple-200 hover:bg-white/10'
-                          } ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Icon className="w-5 h-5" />
-                            <div className="text-left">
-                              <div className="font-semibold">{config.name}</div>
-                              <div className="text-xs opacity-80">{config.description}</div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <label style={labelStyle}>Custom Headers (JSON) — optional</label>
+                  <textarea
+                    value={customHeaders}
+                    onChange={(e) => setCustomHeaders(e.target.value)}
+                    placeholder='{"Authorization": "Bearer token"}'
+                    disabled={isRunning}
+                    rows={5}
+                    style={{ ...inputStyle, fontFamily: '"JetBrains Mono","Fira Code",monospace', resize: 'vertical' }}
+                  />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Run / Cancel Buttons */}
-            <div className="mt-4 flex gap-3">
+            {/* Run + Cancel */}
+            <div style={{ marginTop: 24, display: 'flex', gap: 10 }}>
               <button
                 onClick={runPerformanceTest}
                 disabled={isRunning || !apiEndpoint}
-                className={`flex-1 py-4 rounded-xl font-bold text-lg transition-all ${
-                  isRunning || !apiEndpoint
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
-                } text-white`}
+                style={{
+                  flex: 1, padding: '13px 0',
+                  borderRadius: 10, fontWeight: 700, fontSize: 14,
+                  border: 'none', cursor: isRunning || !apiEndpoint ? 'not-allowed' : 'pointer',
+                  background: isRunning || !apiEndpoint
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'linear-gradient(135deg,#2563eb,#7c3aed)',
+                  color: isRunning || !apiEndpoint ? 'rgba(255,255,255,0.30)' : '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: isRunning || !apiEndpoint ? 'none' : '0 0 24px rgba(37,99,235,0.35)',
+                  transition: 'all 0.2s',
+                }}
               >
-                {isRunning ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Activity className="w-5 h-5 animate-spin" />
-                    Running Test... {progress.toFixed(0)}%
-                  </span>
-                ) : (
-                  'Start Performance Test'
-                )}
+                {isRunning
+                  ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Running… {progress.toFixed(0)}%</>
+                  : <><Play size={16} /> Start Test</>
+                }
               </button>
               {isRunning && (
                 <button
                   onClick={cancelTest}
-                  className="px-6 py-4 rounded-xl font-bold text-lg bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg"
+                  style={{
+                    padding: '13px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14,
+                    border: 'none', cursor: 'pointer',
+                    background: 'rgba(248,113,113,0.15)',
+                    border: '1px solid rgba(248,113,113,0.30)',
+                    color: '#f87171',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
                 >
-                  Cancel
+                  <StopCircle size={14} /> Stop
                 </button>
               )}
             </div>
 
-              {/* Progress Bar */}
-              {isRunning && (
-                <div className="mt-4">
-                  <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
+            {isRunning && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
+                  <span>Running performance test…</span>
+                  <span>{progress.toFixed(0)}%</span>
                 </div>
-              )}
+                <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 4,
+                    background: 'linear-gradient(90deg,#2563eb,#7c3aed)',
+                    width: `${progress}%`, transition: 'width 0.3s ease',
+                  }} />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Right Panel - Tabbed Results and Logs */}
-          <div className="lg:col-span-2">
-            {/* Tabs */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-t-2xl shadow-2xl border border-white/20 border-b-0">
-              <div className="flex gap-2 p-4">
-                <button
-                  onClick={() => setActiveTab('results')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                    activeTab === 'results'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                  }`}
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  Results
-                </button>
-                <button
-                  onClick={() => setActiveTab('logs')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                    activeTab === 'logs'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                  }`}
-                >
-                  <AlertCircle className="w-5 h-5" />
-                  Logs
-                  {logs.length > 0 && (
-                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{logs.length}</span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                    activeTab === 'history'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                  }`}
-                >
-                  History
-                </button>
+          {/* ═══ RIGHT: Results / Logs / History ═══ */}
+          <div style={{ ...card, padding: 0, overflow: 'hidden', position: 'sticky', top: 76 }}>
+            {/* Tab bar */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 22px',
+              borderBottom: '1px solid rgba(255,255,255,0.07)',
+            }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { key: 'results', label: 'Results',       accent: BLUE },
+                  { key: 'logs',    label: `Logs (${logs.length})`, accent: '#34d399' },
+                  { key: 'history', label: 'History',       accent: '#fbbf24' },
+                ].map(t => (
+                  <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                    padding: '6px 14px', borderRadius: 7, fontSize: 13, fontWeight: 600,
+                    border: 'none', cursor: 'pointer', transition: 'all 0.18s',
+                    background: activeTab === t.key ? 'rgba(255,255,255,0.07)' : 'transparent',
+                    color: activeTab === t.key ? t.accent : 'rgba(255,255,255,0.35)',
+                  }}>
+                    {t.label}
+                  </button>
+                ))}
               </div>
+              {results && (
+                <button
+                  onClick={() => setShowGitHub(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
+                  }}
+                >
+                  <Github size={13} /> Save
+                </button>
+              )}
             </div>
 
-            {/* Tab Content */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-b-2xl shadow-2xl p-6 border border-white/20">
-              {/* Results Tab */}
-              {activeTab === 'results' && results && (
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                      <Activity className="w-6 h-6" />
-                      Test Results
-                    </h2>
-                    <button
-                      onClick={() => setShowGitHub(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
-                    >
-                      <Github className="w-5 h-5" />
-                      Save to GitHub
-                    </button>
-                  </div>
+            <div style={{ padding: 22, maxHeight: 640, overflowY: 'auto' }}>
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="text-purple-300 text-sm mb-1">Total Requests</div>
-                    <div className="text-2xl font-bold text-white">{results.totalRequests}</div>
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="text-purple-300 text-sm mb-1">Success Rate</div>
-                    <div className={`text-2xl font-bold ${results.successRate >= 99 ? 'text-green-400' : 'text-yellow-400'}`}>
-                      {results.successRate}%
+              {/* ─ Results Tab ─ */}
+              {activeTab === 'results' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {!results ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.20)' }}>
+                      <BarChart3 size={44} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.20 }} />
+                      <p style={{ margin: 0, fontSize: 14 }}>Run a performance test to see results</p>
                     </div>
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="text-purple-300 text-sm mb-1">Duration</div>
-                    <div className="text-2xl font-bold text-white">{results.totalDuration}s</div>
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="text-purple-300 text-sm mb-1">Throughput</div>
-                    <div className="text-2xl font-bold text-white">{results.throughput} req/s</div>
-                  </div>
-                </div>
+                  ) : (
+                    <>
+                      {/* Top 4 stats */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        {[
+                          { label: 'Total Requests', value: results.totalRequests.toLocaleString(), color: '#e2e8f0', bg: 'rgba(255,255,255,0.03)' },
+                          { label: 'Success Rate',   value: `${results.successRate}%`, color: parseFloat(results.successRate) >= 99 ? '#34d399' : '#fbbf24', bg: 'rgba(52,211,153,0.05)' },
+                          { label: 'Duration',       value: `${results.totalDuration}s`, color: BLUE, bg: BLUE_DIM },
+                          { label: 'Throughput',     value: `${results.throughput} req/s`, color: '#a78bfa', bg: 'rgba(167,139,250,0.08)' },
+                        ].map(c => (
+                          <div key={c.label} style={{
+                            padding: '14px 16px', borderRadius: 10,
+                            background: c.bg, border: '1px solid rgba(255,255,255,0.06)',
+                          }}>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{c.label}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: c.color, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>{c.value}</div>
+                          </div>
+                        ))}
+                      </div>
 
-                {/* Additional Metrics */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="text-purple-300 text-sm mb-1">Total Data</div>
-                    <div className="text-xl font-bold text-white">{results.totalDataTransferred} KB</div>
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="text-purple-300 text-sm mb-1">Avg Response Size</div>
-                    <div className="text-xl font-bold text-white">{results.avgResponseSize} KB</div>
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="text-purple-300 text-sm mb-1">Failed Requests</div>
-                    <div className="text-xl font-bold text-red-400">{results.failureCount}</div>
-                  </div>
-                </div>
+                      {/* Additional metrics */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+                        {[
+                          { label: 'Total Data',   value: `${results.totalDataTransferred} KB` },
+                          { label: 'Avg Size',     value: `${results.avgResponseSize} KB` },
+                          { label: 'Failures',     value: results.failureCount, color: results.failureCount > 0 ? '#f87171' : '#34d399' },
+                        ].map(m => (
+                          <div key={m.label} style={{
+                            padding: '12px 14px', borderRadius: 9,
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                          }}>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: m.color || '#e2e8f0', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>{m.value}</div>
+                          </div>
+                        ))}
+                      </div>
 
-                {/* Error Types (if any) */}
-                {results.failureCount > 0 && Object.keys(results.errorTypes).length > 0 && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
-                    <h4 className="font-bold text-red-300 mb-2">Error Distribution:</h4>
-                    <div className="space-y-1 text-sm">
-                      {Object.entries(results.errorTypes).map(([error, count]) => (
-                        <div key={error} className="text-red-200 flex justify-between">
-                          <span>{error}</span>
-                          <span className="font-bold">{count} occurrences</span>
+                      {/* Error distribution */}
+                      {results.failureCount > 0 && Object.keys(results.errorTypes).length > 0 && (
+                        <div style={{
+                          padding: '14px 16px', borderRadius: 10,
+                          background: 'rgba(248,113,113,0.07)',
+                          border: '1px solid rgba(248,113,113,0.20)',
+                        }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171', marginBottom: 10 }}>Error Distribution</div>
+                          {Object.entries(results.errorTypes).map(([error, count]) => (
+                            <div key={error} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                              <span style={{ color: 'rgba(255,255,255,0.55)' }}>{error}</span>
+                              <span style={{ color: '#f87171', fontWeight: 700 }}>{count}×</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      )}
 
-                {/* Response Time Statistics */}
-                <div className="bg-white/5 p-6 rounded-lg border border-white/10">
-                  <h3 className="text-xl font-bold text-white mb-4">Response Time Statistics (ms)</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-purple-300 text-sm mb-1">Average</div>
-                      <div className={`text-xl font-bold ${getStatusColor(parseFloat(results.stats.avg), { good: 200, warning: 500 })}`}>
-                        {results.stats.avg}ms
+                      {/* Response time stats */}
+                      <div style={{
+                        padding: '16px', borderRadius: 10,
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>
+                          Response Time Statistics (ms)
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                          {[
+                            { label: 'Average', value: results.stats.avg, thresholds: { good: 200, warning: 500 } },
+                            { label: 'Min',     value: results.stats.min, color: '#34d399' },
+                            { label: 'Max',     value: results.stats.max, color: '#f87171' },
+                            { label: 'P50',     value: results.stats.p50, color: '#e2e8f0' },
+                            { label: 'P95',     value: results.stats.p95, thresholds: { good: 500, warning: 1000 } },
+                            { label: 'P99',     value: results.stats.p99, thresholds: { good: 1000, warning: 2000 } },
+                          ].map(s => (
+                            <div key={s.label}>
+                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
+                              <div style={{
+                                fontSize: 16, fontWeight: 700,
+                                color: s.color || getStatusColor(parseFloat(s.value), s.thresholds),
+                              }}>
+                                {s.value}ms
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-purple-300 text-sm mb-1">Minimum</div>
-                      <div className="text-xl font-bold text-green-400">{results.stats.min}ms</div>
-                    </div>
-                    <div>
-                      <div className="text-purple-300 text-sm mb-1">Maximum</div>
-                      <div className="text-xl font-bold text-red-400">{results.stats.max}ms</div>
-                    </div>
-                    <div>
-                      <div className="text-purple-300 text-sm mb-1">P50 (Median)</div>
-                      <div className="text-xl font-bold text-white">{results.stats.p50}ms</div>
-                    </div>
-                    <div>
-                      <div className="text-purple-300 text-sm mb-1">P95</div>
-                      <div className={`text-xl font-bold ${getStatusColor(parseFloat(results.stats.p95), { good: 500, warning: 1000 })}`}>
-                        {results.stats.p95}ms
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-purple-300 text-sm mb-1">P99</div>
-                      <div className={`text-xl font-bold ${getStatusColor(parseFloat(results.stats.p99), { good: 1000, warning: 2000 })}`}>
-                        {results.stats.p99}ms
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Performance Assessment */}
-                {!results.hasValidStats ? (
-                  <div className="mt-4 p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
-                    <h4 className="font-bold text-white mb-2">Performance Assessment:</h4>
-                    <p className="text-red-300 text-sm">❌ All requests failed at network level — no performance data available. Check the URL, HTTP method, and ensure the server allows cross-origin requests (CORS).</p>
-                  </div>
-                ) : (
-                  <div className="mt-4 p-4 bg-purple-500/20 border border-purple-400/30 rounded-lg">
-                    <h4 className="font-bold text-white mb-2">Performance Assessment:</h4>
-                    {results.successCount === 0 && (
-                      <p className="text-yellow-300 text-sm mb-2">⚠️ Server responded with HTTP errors — response times below reflect actual server latency.</p>
-                    )}
-                    <ul className="space-y-1 text-sm text-purple-200">
-                      <li>{parseFloat(results.stats.avg) < 200 ? '✅' : parseFloat(results.stats.avg) < 500 ? '⚠️' : '❌'} Average response time: {results.stats.avg}ms — {parseFloat(results.stats.avg) < 200 ? 'Excellent' : parseFloat(results.stats.avg) < 500 ? 'Good' : 'Needs Optimization'}</li>
-                      <li>{parseFloat(results.stats.p95) < 500 ? '✅' : parseFloat(results.stats.p95) < 1000 ? '⚠️' : '❌'} P95 response time: {results.stats.p95}ms — {parseFloat(results.stats.p95) < 500 ? 'Excellent' : parseFloat(results.stats.p95) < 1000 ? 'Good' : 'Needs Optimization'}</li>
-                      <li>{parseFloat(results.stats.p99) < 1000 ? '✅' : parseFloat(results.stats.p99) < 2000 ? '⚠️' : '❌'} P99 response time: {results.stats.p99}ms — {parseFloat(results.stats.p99) < 1000 ? 'Excellent' : parseFloat(results.stats.p99) < 2000 ? 'Good' : 'Needs Optimization'}</li>
-                    </ul>
-                  </div>
-                )}
+                      {/* Assessment */}
+                      <div style={{
+                        padding: '14px 16px', borderRadius: 10,
+                        background: !results.hasValidStats ? 'rgba(248,113,113,0.07)' : BLUE_DIM,
+                        border: `1px solid ${!results.hasValidStats ? 'rgba(248,113,113,0.20)' : 'rgba(96,165,250,0.25)'}`,
+                        fontSize: 13, lineHeight: 1.8,
+                      }}>
+                        <div style={{ fontWeight: 700, color: BLUE, marginBottom: 6, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Performance Assessment</div>
+                        {!results.hasValidStats ? (
+                          <div style={{ color: '#f87171' }}>All requests failed at network level — check URL and CORS settings.</div>
+                        ) : (
+                          <ul style={{ margin: 0, paddingLeft: 16, color: 'rgba(255,255,255,0.55)' }}>
+                            <li style={{ color: getStatusColor(parseFloat(results.stats.avg), { good: 200, warning: 500 }) }}>
+                              Avg {results.stats.avg}ms — {parseFloat(results.stats.avg) < 200 ? 'Excellent' : parseFloat(results.stats.avg) < 500 ? 'Good' : 'Needs Optimization'}
+                            </li>
+                            <li style={{ color: getStatusColor(parseFloat(results.stats.p95), { good: 500, warning: 1000 }) }}>
+                              P95 {results.stats.p95}ms — {parseFloat(results.stats.p95) < 500 ? 'Excellent' : parseFloat(results.stats.p95) < 1000 ? 'Good' : 'Needs Optimization'}
+                            </li>
+                            <li style={{ color: getStatusColor(parseFloat(results.stats.p99), { good: 1000, warning: 2000 }) }}>
+                              P99 {results.stats.p99}ms — {parseFloat(results.stats.p99) < 1000 ? 'Excellent' : parseFloat(results.stats.p99) < 2000 ? 'Good' : 'Needs Optimization'}
+                            </li>
+                          </ul>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
-              {/* Empty State for Results Tab */}
-              {activeTab === 'results' && !results && (
-                <div className="text-center py-12">
-                  <BarChart3 className="w-16 h-16 text-purple-300/50 mx-auto mb-4" />
-                  <p className="text-purple-200 text-lg font-semibold">No results yet</p>
-                  <p className="text-purple-300/70 text-sm mt-2">Run a performance test to see results here</p>
-                </div>
-              )}
-
-              {/* Logs Tab */}
+              {/* ─ Logs Tab ─ */}
               {activeTab === 'logs' && (
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                    <AlertCircle className="w-6 h-6" />
-                    Test Logs
-                  </h2>
-                  <div className="bg-black/30 rounded-lg p-4 h-96 overflow-y-auto font-mono text-sm">
+                <div style={{
+                  background: '#050810',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 12, overflow: 'hidden',
+                }}>
+                  <div style={{
+                    padding: '9px 14px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex', alignItems: 'center', gap: 7,
+                  }}>
+                    {['#ff5f57','#febc2e','#28c840'].map(c => (
+                      <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
+                    ))}
+                    <span style={{ marginLeft: 8, fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                      performance.log — {logs.length} entries
+                    </span>
+                  </div>
+                  <div style={{ padding: 14, maxHeight: 500, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
                     {logs.length === 0 ? (
-                      <div className="text-purple-300/50 italic">No logs yet. Start a test to see logs.</div>
+                      <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.20)', padding: '40px 0' }}>No log entries yet</div>
                     ) : (
-                      logs.map((log, index) => (
-                        <div
-                          key={index}
-                          className={`mb-2 ${
-                            log.type === 'error'
-                              ? 'text-red-400'
-                              : log.type === 'success'
-                              ? 'text-green-400'
-                              : log.type === 'warning'
-                              ? 'text-yellow-400'
-                              : 'text-purple-300'
-                          }`}
-                        >
-                          <span className="text-purple-400">[{log.timestamp}]</span> {log.message}
-                        </div>
-                      ))
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {logs.map((log, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 10, lineHeight: 1.5 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{log.timestamp}</span>
+                            <span style={logColor(log.type)}>{log.message}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* History Tab */}
+              {/* ─ History Tab ─ */}
               {activeTab === 'history' && (
-                <div className="py-2">
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 10, padding: 16,
+                }}>
                   <RecentRuns module="performance" />
                 </div>
               )}
@@ -839,6 +871,8 @@ const PerformanceTestingApp = () => {
           </div>
         </div>
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       {/* GitHub Integration Modal */}
       {showGitHub && results && (
@@ -852,9 +886,9 @@ const PerformanceTestingApp = () => {
               pass_rate: parseFloat(results.successRate)
             },
             results: [{
-              test: `Performance Test - ${testConfigs[testType].name}`,
+              test: `Performance Test — ${testConfigs[testType].name}`,
               status: results.successRate >= 95 ? 'PASS' : 'FAIL',
-              details: `${results.totalRequests} requests | Success Rate: ${results.successRate}% | Avg Response: ${results.stats.avg}ms | P95: ${results.stats.p95}ms | Throughput: ${results.throughput} req/s`,
+              details: `${results.totalRequests} requests | Success: ${results.successRate}% | Avg: ${results.stats.avg}ms | P95: ${results.stats.p95}ms | Throughput: ${results.throughput} req/s`,
               timestamp: new Date().toISOString(),
               performanceMetrics: {
                 totalRequests: results.totalRequests,

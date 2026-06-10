@@ -24,7 +24,12 @@ import {
 
 function TestingTypesLanding({ user, onLogout }) {
   const navigate = useNavigate();
+  // Seeded with first module so panel is always visible; never set to null
   const [activeType, setActiveType] = React.useState(null);
+  React.useLayoutEffect(() => {
+    // Populate once testingTypes is available (avoids circular ref at declaration time)
+    setActiveType(prev => prev ?? testingTypes[0]);
+  }, []);
   const [wordIndex, setWordIndex] = React.useState(0);
 
   const cyclingWords = ['Functional', 'Performance', 'Smoke', 'Chaos', 'Security', 'Regression'];
@@ -247,11 +252,34 @@ function TestingTypesLanding({ user, onLogout }) {
       route: '/flow-builder',
       color: 'teal',
       badge: 'NEW'
-    }
+    },
+    // PROD-GATE: card entry (remove this object to disable the module card)
+    {
+      id: 'prod-gate',
+      title: 'Production Gate',
+      description: 'Simulate production conditions before you deploy. Health checks, security probes, load simulation, rate limit validation — all in one gate run.',
+      icon: Shield,
+      gradient: 'from-blue-700 via-indigo-700 to-violet-700',
+      features: [
+        'Health & Availability',
+        'Security Probe (OWASP)',
+        'Load Simulation',
+        'Rate Limit Validation',
+        'Readiness Score 0–100'
+      ],
+      route: '/prod-gate',
+      color: 'blue',
+      badge: 'NEW',
+      newTab: true,
+    },
   ];
 
-  const handleNavigate = (route) => {
-    navigate(route);
+  const handleNavigate = (route, newTab = false) => {
+    if (newTab) {
+      window.open(route, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(route);
+    }
   };
 
   return (
@@ -600,95 +628,104 @@ function TestingTypesLanding({ user, onLogout }) {
           </div>
         </div>
 
-        {/* Testing Types - Creative Orbital Design with Side Panel */}
-        <div className="relative mb-16 flex flex-col lg:flex-row gap-8 items-start">
-          {/* Orbs Container */}
-          <div className="flex-1 relative">
-            {/* Animated background particles */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {[...Array(15)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-1 h-1 bg-white/20 rounded-full"
-                  style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    animation: `twinkle ${2 + Math.random() * 3}s ease-in-out ${Math.random() * 2}s infinite`
-                  }}
-                />
-              ))}
-            </div>
+        {/* Testing Types — Card Grid + Terminal Detail */}
+        <div className="relative mb-12 flex flex-col lg:flex-row gap-5 items-start">
 
-            {/* Orbs Grid */}
-            <div className="flex flex-wrap justify-center gap-6 lg:gap-8 relative z-10 py-4">
+          {/* Module Card Grid */}
+          <div className="flex-1 min-w-0">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               {testingTypes.map((testType, index) => {
                 const Icon = testType.icon;
                 const isActive = activeType?.id === testType.id;
-
                 return (
                   <div
                     key={testType.id}
-                    className="group relative"
-                    style={{
-                      animation: `orbFloat 6s ease-in-out ${index * 0.4}s infinite, fadeIn 0.8s ease-out ${index * 0.1}s both`
-                    }}
+                    className="group relative cursor-pointer h-full"
+                    style={{ animation: `fadeIn 0.35s ease-out ${index * 0.04}s both` }}
                     onMouseEnter={() => setActiveType(testType)}
-                    onClick={() => handleNavigate(testType.route)}
+                    onClick={() => handleNavigate(testType.route, testType.newTab)}
                   >
-                    {/* Glowing orb container */}
-                    <div className="relative cursor-pointer">
-                      {/* Outer glow ring */}
+                    <div
+                      className="relative h-full rounded-xl overflow-hidden transition-all duration-200 flex flex-col"
+                      style={{
+                        background: isActive ? 'rgba(12,16,30,0.98)' : 'rgba(9,12,22,0.72)',
+                        border: `1px solid ${isActive ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.06)'}`,
+                        transform: isActive ? 'translateY(-3px)' : 'none',
+                        boxShadow: isActive ? '0 12px 40px rgba(0,0,0,0.5)' : 'none',
+                      }}
+                    >
+                      {/* Top accent line */}
                       <div
-                        className={`absolute -inset-4 rounded-full bg-gradient-to-r ${testType.gradient} blur-2xl transition-all duration-700 ${isActive ? 'opacity-40' : 'opacity-0 group-hover:opacity-20'}`}
+                        className={`h-[2px] w-full bg-gradient-to-r ${testType.gradient} transition-opacity duration-200`}
+                        style={{ opacity: isActive ? 1 : 0.35 }}
                       />
 
-                      {/* Rotating ring */}
-                      <div
-                        className={`absolute -inset-2 rounded-full border transition-all duration-500 ${isActive ? 'border-white/40' : 'border-white/10 group-hover:border-white/20'}`}
-                        style={{ animation: 'spin 20s linear infinite' }}
-                      >
-                        <div className={`absolute top-0 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r ${testType.gradient}`} />
-                      </div>
-
-                      {/* Main orb */}
-                      <div
-                        className={`relative w-28 h-28 lg:w-32 lg:h-32 rounded-full bg-gradient-to-br ${testType.gradient} p-[2px] transition-all duration-500 shadow-2xl ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}
-                      >
-                        {/* Inner circle */}
-                        <div className="w-full h-full rounded-full bg-slate-900/90 backdrop-blur-xl flex flex-col items-center justify-center relative overflow-hidden">
-                          {/* Animated shine effect */}
+                      <div className="p-4 flex flex-col flex-1">
+                        {/* Icon + badge row */}
+                        <div className="flex items-start justify-between mb-3">
                           <div
-                            className={`absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-0'}`}
-                            style={{ animation: 'shine 2s ease-in-out infinite' }}
-                          />
-
-                          {/* Icon */}
-                          <div className="relative">
-                            <div className={`absolute inset-0 rounded-full bg-gradient-to-r ${testType.gradient} blur-lg transition-opacity ${isActive ? 'opacity-80' : 'opacity-40 group-hover:opacity-60'}`} />
-                            <Icon size={48} className="relative text-white drop-shadow-lg" />
+                            className={`w-10 h-10 rounded-lg bg-gradient-to-br ${testType.gradient} flex items-center justify-center flex-shrink-0 shadow-md transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}
+                          >
+                            <Icon size={19} className="text-white" />
                           </div>
+                          {testType.badge ? (
+                            <span
+                              className="text-[10px] font-black px-2 py-0.5 rounded-full text-white flex-shrink-0 tracking-wide"
+                              style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 0 8px rgba(124,58,237,0.4)' }}
+                            >
+                              {testType.badge}
+                            </span>
+                          ) : (
+                            <span
+                              className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1 transition-colors duration-200"
+                              style={{ background: isActive ? '#22c55e' : '#1e293b' }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Module name */}
+                        <div
+                          className="text-sm font-bold leading-tight mb-1.5 transition-colors duration-200"
+                          style={{ color: isActive ? '#fff' : '#94a3b8' }}
+                        >
+                          {testType.title}
+                        </div>
+
+                        {/* 1-line description */}
+                        <p className="text-xs leading-relaxed mb-3 line-clamp-2 flex-1" style={{ color: '#64748b' }}>
+                          {testType.description.split('.')[0]}.
+                        </p>
+
+                        {/* Feature tags */}
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {testType.features.slice(0, 3).map((f, fi) => (
+                            <span
+                              key={fi}
+                              className="text-[11px] px-2 py-0.5 rounded font-mono"
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: '#64748b' }}
+                            >
+                              {f.split(' ').slice(0, 3).join(' ')}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Launch row */}
+                        <div
+                          className="flex items-center justify-between text-xs font-mono transition-colors duration-200"
+                          style={{ color: isActive ? '#94a3b8' : '#334155' }}
+                        >
+                          <span>→ run module</span>
+                          <ArrowRight size={10} style={{ transform: isActive ? 'translateX(2px)' : 'none', transition: 'transform 0.2s' }} />
                         </div>
                       </div>
 
-                      {/* Selection indicator ring */}
+                      {/* Hover gradient overlay */}
                       {isActive && (
-                        <div className={`absolute -inset-4 rounded-full border-2 border-dashed border-white/30 animate-pulse`} />
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${testType.gradient} pointer-events-none`}
+                          style={{ opacity: 0.04 }}
+                        />
                       )}
-                    </div>
-
-                    {/* NEW badge (FullSend only) */}
-                    {testType.badge && (
-                      <div className="absolute -top-2 -right-2 z-20 px-1.5 py-0.5 rounded-full text-[9px] font-black text-white"
-                        style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 0 8px rgba(124,58,237,0.6)' }}>
-                        {testType.badge}
-                      </div>
-                    )}
-
-                    {/* Label below orb */}
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                      <span className={`text-xs font-medium transition-colors ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
-                        {testType.title.split(' ')[0]}
-                      </span>
                     </div>
                   </div>
                 );
@@ -696,613 +733,379 @@ function TestingTypesLanding({ user, onLogout }) {
             </div>
           </div>
 
-          {/* Info Panel - Shows on hover */}
-          <div className="w-full lg:w-72 lg:sticky lg:top-20 flex-shrink-0">
-            <div
-              className={`relative transition-all duration-500 ${activeType ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
-            >
-              {activeType && (
-                <>
-                  {/* Glow behind panel */}
-                  <div className={`absolute -inset-2 bg-gradient-to-r ${activeType.gradient} rounded-2xl opacity-20 blur-xl`} />
-
-                  {/* Panel */}
-                  <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden shadow-2xl">
-                    {/* Animated gradient header */}
-                    <div className={`h-1.5 bg-gradient-to-r ${activeType.gradient} relative overflow-hidden`}>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" style={{ animation: 'shimmer 2s linear infinite' }} />
-                    </div>
-
-                    <div className="p-4">
-                      {/* Icon and Title */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${activeType.gradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
-                          {React.createElement(activeType.icon, { size: 20, className: "text-white" })}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-base font-bold text-white truncate">{activeType.title}</h3>
-                          <p className="text-xs text-gray-400">Click orb to launch</p>
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <p className="text-xs text-gray-300 mb-3 leading-relaxed line-clamp-2">
-                        {activeType.description.split('.')[0]}.
-                      </p>
-
-                      {/* Features - compact grid */}
-                      <div className="mb-4">
-                        <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Key Features</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {activeType.features.slice(0, 4).map((feature, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-white/5 border border-white/10 text-gray-300"
-                              style={{ animation: `slideIn 0.2s ease-out ${idx * 0.03}s both` }}
-                            >
-                              <CheckCircle size={10} className="text-green-400 flex-shrink-0" />
-                              {feature.split(' ').slice(0, 3).join(' ')}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* CTA Button */}
-                      <button
-                        onClick={() => handleNavigate(activeType.route)}
-                        className={`w-full py-2.5 rounded-lg bg-gradient-to-r ${activeType.gradient} text-white text-sm font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group`}
-                      >
-                        <span>Launch</span>
-                        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Empty state */}
-              {!activeType && (
-                <div className="bg-slate-900/40 backdrop-blur-xl rounded-xl border border-white/10 p-6 text-center">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center">
-                    <Zap size={24} className="text-gray-500" />
-                  </div>
-                  <p className="text-gray-400 text-xs">Hover over an orb to see details</p>
+          {/* Terminal Detail Panel */}
+          <div className="w-full lg:w-[300px] flex-shrink-0 lg:sticky lg:top-20">
+            {activeType ? (
+              <div
+                key={activeType.id}
+                className="rounded-xl overflow-hidden font-mono text-xs"
+                style={{
+                  background: 'rgba(4,7,15,0.97)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  animation: 'fadeIn 0.12s ease-out',
+                }}
+              >
+                {/* macOS title bar */}
+                <div className="flex items-center gap-1.5 px-4 py-2.5 bg-black/25" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+                  <span className="ml-2 text-[9px] tracking-wider truncate" style={{ color: '#475569' }}>
+                    flasqo / modules / {activeType.id}
+                  </span>
                 </div>
-              )}
-            </div>
+
+                {/* Gradient accent */}
+                <div className={`h-[2px] bg-gradient-to-r ${activeType.gradient}`} />
+
+                {/* Terminal body */}
+                <div className="px-4 py-4 space-y-3.5">
+                  {/* Command */}
+                  <div>
+                    <span style={{ color: '#22c55e60' }}>$ </span>
+                    <span style={{ color: '#3b82f6aa' }}>flasqo</span>
+                    <span style={{ color: '#475569' }}> inspect </span>
+                    <span style={{ color: '#67e8f9cc' }}>{activeType.id}</span>
+                  </div>
+
+                  {/* Module meta */}
+                  <div className="pl-3 space-y-1" style={{ borderLeft: '2px solid rgba(255,255,255,0.06)' }}>
+                    {[
+                      { k: 'NAME', v: activeType.title, vc: '#fff' },
+                      { k: 'STATUS', v: '● available', vc: '#4ade80' },
+                      ...(activeType.badge ? [{ k: 'TAG', v: activeType.badge, vc: '#c084fc' }] : []),
+                    ].map(row => (
+                      <div key={row.k} className="flex items-center gap-2">
+                        <span className="w-14 flex-shrink-0 text-[10px]" style={{ color: '#334155' }}>{row.k}</span>
+                        <span style={{ color: row.vc }}>{row.v}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <div className="mb-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#334155' }}>description</div>
+                    <p className="pl-3 leading-relaxed text-[10px]" style={{ color: '#64748b', borderLeft: '2px solid rgba(255,255,255,0.05)' }}>
+                      {activeType.description}
+                    </p>
+                  </div>
+
+                  {/* Capabilities */}
+                  <div>
+                    <div className="mb-2 text-[10px] uppercase tracking-widest" style={{ color: '#334155' }}>capabilities</div>
+                    <div className="space-y-1.5">
+                      {activeType.features.map((f, fi) => (
+                        <div
+                          key={fi}
+                          className="flex items-center gap-2"
+                          style={{ animation: `slideIn 0.18s ease-out ${fi * 0.035}s both` }}
+                        >
+                          <span style={{ color: '#22c55e80' }}>[✓]</span>
+                          <span style={{ color: '#64748b' }}>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Blinking prompt */}
+                  <div className="pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <span style={{ color: '#22c55e60' }}>{'>'} </span>
+                    <span style={{ color: '#475569' }}>flasqo run --module </span>
+                    <span style={{ color: '#67e8f9cc' }}>{activeType.id}</span>
+                    <span
+                      className="inline-block w-[7px] h-[13px] rounded-sm ml-1 align-middle animate-pulse"
+                      style={{ background: '#475569' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Launch button */}
+                <div className="px-4 pb-4">
+                  <button
+                    onClick={() => handleNavigate(activeType.route, activeType.newTab)}
+                    className={`w-full py-2.5 rounded-lg bg-gradient-to-r ${activeType.gradient} text-white text-sm font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90 group`}
+                  >
+                    Launch Module
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Empty state */
+              <div
+                className="rounded-xl overflow-hidden font-mono text-[11px]"
+                style={{ background: 'rgba(4,7,15,0.60)', border: '1px solid rgba(255,255,255,0.05)' }}
+              >
+                <div className="flex items-center gap-1.5 px-4 py-2.5 bg-black/15" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+                  <span className="ml-2 text-[9px]" style={{ color: '#1e293b' }}>flasqo / modules</span>
+                </div>
+                <div className="px-4 py-8 text-center space-y-2">
+                  <div style={{ color: '#1e293b' }}>
+                    <span style={{ color: '#22c55e30' }}>$ </span>
+                    hover a card to inspect
+                    <span className="inline-block w-[6px] h-[11px] rounded-sm ml-1 align-middle animate-pulse" style={{ background: '#1e293b' }} />
+                  </div>
+                  <p className="text-[10px]" style={{ color: '#0f172a' }}>13 modules available</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* CSS Animations */}
         <style>{`
-          @keyframes orbFloat {
-            0%, 100% {
-              transform: translateY(0px);
-            }
-            50% {
-              transform: translateY(-8px);
-            }
-          }
-
           @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: scale(0.8);
-            }
-            to {
-              opacity: 1;
-              transform: scale(1);
-            }
+            from { opacity: 0; transform: translateY(8px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)  scale(1); }
           }
-
-          @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
-          }
-
-          @keyframes shine {
-            0% {
-              transform: translateX(-100%) rotate(45deg);
-            }
-            100% {
-              transform: translateX(100%) rotate(45deg);
-            }
-          }
-
-          @keyframes shimmer {
-            0% {
-              transform: translateX(-100%);
-            }
-            100% {
-              transform: translateX(100%);
-            }
-          }
-
           @keyframes slideIn {
-            from {
-              opacity: 0;
-              transform: translateX(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(-8px); }
+            to   { opacity: 1; transform: translateX(0); }
           }
-
-          @keyframes twinkle {
-            0%, 100% {
-              opacity: 0.2;
-              transform: scale(1);
-            }
-            50% {
-              opacity: 0.8;
-              transform: scale(1.5);
-            }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
           }
-
-          @keyframes float1 {
-            0%, 100% {
-              transform: translateY(0) rotate(0deg);
-            }
-            50% {
-              transform: translateY(-20px) rotate(10deg);
-            }
+          @keyframes shimmer {
+            0%   { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
           }
-
-          @keyframes float2 {
-            0%, 100% {
-              transform: translateY(0) translateX(0);
-            }
-            33% {
-              transform: translateY(-15px) translateX(10px);
-            }
-            66% {
-              transform: translateY(5px) translateX(-5px);
-            }
-          }
-
-          @keyframes float3 {
-            0%, 100% {
-              transform: translateY(0) scale(1);
-            }
-            50% {
-              transform: translateY(-25px) scale(1.1);
-            }
-          }
-
           @keyframes wordFade {
-            0% {
-              opacity: 0;
-              transform: translateY(20px) rotateX(-90deg);
-            }
-            20% {
-              opacity: 1;
-              transform: translateY(0) rotateX(0);
-            }
-            80% {
-              opacity: 1;
-              transform: translateY(0) rotateX(0);
-            }
-            100% {
-              opacity: 0;
-              transform: translateY(-20px) rotateX(90deg);
-            }
+            0%   { opacity: 0; transform: translateY(20px) rotateX(-90deg); }
+            20%  { opacity: 1; transform: translateY(0) rotateX(0); }
+            80%  { opacity: 1; transform: translateY(0) rotateX(0); }
+            100% { opacity: 0; transform: translateY(-20px) rotateX(90deg); }
           }
-
           @keyframes scaleX {
-            0%, 100% {
-              transform: scaleX(0.3);
-              opacity: 0.5;
-            }
-            50% {
-              transform: scaleX(1);
-              opacity: 1;
-            }
+            0%, 100% { transform: scaleX(0.3); opacity: 0.5; }
+            50%       { transform: scaleX(1);   opacity: 1; }
           }
-
           @keyframes bounce {
-            0%, 100% {
-              transform: translateY(0);
-            }
-            50% {
-              transform: translateY(-4px);
-            }
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-4px); }
           }
-
           @keyframes pulse {
-            0%, 100% {
-              opacity: 0.5;
-              transform: scale(1);
-            }
-            50% {
-              opacity: 1;
-              transform: scale(1.05);
-            }
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50%       { opacity: 1;   transform: scale(1.05); }
           }
-
-          .scale-115 {
-            transform: scale(1.15);
+          @keyframes float1 {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50%       { transform: translateY(-20px) rotate(10deg); }
           }
-
+          @keyframes float2 {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            33%       { transform: translateY(-15px) translateX(10px); }
+            66%       { transform: translateY(5px) translateX(-5px); }
+          }
+          @keyframes float3 {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50%       { transform: translateY(-25px) scale(1.1); }
+          }
           @keyframes headerOrb1 {
-            0%, 100% {
-              transform: translate(0, 0) scale(1);
-            }
-            50% {
-              transform: translate(30px, 10px) scale(1.1);
-            }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50%       { transform: translate(30px, 10px) scale(1.1); }
           }
-
           @keyframes headerOrb2 {
-            0%, 100% {
-              transform: translate(0, 0) scale(1);
-            }
-            33% {
-              transform: translate(-20px, 5px) scale(1.05);
-            }
-            66% {
-              transform: translate(10px, -5px) scale(0.95);
-            }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%       { transform: translate(-20px, 5px) scale(1.05); }
+            66%       { transform: translate(10px, -5px) scale(0.95); }
           }
-
           @keyframes gradientShift {
-            0% {
-              background-position: 0% 50%;
-            }
-            100% {
-              background-position: 300% 50%;
-            }
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
           }
-
-          @keyframes wave {
-            0%, 100% {
-              d: path('M0,15 C150,25 350,0 500,15 C650,30 750,5 900,15 C1050,25 1150,10 1200,15 L1200,0 L0,0 Z');
-            }
-            50% {
-              d: path('M0,10 C150,0 350,25 500,10 C650,0 750,20 900,10 C1050,0 1150,15 1200,10 L1200,0 L0,0 Z');
-            }
-          }
-
-          @keyframes particle {
-            0%, 100% {
-              transform: translateY(0) scale(1);
-              opacity: 0.3;
-            }
-            50% {
-              transform: translateY(-10px) scale(1.5);
-              opacity: 0.8;
-            }
-          }
-
-          @keyframes auroraFlow {
-            0%, 100% {
-              transform: translateX(-10%) scaleY(1);
-              opacity: 0.6;
-            }
-            50% {
-              transform: translateX(10%) scaleY(1.3);
-              opacity: 0.8;
-            }
-          }
-
-          @keyframes energyPulse {
-            0%, 100% {
-              stroke-dashoffset: 0;
-              opacity: 0.8;
-            }
-            50% {
-              stroke-dashoffset: 50;
-              opacity: 1;
-            }
-          }
-
-          @keyframes nodeGlow {
-            0%, 100% {
-              transform: scale(1);
-              opacity: 0.6;
-            }
-            50% {
-              transform: scale(1.3);
-              opacity: 1;
-            }
-          }
-
-          @keyframes shootingStar {
-            0% {
-              left: -60px;
-              opacity: 0;
-            }
-            10% {
-              opacity: 1;
-            }
-            90% {
-              opacity: 1;
-            }
-            100% {
-              left: 110%;
-              opacity: 0;
-            }
-          }
-
           @keyframes floatParticle {
-            0%, 100% {
-              transform: translateY(0) translateX(0) scale(1);
-              opacity: 0.4;
-            }
-            25% {
-              transform: translateY(-15px) translateX(5px) scale(1.2);
-              opacity: 0.8;
-            }
-            50% {
-              transform: translateY(-5px) translateX(-5px) scale(1);
-              opacity: 0.6;
-            }
-            75% {
-              transform: translateY(-20px) translateX(3px) scale(1.1);
-              opacity: 0.9;
-            }
+            0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.4; }
+            25%       { transform: translateY(-15px) translateX(5px) scale(1.2); opacity: 0.8; }
+            50%       { transform: translateY(-5px) translateX(-5px) scale(1); opacity: 0.6; }
+            75%       { transform: translateY(-20px) translateX(3px) scale(1.1); opacity: 0.9; }
           }
-
           @keyframes avatarFloat {
-            0%, 100% {
-              transform: translateY(0);
-            }
-            50% {
-              transform: translateY(-3px);
-            }
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-3px); }
           }
-
           @keyframes sparkle {
-            0%, 100% {
-              opacity: 0.3;
-              transform: scale(1);
-            }
-            50% {
-              opacity: 1;
-              transform: scale(1.5);
-            }
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50%       { opacity: 1;   transform: scale(1.5); }
           }
-
           @keyframes morphAurora1 {
-            0%, 100% {
-              transform: translateX(0);
-            }
-            50% {
-              transform: translateX(-20px);
-            }
+            0%, 100% { transform: translateX(0); }
+            50%       { transform: translateX(-20px); }
           }
-
           @keyframes morphAurora2 {
-            0%, 100% {
-              transform: translateX(0);
-            }
-            50% {
-              transform: translateX(30px);
-            }
+            0%, 100% { transform: translateX(0); }
+            50%       { transform: translateX(30px); }
           }
-
-          @keyframes dashMove {
-            0% {
-              stroke-dashoffset: 0;
-            }
-            100% {
-              stroke-dashoffset: 1000;
-            }
+          @keyframes pipelineDot {
+            0%, 100% { opacity: 0.25; }
+            50%       { opacity: 0.80; }
           }
-
-          @keyframes nodeAppear {
-            0% {
-              opacity: 0;
-              transform: translateY(20px) scale(0.9);
-            }
-            100% {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
+          @keyframes shine {
+            0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+            50%  { opacity: 1; }
+            100% { transform: translateX(200%) skewX(-15deg); opacity: 0; }
           }
-
-          @keyframes borderShine {
-            0% {
-              transform: translateX(-100%);
-            }
-            100% {
-              transform: translateX(100%);
-            }
-          }
-
-          @keyframes arrowPulse {
-            0%, 100% {
-              opacity: 0.3;
-              transform: translateX(0) rotate(45deg);
-            }
-            50% {
-              opacity: 1;
-              transform: translateX(3px) rotate(45deg);
-            }
-          }
+          .scrollbar-thin::-webkit-scrollbar { height: 4px; }
+          .scrollbar-thin::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 2px; }
+          .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 2px; }
         `}</style>
 
-        {/* Creative Journey Roadmap */}
-        <div className="relative overflow-hidden rounded-3xl">
-          {/* Animated background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950/50 to-slate-900" />
-          <div className="absolute inset-0">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" style={{ animation: 'float1 10s ease-in-out infinite' }} />
-            <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl" style={{ animation: 'float2 8s ease-in-out infinite' }} />
-          </div>
+        {/* Recommended Testing Pipeline */}
+        <div
+          className="relative rounded-2xl overflow-hidden"
+          style={{ background: 'rgba(5,8,18,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          {/* Dot grid bg */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.3) 1px, transparent 1px)',
+              backgroundSize: '24px 24px',
+              opacity: 0.08,
+            }}
+          />
+          {/* Ambient glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-20 bg-purple-500/10 blur-3xl pointer-events-none" />
 
-          {/* Content */}
-          <div className="relative p-8">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-3 mb-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-md opacity-50" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
-                  <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <TrendingUp className="text-white" size={24} />
-                  </div>
+          <div className="relative px-6 py-7">
+            {/* Header row */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <TrendingUp size={16} className="text-white" />
                 </div>
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
-                  Your Testing Journey
-                </h3>
+                <div>
+                  <h3 className="text-base font-bold text-white leading-tight">Recommended Pipeline</h3>
+                  <p className="text-[11px] text-slate-600 font-mono">deploy-ready coverage · 13 stages</p>
+                </div>
               </div>
-              <p className="text-gray-400 max-w-2xl mx-auto text-sm">
-                Follow our recommended path for comprehensive API testing coverage
-              </p>
+              <div
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-[10px]"
+                style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.18)' }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-green-400/80">sequential · all 13 modules</span>
+              </div>
             </div>
 
-            {/* Animated Journey Path */}
-            <div className="relative">
-              {/* SVG Path connecting all nodes */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ minHeight: '200px' }}>
-                <defs>
-                  <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#22c55e" />
-                    <stop offset="15%" stopColor="#3b82f6" />
-                    <stop offset="30%" stopColor="#8b5cf6" />
-                    <stop offset="45%" stopColor="#f97316" />
-                    <stop offset="60%" stopColor="#ef4444" />
-                    <stop offset="75%" stopColor="#06b6d4" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                  <filter id="pathGlow">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                {/* Animated dashed path */}
-                <path
-                  d="M 60,100 C 120,100 140,50 200,50 S 280,100 340,100 S 420,50 480,50 S 560,100 620,100 S 700,50 760,50 S 840,100 900,100"
-                  fill="none"
-                  stroke="url(#pathGradient)"
-                  strokeWidth="3"
-                  strokeDasharray="8,8"
-                  filter="url(#pathGlow)"
-                  opacity="0.6"
-                  style={{ animation: 'dashMove 20s linear infinite' }}
-                />
-                {/* Traveling light */}
-                <circle r="6" fill="#fff" filter="url(#pathGlow)">
-                  <animateMotion
-                    dur="8s"
-                    repeatCount="indefinite"
-                    path="M 60,100 C 120,100 140,50 200,50 S 280,100 340,100 S 420,50 480,50 S 560,100 620,100 S 700,50 760,50 S 840,100 900,100"
-                  />
-                </circle>
-              </svg>
-
-              {/* Journey Nodes */}
-              <div className="flex flex-wrap justify-center gap-5 relative z-10 py-8">
-                {[
-                  { num: 1, name: 'Smoke', icon: Zap, color: 'from-green-400 to-emerald-500', glow: '#22c55e', desc: 'Quick health check' },
-                  { num: 2, name: 'Functional', icon: FileCheck, color: 'from-blue-400 to-blue-600', glow: '#3b82f6', desc: 'Validate behavior' },
-                  { num: 3, name: 'Performance', icon: Activity, color: 'from-purple-400 to-purple-600', glow: '#8b5cf6', desc: 'Test scalability' },
-                  { num: 4, name: 'Chaos', icon: AlertTriangle, color: 'from-orange-400 to-orange-600', glow: '#f97316', desc: 'Resilience testing' },
-                  { num: 5, name: 'Fuzz', icon: Bug, color: 'from-red-400 to-red-600', glow: '#ef4444', desc: 'Security scanning' },
-                  { num: 6, name: 'Regression', icon: GitCompare, color: 'from-cyan-400 to-cyan-600', glow: '#06b6d4', desc: 'Prevent changes' },
-                  { num: 7, name: 'Contract', icon: FileText, color: 'from-violet-400 to-violet-600', glow: '#8b5cf6', desc: 'API compatibility' }
-                ].map((step, index) => {
-                  const StepIcon = step.icon;
-                  return (
+            {/* Pipeline strip */}
+            <div className="flex items-center gap-0 overflow-x-auto pt-5 pb-3 scrollbar-thin">
+              {[
+                { num: 1,  name: 'FullSend',    icon: Globe,          glow: '#a855f7', grad: 'from-violet-500 to-fuchsia-600', route: '/fullsend',       desc: 'full app scan',  time: '< 60s',   badge: 'NEW' },
+                { num: 2,  name: 'Auto-Disc',   icon: Search,         glow: '#10b981', grad: 'from-emerald-500 to-teal-600',   route: '/auto-discovery', desc: 'endpoint scan',  time: '< 1 min' },
+                { num: 3,  name: 'Smoke',       icon: Zap,            glow: '#22c55e', grad: 'from-green-500 to-emerald-600',  route: '/smoke',          desc: 'health check',   time: '< 2 min' },
+                { num: 4,  name: 'Functional',  icon: FileCheck,      glow: '#3b82f6', grad: 'from-blue-500 to-blue-700',      route: '/functional',     desc: 'validate logic', time: '~ 5 min' },
+                { num: 5,  name: 'Performance', icon: Activity,       glow: '#8b5cf6', grad: 'from-purple-500 to-purple-700',  route: '/performance',    desc: 'load & stress',  time: '~ 4 min' },
+                { num: 6,  name: 'Chaos',       icon: AlertTriangle,  glow: '#f97316', grad: 'from-orange-500 to-red-600',     route: '/chaos',          desc: 'resilience',     time: '~ 2 min' },
+                { num: 7,  name: 'Fuzz',        icon: Bug,            glow: '#ef4444', grad: 'from-red-500 to-rose-700',       route: '/fuzz',           desc: 'security scan',  time: '~ 3 min' },
+                { num: 8,  name: 'Regression',  icon: GitCompare,     glow: '#06b6d4', grad: 'from-cyan-500 to-cyan-700',      route: '/regression',     desc: 'change detect',  time: '~ 1 min' },
+                { num: 9,  name: 'Contract',    icon: FileText,       glow: '#6366f1', grad: 'from-violet-500 to-indigo-600',  route: '/contract',       desc: 'API compat',     time: '~ 1 min' },
+                { num: 10, name: 'GraphQL',     icon: Database,       glow: '#818cf8', grad: 'from-indigo-500 to-blue-600',    route: '/graphql',        desc: 'query testing',  time: '~ 3 min' },
+                { num: 11, name: 'Integration', icon: Link2,          glow: '#14b8a6', grad: 'from-teal-500 to-cyan-600',      route: '/integration',    desc: 'cross-service',  time: '~ 4 min', badge: 'NEW' },
+                { num: 12, name: 'Vibe',        icon: Sparkles,       glow: '#d946ef', grad: 'from-fuchsia-500 to-violet-600', route: '/vibe-testing',   desc: 'AI explorer',    time: '~ 2 min' },
+                { num: 13, name: 'Flow',        icon: Workflow,       glow: '#f59e0b', grad: 'from-amber-500 to-orange-500',   route: '/flow-builder',   desc: 'visual chains',  time: 'open',    badge: 'NEW' },
+              ].map((step, idx, arr) => {
+                const StepIcon = step.icon;
+                return (
+                  <React.Fragment key={step.num}>
+                    {/* Stage chip */}
                     <div
-                      key={step.num}
-                      className="group relative cursor-pointer"
-                      style={{ animation: `nodeAppear 0.5s ease-out ${index * 0.1}s both` }}
+                      className="group relative flex-shrink-0 cursor-pointer"
+                      onClick={() => handleNavigate(step.route)}
+                      style={{ animation: `fadeIn 0.3s ease-out ${idx * 0.05}s both` }}
                     >
-                      {/* Glow effect */}
                       <div
-                        className="absolute -inset-4 rounded-2xl opacity-0 group-hover:opacity-50 blur-2xl transition-all duration-500"
-                        style={{ background: step.glow }}
-                      />
-
-                      {/* Node card */}
-                      <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-5 border border-white/10 group-hover:border-white/30 transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-2">
-                        {/* Number badge */}
-                        <div className="absolute -top-3 -left-3 z-10">
-                          <div className="relative">
-                            <div
-                              className="absolute inset-0 rounded-full blur-sm opacity-70"
-                              style={{ background: step.glow, animation: 'pulse 2s ease-in-out infinite' }}
-                            />
-                            <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center text-white font-bold text-xs shadow-lg ring-2 ring-slate-900`}>
-                              {step.num}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Large Icon */}
-                        <div className="flex justify-center mb-3">
-                          <div className="relative">
-                            {/* Icon glow */}
-                            <div
-                              className="absolute inset-0 rounded-xl blur-md opacity-40 group-hover:opacity-70 transition-opacity"
-                              style={{ background: step.glow }}
-                            />
-                            {/* Icon container */}
-                            <div className={`relative w-14 h-14 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                              <StepIcon size={28} className="text-white drop-shadow-lg" />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Content */}
-                        <div className="text-center min-w-[100px]">
-                          <div className={`text-sm font-bold bg-gradient-to-r ${step.color} bg-clip-text text-transparent mb-1`}>
-                            {step.name}
-                          </div>
-                          <div className="text-[10px] text-gray-500 group-hover:text-gray-300 transition-colors">
-                            {step.desc}
-                          </div>
-                        </div>
-
-                        {/* Animated border on hover */}
+                        className="relative rounded-xl px-3 py-3 transition-all duration-200 group-hover:-translate-y-1.5"
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          minWidth: 88,
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = `${step.glow}14`;
+                          e.currentTarget.style.borderColor = `${step.glow}45`;
+                          e.currentTarget.style.boxShadow = `0 6px 24px ${step.glow}22`;
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        {/* Step number badge */}
                         <div
-                          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden"
+                          className="absolute -top-3 -left-3 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white z-10"
+                          style={{ background: `linear-gradient(135deg, ${step.glow}, ${step.glow}bb)`, boxShadow: `0 0 10px ${step.glow}55` }}
                         >
+                          {step.num}
+                        </div>
+
+                        {/* NEW badge */}
+                        {step.badge && (
                           <div
-                            className="absolute inset-0"
-                            style={{
-                              background: `linear-gradient(90deg, transparent, ${step.glow}30, transparent)`,
-                              animation: 'borderShine 2s linear infinite'
-                            }}
-                          />
+                            className="absolute -top-3 -right-3 text-[9px] font-black px-1.5 py-px rounded-full text-white z-10"
+                            style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 0 6px rgba(124,58,237,0.5)' }}
+                          >
+                            {step.badge}
+                          </div>
+                        )}
+
+                        {/* Icon */}
+                        <div
+                          className={`w-9 h-9 rounded-lg bg-gradient-to-br ${step.grad} flex items-center justify-center mb-2 mx-auto shadow-md transition-transform duration-200 group-hover:scale-110`}
+                        >
+                          <StepIcon size={16} className="text-white" />
+                        </div>
+
+                        {/* Text */}
+                        <div className="text-center">
+                          <div className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors leading-tight">{step.name}</div>
+                          <div className="text-[10px] text-slate-600 font-mono mt-0.5">{step.desc}</div>
+                          <div className="text-[10px] mt-1 font-mono" style={{ color: `${step.glow}90` }}>{step.time}</div>
                         </div>
                       </div>
-
-                      {/* Connector arrow (except last) */}
-                      {index < 6 && (
-                        <div className="hidden lg:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 items-center justify-center">
-                          <ArrowRight size={20} className="text-white/60" />
-                        </div>
-                      )}
                     </div>
-                  );
-                })}
+
+                    {/* Connector */}
+                    {idx < arr.length - 1 && (
+                      <div className="flex-shrink-0 flex items-center px-0.5">
+                        <div className="flex items-center gap-[3px]">
+                          {[...Array(5)].map((_, di) => (
+                            <div
+                              key={di}
+                              className="w-1.5 h-[2px] rounded-full"
+                              style={{
+                                background: `linear-gradient(90deg, ${step.glow}55, ${arr[idx+1].glow}55)`,
+                                opacity: 0.3 + di * 0.14,
+                                animation: `pipelineDot 1.4s ease-in-out ${di * 0.12}s infinite`,
+                              }}
+                            />
+                          ))}
+                          <ArrowRight size={9} style={{ color: 'rgba(255,255,255,0.18)' }} />
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {/* Bottom row */}
+            <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-[10px] font-mono text-slate-700">click any stage to launch · run in sequence for full coverage</p>
+              <div
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg font-mono text-[10px] cursor-pointer group transition-all"
+                style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.20)' }}
+                onClick={() => handleNavigate('/fullsend')}
+              >
+                <span className="text-blue-400/70 group-hover:text-blue-300 transition-colors">Start from Stage 1</span>
+                <ArrowRight size={10} className="text-blue-400/70 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
-
-            {/* Bottom CTA */}
-            <div className="text-center mt-6">
-              <p className="text-xs text-gray-500 flex items-center justify-center gap-2">
-                <span className="w-8 h-px bg-gradient-to-r from-transparent to-purple-500/50" />
-                Click any orb above to begin your journey
-                <span className="w-8 h-px bg-gradient-to-l from-transparent to-purple-500/50" />
-              </p>
-            </div>
           </div>
-
-          {/* Decorative corner elements */}
-          <div className="absolute top-0 left-0 w-20 h-20 border-l-2 border-t-2 border-purple-500/20 rounded-tl-3xl" />
-          <div className="absolute top-0 right-0 w-20 h-20 border-r-2 border-t-2 border-blue-500/20 rounded-tr-3xl" />
-          <div className="absolute bottom-0 left-0 w-20 h-20 border-l-2 border-b-2 border-blue-500/20 rounded-bl-3xl" />
-          <div className="absolute bottom-0 right-0 w-20 h-20 border-r-2 border-b-2 border-purple-500/20 rounded-br-3xl" />
         </div>
       </div>
 

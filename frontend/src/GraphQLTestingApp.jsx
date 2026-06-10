@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List, ArrowLeft, LogOut, RefreshCw } from 'lucide-react';
+import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List, LogOut, RefreshCw } from 'lucide-react';
+import BackButton from './BackButton';
 import Toast from './Toast';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
+
+const FUCHSIA = '#e879f9';
+const FUCHSIA_DIM = 'rgba(232,121,249,0.12)';
+const FUCHSIA_BORDER = 'rgba(232,121,249,0.25)';
 
 const GraphQLTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -366,8 +371,103 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
     }
   };
 
+  // ── Shared style tokens
+  const card = {
+    background: 'rgba(9,12,22,0.80)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 16,
+    backdropFilter: 'blur(20px)',
+    padding: 28,
+  };
+
+  const inputStyle = {
+    width: '100%',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 10,
+    padding: '11px 14px',
+    color: '#fff',
+    fontSize: 14,
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.45)',
+    marginBottom: 6,
+  };
+
+  const btnPrimary = {
+    width: '100%',
+    background: `linear-gradient(135deg, #a21caf 0%, #7c3aed 100%)`,
+    border: 'none',
+    borderRadius: 10,
+    padding: '13px 20px',
+    color: '#fff',
+    fontWeight: 700,
+    fontSize: 14,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  };
+
+  const btnSecondary = {
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.10)',
+    borderRadius: 10,
+    padding: '12px 20px',
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  };
+
+  const testTypeMeta = {
+    queries:     { label: 'Query Tests',       desc: 'Test all queries',            color: FUCHSIA },
+    mutations:   { label: 'Mutation Tests',     desc: 'Test all mutations',          color: '#34d399' },
+    nested:      { label: 'Nested Queries',     desc: 'Test deep relationships',     color: '#60a5fa' },
+    fragments:   { label: 'Fragment Tests',     desc: 'Test reusable fragments',     color: '#fbbf24' },
+    errors:      { label: 'Error Handling',     desc: 'Test error scenarios',        color: '#f87171' },
+    performance: { label: 'Performance Tests',  desc: 'N+1 detection & complexity',  color: '#a78bfa' },
+  };
+
+  const testTypeBadgeColor = { query: '#60a5fa', mutation: '#34d399', performance: '#a78bfa', custom: '#fbbf24' };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg,#020408 0%,#060c18 50%,#020408 100%)',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      position: 'relative',
+    }}>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .gql-input:focus { border-color: ${FUCHSIA_BORDER} !important; box-shadow: 0 0 0 3px ${FUCHSIA_DIM}; }
+        .gql-btn-primary:hover { opacity: 0.88; }
+        .gql-btn-secondary:hover { background: rgba(255,255,255,0.10) !important; color: #fff !important; }
+        .gql-card-hover:hover { border-color: rgba(232,121,249,0.20) !important; }
+        .gql-explorer-row:hover { background: rgba(255,255,255,0.04); }
+        .gql-explorer-row:hover .gql-add-btn { opacity: 1 !important; }
+      `}</style>
+
+      {/* Dot grid */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'radial-gradient(circle, rgba(232,121,249,0.08) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }} />
+
       {toast.show && (
         <Toast
           message={toast.message}
@@ -376,51 +476,80 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
         />
       )}
 
-      {/* Sticky Header */}
-      <div className="bg-gradient-to-r from-purple-900/60 via-violet-900/60 to-indigo-900/60 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              title="Back to Home"
-            >
-              <ArrowLeft size={22} className="text-white" />
-            </button>
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center">
-              <Database size={22} className="text-white" />
+      {/* ── Sticky Header */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(2,4,8,0.92)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        height: 60,
+        display: 'flex', alignItems: 'center',
+      }}>
+        <div style={{
+          maxWidth: 1200, margin: '0 auto', width: '100%',
+          padding: '0 28px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          {/* Left */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <BackButton />
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'linear-gradient(135deg,#a21caf,#7c3aed)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 0 16px rgba(232,121,249,0.35)`,
+            }}>
+              <Database size={18} color="#fff" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">GraphQL API Testing</h1>
-              <p className="text-xs text-purple-300">Schema introspection · N+1 detection · AI validation</p>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>GraphQL API Testing</div>
+              <div style={{ fontSize: 11, color: 'rgba(232,121,249,0.7)' }}>Schema introspection · N+1 detection · AI validation</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Right */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {step > 1 && (
               <button
                 onClick={resetSession}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white rounded-lg transition-all text-sm"
+                style={{ ...btnSecondary, width: 'auto', padding: '7px 14px', fontSize: 12, gap: 6 }}
+                className="gql-btn-secondary"
                 title="Clear session and start over"
               >
-                <RefreshCw size={15} />
-                <span className="hidden sm:inline">New Test</span>
+                <RefreshCw size={13} /> New Test
               </button>
             )}
             {user && (
               <>
-                <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg border border-white/20">
-                  <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-violet-500 rounded-full flex items-center justify-center font-bold text-white text-xs">
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '6px 12px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  borderRadius: 8,
+                }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: '50%',
+                    background: 'linear-gradient(135deg,#a21caf,#7c3aed)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, color: '#fff',
+                  }}>
                     {user.username?.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm text-white">{user.username}</span>
+                  <span style={{ fontSize: 13, color: '#fff' }}>{user.username}</span>
                 </div>
                 <button
                   onClick={onLogout}
-                  className="flex items-center gap-2 px-3 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-all text-sm"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '7px 12px',
+                    background: 'rgba(220,38,38,0.15)',
+                    border: '1px solid rgba(220,38,38,0.30)',
+                    borderRadius: 8, color: '#f87171',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}
                 >
-                  <LogOut size={16} />
-                  <span className="hidden sm:inline">Logout</span>
+                  <LogOut size={13} /> Logout
                 </button>
               </>
             )}
@@ -428,573 +557,718 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
         </div>
       </div>
 
-      <div className="p-8">
+      {/* ── Page body */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 28px', position: 'relative', zIndex: 1 }}>
 
-      {/* Progress Steps */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="flex items-center justify-between">
+        {/* ── Step Progress Indicator */}
+        <div style={{ marginBottom: 36, display: 'flex', alignItems: 'center' }}>
           {[
-            { num: 1, label: 'Configure', icon: Code },
-            { num: 2, label: 'Generate Tests', icon: Zap },
-            { num: 3, label: 'Run Tests', icon: Play },
-            { num: 4, label: 'Results', icon: TrendingUp }
+            { num: 1, label: 'Configure', Icon: Code },
+            { num: 2, label: 'Generate Tests', Icon: Zap },
+            { num: 3, label: 'Run Tests', Icon: Play },
+            { num: 4, label: 'Results', Icon: TrendingUp },
           ].map((s, idx) => (
             <React.Fragment key={s.num}>
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
-                    step >= s.num
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 text-gray-400'
-                  }`}
-                >
-                  <s.icon className="w-6 h-6" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: step >= s.num
+                    ? `linear-gradient(135deg,#a21caf,#7c3aed)`
+                    : 'rgba(255,255,255,0.05)',
+                  border: step >= s.num
+                    ? `2px solid ${FUCHSIA}`
+                    : '2px solid rgba(255,255,255,0.10)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: step >= s.num ? `0 0 14px rgba(232,121,249,0.35)` : 'none',
+                  transition: 'all 0.3s',
+                }}>
+                  <s.Icon size={18} color={step >= s.num ? '#fff' : 'rgba(255,255,255,0.3)'} />
                 </div>
-                <span className={`text-sm ${step >= s.num ? 'text-purple-400' : 'text-gray-500'}`}>
+                <span style={{
+                  fontSize: 11, fontWeight: 600,
+                  color: step >= s.num ? FUCHSIA : 'rgba(255,255,255,0.3)',
+                  letterSpacing: '0.04em',
+                }}>
                   {s.label}
                 </span>
               </div>
               {idx < 3 && (
-                <div
-                  className={`flex-1 h-1 mx-4 rounded ${
-                    step > s.num ? 'bg-purple-600' : 'bg-gray-700'
-                  }`}
-                />
+                <div style={{
+                  flex: 1, height: 2, margin: '0 10px', marginBottom: 24,
+                  background: step > s.num
+                    ? `linear-gradient(90deg,#a21caf,${FUCHSIA})`
+                    : 'rgba(255,255,255,0.08)',
+                  borderRadius: 2,
+                  transition: 'background 0.3s',
+                }} />
               )}
             </React.Fragment>
           ))}
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto">
-        {/* Step 1: Configure */}
+        {/* ────────────────────────────────────────
+            STEP 1 — Configure
+        ──────────────────────────────────────── */}
         {step === 1 && (
-          <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-              <Code className="w-6 h-6" />
-              Configure GraphQL Endpoint
-            </h2>
-
-            <div className="space-y-6">
-              {/* Endpoint Input */}
-              <div>
-                <label className="block text-gray-300 mb-2 font-medium">
-                  GraphQL Endpoint URL *
-                </label>
-                <input
-                  type="text"
-                  value={graphqlEndpoint}
-                  onChange={(e) => setGraphqlEndpoint(e.target.value)}
-                  placeholder="https://api.example.com/graphql"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                />
-                <p className="text-gray-400 text-sm mt-2">
-                  Enter your GraphQL endpoint. We'll automatically discover the schema using introspection.
-                </p>
-              </div>
-
-              {/* Authentication */}
-              <div>
-                <label className="block text-gray-300 mb-2 font-medium">Authentication</label>
-                <select
-                  value={authConfig.type}
-                  onChange={(e) => setAuthConfig({ ...authConfig, type: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                >
-                  <option value="none">No Authentication</option>
-                  <option value="bearer">Bearer Token</option>
-                  <option value="api_key">API Key</option>
-                  <option value="basic">Basic Auth</option>
-                </select>
-              </div>
-
-              {/* Auth Details */}
-              {authConfig.type === 'bearer' && (
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            <div style={card}>
+              {/* Card header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: FUCHSIA_DIM, border: `1px solid ${FUCHSIA_BORDER}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Code size={18} color={FUCHSIA} />
+                </div>
                 <div>
-                  <label className="block text-gray-300 mb-2">Bearer Token</label>
-                  <input
-                    type="password"
-                    value={authConfig.token || ''}
-                    onChange={(e) => setAuthConfig({ ...authConfig, token: e.target.value })}
-                    placeholder="Your bearer token"
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  />
-                </div>
-              )}
-
-              {authConfig.type === 'api_key' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-300 mb-2">Header Name</label>
-                    <input
-                      type="text"
-                      value={authConfig.key_name || ''}
-                      onChange={(e) => setAuthConfig({ ...authConfig, key_name: e.target.value })}
-                      placeholder="X-API-Key"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 mb-2">API Key</label>
-                    <input
-                      type="password"
-                      value={authConfig.api_key || ''}
-                      onChange={(e) => setAuthConfig({ ...authConfig, api_key: e.target.value })}
-                      placeholder="Your API key"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {authConfig.type === 'basic' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-300 mb-2">Username</label>
-                    <input
-                      type="text"
-                      value={authConfig.username || ''}
-                      onChange={(e) => setAuthConfig({ ...authConfig, username: e.target.value })}
-                      placeholder="Username"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 mb-2">Password</label>
-                    <input
-                      type="password"
-                      value={authConfig.password || ''}
-                      onChange={(e) => setAuthConfig({ ...authConfig, password: e.target.value })}
-                      placeholder="Password"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Action Button */}
-              <button
-                onClick={discoverSchema}
-                disabled={loading}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Discovering Schema...
-                  </>
-                ) : (
-                  <>
-                    <Database className="w-5 h-5" />
-                    Discover Schema
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Generate Tests */}
-        {step === 2 && schema && (
-          <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-              <Zap className="w-6 h-6" />
-              AI-Powered Test Generation
-            </h2>
-
-            {/* Schema Info */}
-            <div className="bg-gray-700 rounded-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Schema Discovered</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-purple-400">{schema.queries?.length || 0}</div>
-                  <div className="text-gray-300 text-sm">Queries</div>
-                </div>
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-green-400">{schema.mutations?.length || 0}</div>
-                  <div className="text-gray-300 text-sm">Mutations</div>
-                </div>
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-400">{schema.types?.length || 0}</div>
-                  <div className="text-gray-300 text-sm">Types</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Configure GraphQL Endpoint</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Connect and discover your schema</div>
                 </div>
               </div>
-            </div>
 
-            {/* Schema Explorer */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <List className="w-5 h-5 text-purple-400" />
-                  Schema Explorer
-                </h3>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Endpoint */}
+                <div>
+                  <label style={labelStyle}>GraphQL Endpoint URL *</label>
                   <input
                     type="text"
-                    value={schemaSearch}
-                    onChange={(e) => setSchemaSearch(e.target.value)}
-                    placeholder="Search operations..."
-                    className="pl-9 pr-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 w-52"
+                    value={graphqlEndpoint}
+                    onChange={(e) => setGraphqlEndpoint(e.target.value)}
+                    placeholder="https://api.example.com/graphql"
+                    style={inputStyle}
+                    className="gql-input"
                   />
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
+                    We'll automatically discover the schema using introspection.
+                  </div>
                 </div>
-              </div>
-              <p className="text-gray-400 text-xs mb-3">
-                Browse discovered operations. Hover any row and click <span className="text-purple-400">+</span> to cherry-pick individual tests, or use <strong>Generate AI Tests</strong> below for full coverage.
-              </p>
 
-              <div className="space-y-3">
-                {/* Queries */}
-                {schema.queries?.length > 0 && (
-                  <div className="bg-gray-900/60 border border-purple-500/30 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExpandedSections(s => ({ ...s, queries: !s.queries }))}
-                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-700/40 transition-all"
-                    >
-                      {expandedSections.queries
-                        ? <ChevronDown className="w-4 h-4 text-purple-400" />
-                        : <ChevronRight className="w-4 h-4 text-purple-400" />}
-                      <span className="text-purple-300 font-semibold text-sm">QUERIES</span>
-                      <span className="px-2 py-0.5 bg-purple-600/40 text-purple-300 text-xs rounded-full">{schema.queries.length}</span>
-                    </button>
-                    {expandedSections.queries && (
-                      <div className="border-t border-purple-500/20 divide-y divide-gray-700/50 max-h-60 overflow-y-auto">
-                        {schema.queries
-                          .filter(q => !schemaSearch || q.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
-                          .map((q, idx) => (
-                            <div key={idx} className="flex items-start justify-between px-4 py-3 hover:bg-gray-700/30 group">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-white font-mono text-sm font-medium">{q.name}</span>
-                                  {q.type && (
-                                    <span className="text-xs text-purple-400 font-mono">
-                                      → {typeof q.type === 'string' ? q.type : q.type?.name || 'Object'}
-                                    </span>
-                                  )}
-                                </div>
-                                {q.args?.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {q.args.map((arg, i) => (
-                                      <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
-                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'String'}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => addTestFromSchemaExplorer(q, 'query')}
-                                title={`Add test for ${q.name}`}
-                                className="ml-3 p-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Mutations */}
-                {schema.mutations?.length > 0 && (
-                  <div className="bg-gray-900/60 border border-green-500/30 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExpandedSections(s => ({ ...s, mutations: !s.mutations }))}
-                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-700/40 transition-all"
-                    >
-                      {expandedSections.mutations
-                        ? <ChevronDown className="w-4 h-4 text-green-400" />
-                        : <ChevronRight className="w-4 h-4 text-green-400" />}
-                      <span className="text-green-300 font-semibold text-sm">MUTATIONS</span>
-                      <span className="px-2 py-0.5 bg-green-600/40 text-green-300 text-xs rounded-full">{schema.mutations.length}</span>
-                    </button>
-                    {expandedSections.mutations && (
-                      <div className="border-t border-green-500/20 divide-y divide-gray-700/50 max-h-60 overflow-y-auto">
-                        {schema.mutations
-                          .filter(m => !schemaSearch || m.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
-                          .map((m, idx) => (
-                            <div key={idx} className="flex items-start justify-between px-4 py-3 hover:bg-gray-700/30 group">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-white font-mono text-sm font-medium">{m.name}</span>
-                                  {m.type && (
-                                    <span className="text-xs text-green-400 font-mono">
-                                      → {typeof m.type === 'string' ? m.type : m.type?.name || 'Object'}
-                                    </span>
-                                  )}
-                                </div>
-                                {m.args?.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {m.args.map((arg, i) => (
-                                      <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
-                                        {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'String'}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => addTestFromSchemaExplorer(m, 'mutation')}
-                                title={`Add test for ${m.name}`}
-                                className="ml-3 p-1.5 rounded-lg bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Types */}
-                {schema.types?.length > 0 && (
-                  <div className="bg-gray-900/60 border border-blue-500/30 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExpandedSections(s => ({ ...s, types: !s.types }))}
-                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-700/40 transition-all"
-                    >
-                      {expandedSections.types
-                        ? <ChevronDown className="w-4 h-4 text-blue-400" />
-                        : <ChevronRight className="w-4 h-4 text-blue-400" />}
-                      <span className="text-blue-300 font-semibold text-sm">TYPES</span>
-                      <span className="px-2 py-0.5 bg-blue-600/40 text-blue-300 text-xs rounded-full">{schema.types.length}</span>
-                    </button>
-                    {expandedSections.types && (
-                      <div className="border-t border-blue-500/20 divide-y divide-gray-700/50 max-h-60 overflow-y-auto">
-                        {schema.types
-                          .filter(t => !schemaSearch || t.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
-                          .map((t, idx) => (
-                            <div key={idx} className="px-4 py-3 hover:bg-gray-700/30">
-                              <div className="text-white font-mono text-sm font-medium mb-1">{t.name}</div>
-                              {t.fields?.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                  {t.fields.map((field, i) => (
-                                    <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded font-mono">
-                                      {field.name}: {typeof field.type === 'string' ? field.type : field.type?.name || 'String'}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {generatedTests.length > 0 && (
-                <div className="mt-3 flex items-center justify-between bg-purple-900/20 border border-purple-500/30 rounded-lg px-4 py-2">
-                  <span className="text-purple-300 text-sm">{generatedTests.length} test{generatedTests.length !== 1 ? 's' : ''} cherry-picked</span>
-                  <button
-                    onClick={() => setStep(3)}
-                    className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all"
+                {/* Auth type */}
+                <div>
+                  <label style={labelStyle}>Authentication</label>
+                  <select
+                    value={authConfig.type}
+                    onChange={(e) => setAuthConfig({ ...authConfig, type: e.target.value })}
+                    style={{ ...inputStyle, appearance: 'none' }}
+                    className="gql-input"
                   >
-                    Review Selected →
-                  </button>
+                    <option value="none">No Authentication</option>
+                    <option value="bearer">Bearer Token</option>
+                    <option value="api_key">API Key</option>
+                    <option value="basic">Basic Auth</option>
+                  </select>
                 </div>
-              )}
-            </div>
 
-            {/* Test Type Selection */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Select Test Types</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries({
-                  queries: '🔍 Query Tests - Test all queries',
-                  mutations: '✏️ Mutation Tests - Test all mutations',
-                  nested: '🔗 Nested Query Tests - Test deep relationships',
-                  fragments: '📦 Fragment Tests - Test reusable fragments',
-                  errors: '❌ Error Handling - Test error scenarios',
-                  performance: '⚡ Performance Tests - N+1 detection & complexity'
-                }).map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-3 bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600">
+                {/* Bearer */}
+                {authConfig.type === 'bearer' && (
+                  <div>
+                    <label style={labelStyle}>Bearer Token</label>
                     <input
-                      type="checkbox"
-                      checked={selectedTestTypes[key]}
-                      onChange={(e) => setSelectedTestTypes({ ...selectedTestTypes, [key]: e.target.checked })}
-                      className="w-5 h-5 text-purple-600"
+                      type="password"
+                      value={authConfig.token || ''}
+                      onChange={(e) => setAuthConfig({ ...authConfig, token: e.target.value })}
+                      placeholder="Your bearer token"
+                      style={inputStyle}
+                      className="gql-input"
                     />
-                    <span className="text-gray-200">{label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-4">
-              <button
-                onClick={() => setStep(1)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
-              >
-                Back
-              </button>
-              <button
-                onClick={generateTests}
-                disabled={loading}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Generating Tests...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    Generate AI Tests
-                  </>
+                  </div>
                 )}
-              </button>
+
+                {/* API Key */}
+                {authConfig.type === 'api_key' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Header Name</label>
+                      <input
+                        type="text"
+                        value={authConfig.key_name || ''}
+                        onChange={(e) => setAuthConfig({ ...authConfig, key_name: e.target.value })}
+                        placeholder="X-API-Key"
+                        style={inputStyle}
+                        className="gql-input"
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>API Key</label>
+                      <input
+                        type="password"
+                        value={authConfig.api_key || ''}
+                        onChange={(e) => setAuthConfig({ ...authConfig, api_key: e.target.value })}
+                        placeholder="Your API key"
+                        style={inputStyle}
+                        className="gql-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Basic */}
+                {authConfig.type === 'basic' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Username</label>
+                      <input
+                        type="text"
+                        value={authConfig.username || ''}
+                        onChange={(e) => setAuthConfig({ ...authConfig, username: e.target.value })}
+                        placeholder="Username"
+                        style={inputStyle}
+                        className="gql-input"
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Password</label>
+                      <input
+                        type="password"
+                        value={authConfig.password || ''}
+                        onChange={(e) => setAuthConfig({ ...authConfig, password: e.target.value })}
+                        placeholder="Password"
+                        style={inputStyle}
+                        className="gql-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Discover button */}
+                <button
+                  onClick={discoverSchema}
+                  disabled={loading}
+                  style={{ ...btnPrimary, opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+                  className="gql-btn-primary"
+                >
+                  {loading ? (
+                    <>
+                      <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      Discovering Schema...
+                    </>
+                  ) : (
+                    <>
+                      <Database size={17} />
+                      Discover Schema
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Step 3: Review & Run Tests */}
-        {step === 3 && generatedTests.length > 0 && (
-          <div className="space-y-6">
-            {/* Test Summary */}
-            <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                <Play className="w-6 h-6" />
-                Review & Run Tests
-              </h2>
-
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-white">{generatedTests.length}</div>
-                  <div className="text-gray-300 text-sm">Total Tests</div>
+        {/* ────────────────────────────────────────
+            STEP 2 — Generate Tests
+        ──────────────────────────────────────── */}
+        {step === 2 && schema && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={card}>
+              {/* Card header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: FUCHSIA_DIM, border: `1px solid ${FUCHSIA_BORDER}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Zap size={18} color={FUCHSIA} />
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-400">
-                    {generatedTests.filter(t => t.type === 'query').length}
-                  </div>
-                  <div className="text-gray-300 text-sm">Query Tests</div>
-                </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-green-400">
-                    {generatedTests.filter(t => t.type === 'mutation').length}
-                  </div>
-                  <div className="text-gray-300 text-sm">Mutation Tests</div>
-                </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-purple-400">
-                    {generatedTests.filter(t => t.type === 'performance').length}
-                  </div>
-                  <div className="text-gray-300 text-sm">Performance</div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>AI-Powered Test Generation</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Explore schema and configure test types</div>
                 </div>
               </div>
 
-              {/* Natural Language Query Builder */}
-              <div className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 p-6 rounded-lg mb-6 border border-purple-600/30">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-6 h-6 text-purple-400" />
-                  <h3 className="text-lg font-semibold text-white">🤖 AI Query Builder</h3>
-                  <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full">NEW</span>
-                </div>
-                <p className="text-gray-300 text-sm mb-4">
-                  Describe what you want to query in plain English, and AI will generate the GraphQL query for you!
-                </p>
+              {/* Schema info strip */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14,
+                marginBottom: 28,
+              }}>
+                {[
+                  { val: schema.queries?.length || 0, label: 'Queries', color: FUCHSIA },
+                  { val: schema.mutations?.length || 0, label: 'Mutations', color: '#34d399' },
+                  { val: schema.types?.length || 0, label: 'Types', color: '#60a5fa' },
+                ].map(({ val, label, color }) => (
+                  <div key={label} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 12, padding: '16px 18px',
+                    textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color, marginBottom: 4 }}>{val}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</div>
+                  </div>
+                ))}
+              </div>
 
-                {/* NL Input */}
-                <div className="mb-4">
-                  <label className="block text-gray-300 mb-2 font-medium">Describe your query</label>
+              {/* Schema Explorer */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <List size={15} color={FUCHSIA} />
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Schema Explorer</span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)' }} />
+                    <input
+                      type="text"
+                      value={schemaSearch}
+                      onChange={(e) => setSchemaSearch(e.target.value)}
+                      placeholder="Search operations..."
+                      style={{ ...inputStyle, width: 200, paddingLeft: 32, fontSize: 12, padding: '8px 12px 8px 32px' }}
+                      className="gql-input"
+                    />
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 12 }}>
+                  Browse discovered operations. Hover any row and click <span style={{ color: FUCHSIA }}>+</span> to cherry-pick individual tests, or use <strong style={{ color: 'rgba(255,255,255,0.6)' }}>Generate AI Tests</strong> for full coverage.
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Queries */}
+                  {schema.queries?.length > 0 && (
+                    <div style={{ border: `1px solid ${FUCHSIA_BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
+                      <button
+                        onClick={() => setExpandedSections(s => ({ ...s, queries: !s.queries }))}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '10px 14px', background: 'rgba(232,121,249,0.06)',
+                          border: 'none', cursor: 'pointer',
+                        }}
+                      >
+                        {expandedSections.queries
+                          ? <ChevronDown size={14} color={FUCHSIA} />
+                          : <ChevronRight size={14} color={FUCHSIA} />}
+                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: FUCHSIA }}>QUERIES</span>
+                        <span style={{
+                          padding: '1px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                          background: FUCHSIA_DIM, color: FUCHSIA, border: `1px solid ${FUCHSIA_BORDER}`,
+                        }}>{schema.queries.length}</span>
+                      </button>
+                      {expandedSections.queries && (
+                        <div style={{ maxHeight: 240, overflowY: 'auto', borderTop: `1px solid ${FUCHSIA_BORDER}` }}>
+                          {schema.queries
+                            .filter(q => !schemaSearch || q.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
+                            .map((q, idx) => (
+                              <div key={idx} className="gql-explorer-row" style={{
+                                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                                padding: '10px 14px',
+                                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                              }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#fff' }}>{q.name}</span>
+                                    {q.type && (
+                                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: FUCHSIA }}>
+                                        → {typeof q.type === 'string' ? q.type : q.type?.name || 'Object'}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {q.args?.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                      {q.args.map((arg, i) => (
+                                        <span key={i} style={{
+                                          fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                                          background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)',
+                                          fontFamily: 'monospace',
+                                        }}>
+                                          {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'String'}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => addTestFromSchemaExplorer(q, 'query')}
+                                  className="gql-add-btn"
+                                  style={{
+                                    marginLeft: 10, padding: 6, borderRadius: 6,
+                                    background: FUCHSIA_DIM, border: `1px solid ${FUCHSIA_BORDER}`,
+                                    color: FUCHSIA, cursor: 'pointer', opacity: 0,
+                                    display: 'flex', alignItems: 'center', transition: 'opacity 0.15s',
+                                  }}
+                                >
+                                  <Plus size={13} />
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Mutations */}
+                  {schema.mutations?.length > 0 && (
+                    <div style={{ border: '1px solid rgba(52,211,153,0.25)', borderRadius: 10, overflow: 'hidden' }}>
+                      <button
+                        onClick={() => setExpandedSections(s => ({ ...s, mutations: !s.mutations }))}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '10px 14px', background: 'rgba(52,211,153,0.06)',
+                          border: 'none', cursor: 'pointer',
+                        }}
+                      >
+                        {expandedSections.mutations
+                          ? <ChevronDown size={14} color="#34d399" />
+                          : <ChevronRight size={14} color="#34d399" />}
+                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: '#34d399' }}>MUTATIONS</span>
+                        <span style={{
+                          padding: '1px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                          background: 'rgba(52,211,153,0.12)', color: '#34d399', border: '1px solid rgba(52,211,153,0.25)',
+                        }}>{schema.mutations.length}</span>
+                      </button>
+                      {expandedSections.mutations && (
+                        <div style={{ maxHeight: 240, overflowY: 'auto', borderTop: '1px solid rgba(52,211,153,0.20)' }}>
+                          {schema.mutations
+                            .filter(m => !schemaSearch || m.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
+                            .map((m, idx) => (
+                              <div key={idx} className="gql-explorer-row" style={{
+                                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                                padding: '10px 14px',
+                                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                              }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#fff' }}>{m.name}</span>
+                                    {m.type && (
+                                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}>
+                                        → {typeof m.type === 'string' ? m.type : m.type?.name || 'Object'}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {m.args?.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                      {m.args.map((arg, i) => (
+                                        <span key={i} style={{
+                                          fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                                          background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)',
+                                          fontFamily: 'monospace',
+                                        }}>
+                                          {arg.name}: {typeof arg.type === 'string' ? arg.type : arg.type?.name || 'String'}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => addTestFromSchemaExplorer(m, 'mutation')}
+                                  className="gql-add-btn"
+                                  style={{
+                                    marginLeft: 10, padding: 6, borderRadius: 6,
+                                    background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)',
+                                    color: '#34d399', cursor: 'pointer', opacity: 0,
+                                    display: 'flex', alignItems: 'center', transition: 'opacity 0.15s',
+                                  }}
+                                >
+                                  <Plus size={13} />
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Types */}
+                  {schema.types?.length > 0 && (
+                    <div style={{ border: '1px solid rgba(96,165,250,0.25)', borderRadius: 10, overflow: 'hidden' }}>
+                      <button
+                        onClick={() => setExpandedSections(s => ({ ...s, types: !s.types }))}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '10px 14px', background: 'rgba(96,165,250,0.06)',
+                          border: 'none', cursor: 'pointer',
+                        }}
+                      >
+                        {expandedSections.types
+                          ? <ChevronDown size={14} color="#60a5fa" />
+                          : <ChevronRight size={14} color="#60a5fa" />}
+                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: '#60a5fa' }}>TYPES</span>
+                        <span style={{
+                          padding: '1px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                          background: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)',
+                        }}>{schema.types.length}</span>
+                      </button>
+                      {expandedSections.types && (
+                        <div style={{ maxHeight: 240, overflowY: 'auto', borderTop: '1px solid rgba(96,165,250,0.20)' }}>
+                          {schema.types
+                            .filter(t => !schemaSearch || t.name?.toLowerCase().includes(schemaSearch.toLowerCase()))
+                            .map((t, idx) => (
+                              <div key={idx} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{t.name}</div>
+                                {t.fields?.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                    {t.fields.map((field, i) => (
+                                      <span key={i} style={{
+                                        fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                                        background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)',
+                                        fontFamily: 'monospace',
+                                      }}>
+                                        {field.name}: {typeof field.type === 'string' ? field.type : field.type?.name || 'String'}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {generatedTests.length > 0 && (
+                  <div style={{
+                    marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: FUCHSIA_DIM, border: `1px solid ${FUCHSIA_BORDER}`,
+                    borderRadius: 10, padding: '10px 16px',
+                  }}>
+                    <span style={{ fontSize: 13, color: FUCHSIA }}>
+                      {generatedTests.length} test{generatedTests.length !== 1 ? 's' : ''} cherry-picked
+                    </span>
+                    <button
+                      onClick={() => setStep(3)}
+                      style={{
+                        padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        background: 'linear-gradient(135deg,#a21caf,#7c3aed)',
+                        border: 'none', color: '#fff', cursor: 'pointer',
+                      }}
+                    >
+                      Review Selected →
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Test Type Selection */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Select Test Types</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {Object.entries(testTypeMeta).map(([key, meta]) => (
+                    <label key={key} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', borderRadius: 10,
+                      background: selectedTestTypes[key] ? `rgba(${key === 'queries' ? '232,121,249' : key === 'mutations' ? '52,211,153' : key === 'nested' ? '96,165,250' : key === 'fragments' ? '251,191,36' : key === 'errors' ? '248,113,113' : '167,139,250'},0.08)` : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${selectedTestTypes[key] ? meta.color + '40' : 'rgba(255,255,255,0.07)'}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTestTypes[key]}
+                        onChange={(e) => setSelectedTestTypes({ ...selectedTestTypes, [key]: e.target.checked })}
+                        style={{ width: 15, height: 15, accentColor: meta.color }}
+                      />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{meta.label}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{meta.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={() => setStep(1)}
+                  style={{ ...btnSecondary, flex: 1 }}
+                  className="gql-btn-secondary"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={generateTests}
+                  disabled={loading}
+                  style={{ ...btnPrimary, flex: 1, opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+                  className="gql-btn-primary"
+                >
+                  {loading ? (
+                    <>
+                      <div style={{ width: 17, height: 17, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      Generating Tests...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} />
+                      Generate AI Tests
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────
+            STEP 3 — Review & Run Tests
+        ──────────────────────────────────────── */}
+        {step === 3 && generatedTests.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Summary + NL builder + custom */}
+            <div style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: FUCHSIA_DIM, border: `1px solid ${FUCHSIA_BORDER}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Play size={18} color={FUCHSIA} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Review & Run Tests</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Inspect, add custom queries, then execute</div>
+                </div>
+              </div>
+
+              {/* 4-stat grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+                {[
+                  { val: generatedTests.length, label: 'Total Tests', color: '#fff' },
+                  { val: generatedTests.filter(t => t.type === 'query').length, label: 'Query Tests', color: '#60a5fa' },
+                  { val: generatedTests.filter(t => t.type === 'mutation').length, label: 'Mutation Tests', color: '#34d399' },
+                  { val: generatedTests.filter(t => t.type === 'performance').length, label: 'Performance', color: FUCHSIA },
+                ].map(({ val, label, color }) => (
+                  <div key={label} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 12, padding: '14px 16px', textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color, marginBottom: 4 }}>{val}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* AI Query Builder */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(162,28,175,0.15) 0%, rgba(124,58,237,0.10) 100%)',
+                border: `1px solid ${FUCHSIA_BORDER}`,
+                borderRadius: 14, padding: 20, marginBottom: 20,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Zap size={16} color={FUCHSIA} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>AI Query Builder</span>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                    background: 'linear-gradient(135deg,#a21caf,#7c3aed)', color: '#fff',
+                  }}>NEW</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 14 }}>
+                  Describe what you want to query in plain English — AI generates the GraphQL for you.
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <label style={labelStyle}>Describe your query</label>
                   <input
                     type="text"
                     value={nlDescription}
                     onChange={(e) => setNlDescription(e.target.value)}
                     placeholder="e.g., Get all countries with their languages and currencies"
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        generateQueryFromNL();
-                      }
-                    }}
+                    style={inputStyle}
+                    className="gql-input"
+                    onKeyPress={(e) => { if (e.key === 'Enter') generateQueryFromNL(); }}
                   />
                 </div>
 
                 <button
                   onClick={generateQueryFromNL}
                   disabled={nlGenerating}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{
+                    ...btnPrimary,
+                    background: 'linear-gradient(135deg,#a21caf,#4f46e5)',
+                    opacity: nlGenerating ? 0.6 : 1,
+                    cursor: nlGenerating ? 'not-allowed' : 'pointer',
+                  }}
+                  className="gql-btn-primary"
                 >
                   {nlGenerating ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <div style={{ width: 17, height: 17, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                       Generating Query with AI...
                     </>
                   ) : (
                     <>
-                      <Zap className="w-5 h-5" />
+                      <Zap size={16} />
                       Generate GraphQL Query
                     </>
                   )}
                 </button>
 
-                {/* Generated Query Display */}
                 {generatedQuery && (
-                  <div className="mt-4 p-4 bg-gray-800 rounded-lg border border-green-600/30">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <span className="text-green-400 font-semibold">Query Generated!</span>
+                  <div style={{
+                    marginTop: 14, padding: 14,
+                    background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.25)',
+                    borderRadius: 10,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <CheckCircle size={15} color="#34d399" />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#34d399' }}>Query Generated!</span>
                     </div>
                     {queryExplanation && (
-                      <p className="text-gray-300 text-sm mb-3 italic">{queryExplanation}</p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 10, fontStyle: 'italic' }}>{queryExplanation}</p>
                     )}
-                    <pre className="text-gray-200 text-sm font-mono overflow-x-auto bg-gray-900 p-3 rounded">
+                    <pre style={{
+                      fontFamily: 'monospace', fontSize: 12, color: '#e2e8f0',
+                      background: 'rgba(0,0,0,0.35)', padding: 12, borderRadius: 8,
+                      overflowX: 'auto', whiteSpace: 'pre-wrap', margin: 0,
+                    }}>
                       {generatedQuery}
                     </pre>
-                    <p className="text-gray-400 text-xs mt-2">
-                      ✨ Query has been auto-filled below. You can edit it before adding to tests.
-                    </p>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>
+                      Query auto-filled below. Edit before adding to tests.
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Add Custom Query */}
-              <div className="bg-gray-700 p-6 rounded-lg mb-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Add Custom Query (Optional)</h3>
-                <p className="text-gray-400 text-sm mb-3">
+              {/* Custom query */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 14, padding: 20, marginBottom: 20,
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Add Custom Query</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>
                   Manually write or edit the AI-generated query below:
-                </p>
+                </div>
                 <textarea
                   value={customQuery}
                   onChange={(e) => setCustomQuery(e.target.value)}
                   placeholder="query { users { id name email } }"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-purple-500 h-32"
+                  style={{ ...inputStyle, height: 110, fontFamily: 'monospace', fontSize: 12, resize: 'vertical' }}
+                  className="gql-input"
                 />
                 <button
                   onClick={addCustomQuery}
-                  className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition-all"
+                  style={{
+                    ...btnSecondary,
+                    marginTop: 12, width: 'auto', padding: '9px 18px',
+                    border: `1px solid ${FUCHSIA_BORDER}`, color: FUCHSIA,
+                    fontSize: 13,
+                  }}
+                  className="gql-btn-secondary"
                 >
                   Add Custom Query
                 </button>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setStep(2)}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
-                >
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={() => setStep(2)} style={{ ...btnSecondary, flex: 1 }} className="gql-btn-secondary">
                   Back
                 </button>
                 <button
                   onClick={runTests}
                   disabled={loading}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ ...btnPrimary, flex: 1, opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+                  className="gql-btn-primary"
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <div style={{ width: 17, height: 17, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                       Running Tests...
                     </>
                   ) : (
                     <>
-                      <Play className="w-5 h-5" />
+                      <Play size={16} />
                       Run All Tests ({generatedTests.length})
                     </>
                   )}
@@ -1003,23 +1277,31 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
             </div>
 
             {/* Test Preview */}
-            <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
-              <h3 className="text-xl font-bold text-white mb-4">Test Preview (First 5)</h3>
-              <div className="space-y-3">
+            <div style={card}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Test Preview (First 5)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {generatedTests.slice(0, 5).map((test, idx) => (
-                  <div key={idx} className="bg-gray-700 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-medium">{test.name}</span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        test.type === 'query' ? 'bg-blue-500' :
-                        test.type === 'mutation' ? 'bg-green-500' :
-                        test.type === 'performance' ? 'bg-purple-500' :
-                        'bg-gray-500'
-                      } text-white`}>
+                  <div key={idx} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 10, padding: '12px 16px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{test.name}</span>
+                      <span style={{
+                        padding: '3px 10px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                        background: `${testTypeBadgeColor[test.type] || '#888'}22`,
+                        color: testTypeBadgeColor[test.type] || '#888',
+                        border: `1px solid ${testTypeBadgeColor[test.type] || '#888'}44`,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>
                         {test.type}
                       </span>
                     </div>
-                    <pre className="text-gray-300 text-sm font-mono overflow-x-auto">
+                    <pre style={{
+                      fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.5)',
+                      overflowX: 'auto', whiteSpace: 'pre-wrap', margin: 0,
+                    }}>
                       {test.query?.substring(0, 100)}...
                     </pre>
                   </div>
@@ -1029,123 +1311,159 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* Step 4: Results */}
+        {/* ────────────────────────────────────────
+            STEP 4 — Results
+        ──────────────────────────────────────── */}
         {step === 4 && testResults && (
-          <div className="space-y-6">
-            {/* Results Summary */}
-            <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6" />
-                Test Results
-              </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Summary card */}
+            <div style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: FUCHSIA_DIM, border: `1px solid ${FUCHSIA_BORDER}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <TrendingUp size={18} color={FUCHSIA} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Test Results</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>GraphQL test suite execution complete</div>
+                </div>
+              </div>
 
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-green-900 bg-opacity-30 p-6 rounded-lg border border-green-700">
-                  <CheckCircle className="w-8 h-8 text-green-400 mb-2" />
-                  <div className="text-3xl font-bold text-green-400">{testResults.summary?.passed || 0}</div>
-                  <div className="text-gray-300 text-sm">Passed</div>
+              {/* 4 stat cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
+                <div style={{
+                  background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)',
+                  borderRadius: 14, padding: 20,
+                }}>
+                  <CheckCircle size={22} color="#34d399" style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#34d399' }}>{testResults.summary?.passed || 0}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Passed</div>
                 </div>
-                <div className="bg-red-900 bg-opacity-30 p-6 rounded-lg border border-red-700">
-                  <XCircle className="w-8 h-8 text-red-400 mb-2" />
-                  <div className="text-3xl font-bold text-red-400">{testResults.summary?.failed || 0}</div>
-                  <div className="text-gray-300 text-sm">Failed</div>
+                <div style={{
+                  background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)',
+                  borderRadius: 14, padding: 20,
+                }}>
+                  <XCircle size={22} color="#f87171" style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#f87171' }}>{testResults.summary?.failed || 0}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Failed</div>
                 </div>
-                <div className="bg-blue-900 bg-opacity-30 p-6 rounded-lg border border-blue-700">
-                  <Zap className="w-8 h-8 text-blue-400 mb-2" />
-                  <div className="text-3xl font-bold text-blue-400">{testResults.summary?.avg_response_time || 0}ms</div>
-                  <div className="text-gray-300 text-sm">Avg Response</div>
+                <div style={{
+                  background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.25)',
+                  borderRadius: 14, padding: 20,
+                }}>
+                  <Zap size={22} color="#60a5fa" style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#60a5fa' }}>{testResults.summary?.avg_response_time || 0}ms</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Avg Response</div>
                 </div>
-                <div className="bg-purple-900 bg-opacity-30 p-6 rounded-lg border border-purple-700">
-                  <AlertCircle className="w-8 h-8 text-purple-400 mb-2" />
-                  <div className="text-3xl font-bold text-purple-400">{testResults.summary?.n_plus_one_detected || 0}</div>
-                  <div className="text-gray-300 text-sm">N+1 Detected</div>
+                <div style={{
+                  background: FUCHSIA_DIM, border: `1px solid ${FUCHSIA_BORDER}`,
+                  borderRadius: 14, padding: 20,
+                }}>
+                  <AlertCircle size={22} color={FUCHSIA} style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 28, fontWeight: 800, color: FUCHSIA }}>{testResults.summary?.n_plus_one_detected || 0}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>N+1 Detected</div>
                 </div>
               </div>
 
               {/* AI Insights */}
               {testResults.ai_insights && (
-                <div className="bg-gradient-to-r from-purple-900 to-blue-900 p-6 rounded-lg border border-purple-700 mb-6">
-                  <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                    <Zap className="w-5 h-5" />
-                    AI-Powered Insights
-                  </h3>
-                  <div className="space-y-2">
+                <div style={{
+                  background: 'linear-gradient(135deg,rgba(162,28,175,0.18) 0%,rgba(79,70,229,0.12) 100%)',
+                  border: `1px solid ${FUCHSIA_BORDER}`,
+                  borderRadius: 14, padding: 20, marginBottom: 20,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <Zap size={15} color={FUCHSIA} />
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>AI-Powered Insights</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {testResults.ai_insights.recommendations?.map((rec, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
-                        <p className="text-gray-200 text-sm">{rec}</p>
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <CheckCircle size={14} color="#34d399" style={{ marginTop: 2, flexShrink: 0 }} />
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', margin: 0, lineHeight: 1.5 }}>{rec}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Download Buttons */}
-              <div className="flex gap-4">
+              {/* Download + New Test */}
+              <div style={{ display: 'flex', gap: 12 }}>
                 <button
                   onClick={() => downloadReport('json')}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2"
+                  style={{ ...btnSecondary, flex: 1, border: '1px solid rgba(96,165,250,0.35)', color: '#60a5fa' }}
+                  className="gql-btn-secondary"
                 >
-                  <Download className="w-5 h-5" />
-                  Download JSON
+                  <Download size={15} /> Download JSON
                 </button>
                 <button
                   onClick={() => downloadReport('pdf')}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2"
+                  style={{ ...btnSecondary, flex: 1, border: `1px solid ${FUCHSIA_BORDER}`, color: FUCHSIA }}
+                  className="gql-btn-secondary"
                 >
-                  <FileText className="w-5 h-5" />
-                  Download PDF
+                  <FileText size={15} /> Download PDF
                 </button>
                 <button
-                  onClick={() => {
-                    setStep(1);
-                    setGeneratedTests([]);
-                    setTestResults(null);
-                    setSchema(null);
-                  }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
+                  onClick={() => { setStep(1); setGeneratedTests([]); setTestResults(null); setSchema(null); }}
+                  style={{ ...btnSecondary, flex: 1 }}
+                  className="gql-btn-secondary"
                 >
                   New Test
                 </button>
               </div>
             </div>
 
-            {/* Recent Runs History */}
-            <div className="bg-gray-800/50 rounded-lg p-5 border border-gray-700/50 mb-6">
+            {/* Recent Runs */}
+            <div style={{ ...card, padding: 20 }}>
               <RecentRuns module="graphql" />
             </div>
 
-            {/* Detailed Results */}
-            <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
-              <h3 className="text-xl font-bold text-white mb-4">Detailed Test Results</h3>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+            {/* Detailed results */}
+            <div style={card}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Detailed Test Results</div>
+
+              {/* Terminal header dots */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f57' }} />
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#febc2e' }} />
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#28c840' }} />
+              </div>
+
+              <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {testResults.results?.map((result, idx) => (
                   <div
                     key={idx}
-                    className={`p-4 rounded-lg border-l-4 ${
-                      result.status === 'PASS'
-                        ? 'bg-green-900 bg-opacity-20 border-green-500'
-                        : 'bg-red-900 bg-opacity-20 border-red-500'
-                    }`}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      borderLeft: `3px solid ${result.status === 'PASS' ? '#34d399' : '#f87171'}`,
+                      background: result.status === 'PASS'
+                        ? 'rgba(52,211,153,0.05)'
+                        : 'rgba(248,113,113,0.05)',
+                      border: `1px solid ${result.status === 'PASS' ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.15)'}`,
+                      borderLeftWidth: 3,
+                    }}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-medium">{result.test_name}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-400 text-sm">{result.response_time}ms</span>
-                        {result.status === 'PASS' ? (
-                          <CheckCircle className="w-5 h-5 text-green-400" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-400" />
-                        )}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: result.error || result.n_plus_one_warning ? 8 : 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{result.test_name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace' }}>{result.response_time}ms</span>
+                        {result.status === 'PASS'
+                          ? <CheckCircle size={16} color="#34d399" />
+                          : <XCircle size={16} color="#f87171" />
+                        }
                       </div>
                     </div>
                     {result.error && (
-                      <p className="text-red-300 text-sm mt-2">{result.error}</p>
+                      <p style={{ fontSize: 12, color: '#fca5a5', margin: '4px 0 0' }}>{result.error}</p>
                     )}
                     {result.n_plus_one_warning && (
-                      <div className="mt-2 flex items-center gap-2 text-yellow-400 text-sm">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>N+1 Query Detected</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                        <AlertCircle size={13} color="#fbbf24" />
+                        <span style={{ fontSize: 12, color: '#fbbf24' }}>N+1 Query Detected</span>
                       </div>
                     )}
                   </div>
@@ -1155,7 +1473,6 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
           </div>
         )}
       </div>
-    </div>
     </div>
   );
 };

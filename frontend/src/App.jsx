@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Check, Settings, Lock, Zap, Play, Download, RefreshCw, FileJson, FileText, Loader, Edit, Trash2, Plus, X, User, Github, Activity, AlertTriangle, Home, CheckCircle, XCircle } from 'lucide-react';
+import { ChevronRight, Check, Settings, Lock, Zap, Play, Download, RefreshCw, FileJson, FileText, Loader, Edit, Trash2, Plus, X, User, Github, Activity, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import BackButton from './BackButton';
 import Profile from './Profile.jsx';
 import GitHubIntegration from './GitHubIntegration.jsx';
 import AIAnalysisPanel from './AIAnalysisPanel.jsx';
@@ -520,15 +521,10 @@ function App({ user, onLogout }) {
       {/* ── Top Navigation Bar ─────────────────────────────────── */}
       <header className="sticky top-0 z-50 h-14 bg-slate-900/80 backdrop-blur-xl border-b border-white/10 flex items-center px-6 gap-4">
 
-        {/* Brand + Home */}
+        {/* Brand + Back */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">🚀 Flasqo</span>
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all"
-          >
-            <Home size={13} /> Home
-          </button>
+          <BackButton />
         </div>
 
         {/* Step stepper */}

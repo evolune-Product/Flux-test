@@ -15,9 +15,13 @@ import {
   Server,
   Database,
   Github,
-  Home,
-  ArrowLeft
+  LogOut,
+  User,
+  BarChart2,
+  Shield,
+  Loader
 } from 'lucide-react';
+import BackButton from './BackButton';
 import GitHubIntegration from './GitHubIntegration';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
@@ -463,547 +467,727 @@ const ChaosTestingApp = () => {
 
   // Get color for metrics
   const getResilienceColor = (score) => {
-    if (score >= 80) return 'text-green-400';
-    if (score >= 60) return 'text-yellow-400';
-    if (score >= 40) return 'text-orange-400';
-    return 'text-red-400';
+    if (score >= 80) return '#34d399';
+    if (score >= 60) return '#fbbf24';
+    if (score >= 40) return '#f97316';
+    return '#f87171';
   };
 
   const getSuccessRateColor = (rate) => {
     const expectedSuccess = 100 - chaosRate;
-    if (rate >= expectedSuccess - 10) return 'text-green-400';
-    if (rate >= expectedSuccess - 30) return 'text-yellow-400';
-    return 'text-red-400';
+    if (rate >= expectedSuccess - 10) return '#34d399';
+    if (rate >= expectedSuccess - 30) return '#fbbf24';
+    return '#f87171';
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-6">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg transition-all mb-4"
-        >
-          <ChevronLeft size={20} />
-          <span>Back to Home</span>
-        </button>
+  // ─── Design tokens ───────────────────────────────────────────────
+  const card = {
+    background: 'rgba(9,12,22,0.80)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 16,
+    backdropFilter: 'blur(20px)',
+  };
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 10,
+    color: '#e2e8f0',
+    fontSize: 14,
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+  const labelStyle = {
+    display: 'block',
+    fontSize: 12,
+    fontWeight: 600,
+    color: 'rgba(255,255,255,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom: 6,
+  };
 
-        <div className="flex items-center gap-3 mb-2">
-          <AlertTriangle className="text-orange-400" size={32} />
-          <h1 className="text-3xl font-bold">Chaos Engineering / Failure Simulation</h1>
+  const logColor = (type) => {
+    if (type === 'error')   return { color: '#f87171' };
+    if (type === 'warning') return { color: '#fb923c' };
+    if (type === 'success') return { color: '#34d399' };
+    return { color: 'rgba(255,255,255,0.55)' };
+  };
+
+  const chaosAccentColors = {
+    'timeout':        { bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.35)', text: '#fb923c' },
+    'error-503':      { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.35)',  text: '#f87171' },
+    'error-500':      { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.35)',  text: '#f87171' },
+    'latency':        { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)', text: '#fbbf24' },
+    'network-failure':{ bg: 'rgba(167,139,250,0.12)',border: 'rgba(167,139,250,0.35)',text: '#a78bfa' },
+    'random-errors':  { bg: 'rgba(236,72,153,0.12)', border: 'rgba(236,72,153,0.35)', text: '#f472b6' },
+  };
+
+  const ORANGE = '#f97316';
+  const ORANGE_DIM = 'rgba(249,115,22,0.18)';
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg,#020408 0%,#060c18 50%,#020408 100%)',
+      color: '#e2e8f0',
+      fontFamily: '"Inter", "SF Pro Display", system-ui, sans-serif',
+      position: 'relative',
+    }}>
+      {/* Dot grid ambient */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'radial-gradient(circle, rgba(249,115,22,0.10) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }} />
+
+      {/* ── Sticky Header ── */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(2,4,8,0.92)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(20px)',
+        padding: '0 32px',
+        height: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <BackButton />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'linear-gradient(135deg,#ea580c,#dc2626)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 18px rgba(249,115,22,0.45)',
+            }}>
+              <AlertTriangle size={17} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
+                Chaos Engineering
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -1 }}>
+                Failure injection &amp; resilience analysis
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="text-slate-300">Test your API's resilience by injecting controlled failures</p>
+
+        {/* Right: user + logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {user?.username && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '5px 12px',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)',
+            }}>
+              <User size={13} />
+              {user.username}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ── Page body ── */}
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '36px 32px 60px' }}>
 
-        {/* Left Panel - Configuration */}
-        <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Activity size={20} className="text-blue-400" />
-            Configuration
-          </h2>
-
-          {/* Tabs */}
-          <div className="flex gap-2 mb-4 border-b border-slate-700">
-            <button
-              onClick={() => setConfigTab('basic')}
-              className={`px-4 py-2 transition-all ${
-                configTab === 'basic'
-                  ? 'border-b-2 border-blue-400 text-blue-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Basic
-            </button>
-            <button
-              onClick={() => setConfigTab('chaos')}
-              className={`px-4 py-2 transition-all ${
-                configTab === 'chaos'
-                  ? 'border-b-2 border-orange-400 text-orange-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Chaos Type
-            </button>
-            <button
-              onClick={() => setConfigTab('request')}
-              className={`px-4 py-2 transition-all ${
-                configTab === 'request'
-                  ? 'border-b-2 border-purple-400 text-purple-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Request
-            </button>
+        {/* Hero */}
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: ORANGE_DIM, color: ORANGE,
+              border: `1px solid rgba(249,115,22,0.30)`, letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}>Chaos Suite</span>
+            <span style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+              background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.40)',
+              border: '1px solid rgba(255,255,255,0.07)', letterSpacing: '0.06em',
+            }}>Failure Simulation</span>
           </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', margin: 0, marginBottom: 8 }}>
+            Chaos Engineering &amp; Failure Simulation
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 14, margin: 0 }}>
+            Inject controlled failures to measure your API&apos;s resilience under chaos conditions.
+          </p>
 
-          {/* Basic Tab */}
-          {configTab === 'basic' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">API Endpoint</label>
-                <input
-                  type="text"
-                  value={apiEndpoint}
-                  onChange={(e) => setApiEndpoint(e.target.value)}
-                  placeholder="https://api.example.com/endpoint"
-                  className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+          {/* Quick stats */}
+          <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Inject Rate', value: `${chaosRate}%`, color: ORANGE },
+              { label: 'Requests', value: totalRequests, color: '#a78bfa' },
+              { label: 'Concurrency', value: concurrency, color: '#60a5fa' },
+              { label: 'Chaos Type', value: chaosConfigs[selectedChaos]?.name.split(' ')[0], color: chaosAccentColors[selectedChaos]?.text },
+            ].map(s => (
+              <div key={s.label} style={{
+                padding: '8px 18px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 10, fontSize: 13,
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.40)' }}>{s.label}: </span>
+                <span style={{ color: s.color, fontWeight: 700 }}>{s.value}</span>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Total Requests</label>
-                  <input
-                    type="number"
-                    value={totalRequests}
-                    onChange={(e) => setTotalRequests(parseInt(e.target.value) || 50)}
-                    min="1"
-                    max="1000"
-                    className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Concurrency</label>
-                  <input
-                    type="number"
-                    value={concurrency}
-                    onChange={(e) => setConcurrency(parseInt(e.target.value) || 5)}
-                    min="1"
-                    max="50"
-                    className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Chaos Injection Rate: {chaosRate}%
-                </label>
-                <input
-                  type="range"
-                  value={chaosRate}
-                  onChange={(e) => setChaosRate(parseInt(e.target.value))}
-                  min="0"
-                  max="100"
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-slate-400 mt-1">
-                  <span>0% (No Chaos)</span>
-                  <span>50%</span>
-                  <span>100% (Full Chaos)</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Chaos Type Tab */}
-          {configTab === 'chaos' && (
-            <div className="space-y-3">
-              {Object.entries(chaosConfigs).map(([key, config]) => {
-                const Icon = config.icon;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setSelectedChaos(key);
-                      setCustomTimeout(config.defaultTimeout);
-                      setChaosRate(config.defaultRate);
-                    }}
-                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                      selectedChaos === key
-                        ? `border-${config.color}-400 bg-${config.color}-400/10`
-                        : 'border-slate-600 bg-slate-900/30 hover:border-slate-500'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Icon size={24} className={`text-${config.color}-400 flex-shrink-0 mt-1`} />
-                      <div>
-                        <h3 className="font-semibold">{config.name}</h3>
-                        <p className="text-sm text-slate-400">{config.description}</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-
-              {(selectedChaos === 'timeout' || selectedChaos === 'latency') && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2">
-                    {selectedChaos === 'timeout' ? 'Timeout Duration (ms)' : 'Max Latency (ms)'}
-                  </label>
-                  <input
-                    type="number"
-                    value={customTimeout}
-                    onChange={(e) => setCustomTimeout(parseInt(e.target.value) || 5000)}
-                    min="100"
-                    max="30000"
-                    step="100"
-                    className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Request Tab */}
-          {configTab === 'request' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">HTTP Method</label>
-                <select
-                  value={httpMethod}
-                  onChange={(e) => setHttpMethod(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="PATCH">PATCH</option>
-                  <option value="DELETE">DELETE</option>
-                </select>
-              </div>
-
-              {['POST', 'PUT', 'PATCH'].includes(httpMethod) && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Request Body (JSON)</label>
-                  <textarea
-                    value={requestBody}
-                    onChange={(e) => setRequestBody(e.target.value)}
-                    placeholder='{"key": "value"}'
-                    rows={6}
-                    className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Custom Headers (JSON)</label>
-                <textarea
-                  value={customHeaders}
-                  onChange={(e) => setCustomHeaders(e.target.value)}
-                  placeholder='{"Authorization": "Bearer token"}'
-                  rows={4}
-                  className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Run Button */}
-          <button
-            onClick={runChaosTest}
-            disabled={isRunning || !apiEndpoint}
-            className={`w-full mt-6 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              isRunning || !apiEndpoint
-                ? 'bg-slate-600 cursor-not-allowed'
-                : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
-            }`}
-          >
-            {isRunning ? (
-              <>
-                <StopCircle size={20} className="animate-pulse" />
-                Running Test...
-              </>
-            ) : (
-              <>
-                <PlayCircle size={20} />
-                Start Chaos Test
-              </>
-            )}
-          </button>
-
-          {/* Progress Bar */}
-          {isRunning && (
-            <div className="mt-4">
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-center text-sm text-slate-400 mt-2">{progress.toFixed(0)}%</p>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
 
-        {/* Right Panel - Results & Logs */}
-        <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Zap size={20} className="text-yellow-400" />
-              Results & Logs
-            </h2>
-            {results && (
-              <button
-                onClick={() => setShowGitHub(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-lg hover:shadow-lg hover:shadow-gray-800/50 transition-all transform hover:scale-105"
-              >
-                <Github size={18} />
-                <span>Save to GitHub</span>
-              </button>
-            )}
-          </div>
+        {/* ── Two-column layout ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
 
-          {/* Tabs */}
-          <div className="flex gap-2 mb-4 border-b border-slate-700">
-            <button
-              onClick={() => setActiveTab('results')}
-              className={`px-4 py-2 transition-all ${
-                activeTab === 'results'
-                  ? 'border-b-2 border-yellow-400 text-yellow-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Results
-            </button>
-            <button
-              onClick={() => setActiveTab('logs')}
-              className={`px-4 py-2 transition-all ${
-                activeTab === 'logs'
-                  ? 'border-b-2 border-green-400 text-green-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Logs ({logs.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-4 py-2 transition-all ${
-                activeTab === 'history'
-                  ? 'border-b-2 border-blue-400 text-blue-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              History
-            </button>
-          </div>
+          {/* ═══ LEFT: Config ═══ */}
+          <div style={{ ...card, padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: ORANGE_DIM,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Activity size={14} color={ORANGE} />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>Configuration</span>
+            </div>
 
-          {/* Results Tab */}
-          {activeTab === 'results' && (
-            <div className="space-y-4 max-h-[600px] overflow-y-auto">
-              {!results ? (
-                <div className="text-center text-slate-400 py-20">
-                  <Activity size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>Configure and run a chaos test to see results</p>
+            {/* Tab bar */}
+            <div style={{
+              display: 'flex', gap: 4, marginBottom: 22,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10, padding: 4,
+            }}>
+              {[
+                { key: 'basic',   label: 'Basic',       accent: '#60a5fa' },
+                { key: 'chaos',   label: 'Chaos Type',  accent: ORANGE },
+                { key: 'request', label: 'Request',     accent: '#a78bfa' },
+              ].map(t => (
+                <button key={t.key} onClick={() => setConfigTab(t.key)} style={{
+                  flex: 1, padding: '7px 0', borderRadius: 7, fontSize: 13, fontWeight: 600,
+                  border: 'none', cursor: 'pointer', transition: 'all 0.18s',
+                  background: configTab === t.key ? 'rgba(255,255,255,0.07)' : 'transparent',
+                  color: configTab === t.key ? t.accent : 'rgba(255,255,255,0.35)',
+                }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ─ Basic tab ─ */}
+            {configTab === 'basic' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <div>
+                  <label style={labelStyle}>API Endpoint</label>
+                  <input
+                    type="text"
+                    value={apiEndpoint}
+                    onChange={(e) => setApiEndpoint(e.target.value)}
+                    placeholder="https://api.example.com/endpoint"
+                    style={inputStyle}
+                  />
                 </div>
-              ) : (
-                <>
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400 mb-1">Resilience Score</div>
-                      <div className={`text-2xl font-bold ${getResilienceColor(results.resilience)}`}>
-                        {results.resilience.toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400 mb-1">Success Rate</div>
-                      <div className={`text-2xl font-bold ${getSuccessRateColor(results.successRate)}`}>
-                        {results.successRate.toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400 mb-1">Chaos Injected</div>
-                      <div className="text-2xl font-bold text-orange-400">
-                        {results.chaosInjectedCount}/{results.totalRequests}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1">
-                        {results.actualChaosRate.toFixed(1)}% actual rate
-                      </div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                      <div className="text-sm text-slate-400 mb-1">Total Failures</div>
-                      <div className="text-2xl font-bold text-red-400">
-                        {results.failureCount}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1">
-                        {results.failureRate.toFixed(1)}% failure rate
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Chaos Type Info */}
-                  <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle size={16} className="text-orange-400" />
-                      <span className="font-semibold text-orange-400">Chaos Type Applied</span>
-                    </div>
-                    <div className="text-sm">{results.chaosType}</div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      Target rate: {results.chaosRate}% | Actual: {results.actualChaosRate.toFixed(1)}%
-                    </div>
-                  </div>
-
-                  {/* Response Time Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                      <Clock size={16} />
-                      Response Time Analysis
-                    </h3>
-
-                    {/* Overall Stats */}
-                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700 mb-3">
-                      <div className="text-sm font-medium mb-2 text-blue-400">Overall (All Requests)</div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div>
-                          <div className="text-slate-400">Avg</div>
-                          <div className="font-semibold">{results.overall.avg.toFixed(2)}ms</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">P95</div>
-                          <div className="font-semibold">{results.overall.p95.toFixed(2)}ms</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">P99</div>
-                          <div className="font-semibold">{results.overall.p99.toFixed(2)}ms</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">Min</div>
-                          <div className="font-semibold">{results.overall.min.toFixed(2)}ms</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">Max</div>
-                          <div className="font-semibold">{results.overall.max.toFixed(2)}ms</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">P50</div>
-                          <div className="font-semibold">{results.overall.p50.toFixed(2)}ms</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Normal Requests Stats */}
-                    {results.normalCount > 0 && (
-                      <div className="bg-slate-900/50 rounded-lg p-4 border border-green-700/50 mb-3">
-                        <div className="text-sm font-medium mb-2 text-green-400">
-                          Normal Requests ({results.normalCount})
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <div className="text-slate-400">Avg</div>
-                            <div className="font-semibold">{results.normal.avg.toFixed(2)}ms</div>
-                          </div>
-                          <div>
-                            <div className="text-slate-400">P95</div>
-                            <div className="font-semibold">{results.normal.p95.toFixed(2)}ms</div>
-                          </div>
-                          <div>
-                            <div className="text-slate-400">P99</div>
-                            <div className="font-semibold">{results.normal.p99.toFixed(2)}ms</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Chaos Requests Stats */}
-                    {results.chaosInjectedCount > 0 && (
-                      <div className="bg-slate-900/50 rounded-lg p-4 border border-orange-700/50">
-                        <div className="text-sm font-medium mb-2 text-orange-400">
-                          Chaos Requests ({results.chaosInjectedCount})
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <div className="text-slate-400">Avg</div>
-                            <div className="font-semibold">{results.chaos.avg.toFixed(2)}ms</div>
-                          </div>
-                          <div>
-                            <div className="text-slate-400">P95</div>
-                            <div className="font-semibold">{results.chaos.p95.toFixed(2)}ms</div>
-                          </div>
-                          <div>
-                            <div className="text-slate-400">P99</div>
-                            <div className="font-semibold">{results.chaos.p99.toFixed(2)}ms</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <label style={labelStyle}>Total Requests</label>
+                    <input
+                      type="number"
+                      value={totalRequests}
+                      onChange={(e) => setTotalRequests(parseInt(e.target.value) || 50)}
+                      min="1" max="1000"
+                      style={inputStyle}
+                    />
                   </div>
+                  <div>
+                    <label style={labelStyle}>Concurrency</label>
+                    <input
+                      type="number"
+                      value={concurrency}
+                      onChange={(e) => setConcurrency(parseInt(e.target.value) || 5)}
+                      min="1" max="50"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
 
-                  {/* Error Distribution */}
-                  {Object.keys(results.errorTypes).length > 0 && (
-                    <div>
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <XCircle size={16} />
-                        Error Distribution
-                      </h3>
-                      <div className="space-y-2">
-                        {Object.entries(results.errorTypes).map(([type, count]) => (
-                          <div key={type} className="bg-slate-900/50 rounded-lg p-3 border border-red-700/30">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
-                              <span className="font-semibold text-red-400">
-                                {count} ({((count / results.totalRequests) * 100).toFixed(1)}%)
-                              </span>
+                <div>
+                  <label style={labelStyle}>
+                    Chaos Injection Rate — <span style={{ color: ORANGE }}>{chaosRate}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    value={chaosRate}
+                    onChange={(e) => setChaosRate(parseInt(e.target.value))}
+                    min="0" max="100"
+                    style={{ width: '100%', accentColor: ORANGE }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 4 }}>
+                    <span>0% — calm</span>
+                    <span>50%</span>
+                    <span>100% — full chaos</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─ Chaos Type tab ─ */}
+            {configTab === 'chaos' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {Object.entries(chaosConfigs).map(([key, config]) => {
+                  const Icon = config.icon;
+                  const acc = chaosAccentColors[key];
+                  const isActive = selectedChaos === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setSelectedChaos(key);
+                        setCustomTimeout(config.defaultTimeout);
+                        setChaosRate(config.defaultRate);
+                      }}
+                      style={{
+                        width: '100%', padding: '12px 14px',
+                        borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                        background: isActive ? acc.bg : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${isActive ? acc.border : 'rgba(255,255,255,0.07)'}`,
+                        transition: 'all 0.18s', display: 'flex', alignItems: 'flex-start', gap: 12,
+                      }}
+                    >
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                        background: isActive ? acc.bg : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${isActive ? acc.border : 'rgba(255,255,255,0.07)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+                      }}>
+                        <Icon size={15} color={isActive ? acc.text : 'rgba(255,255,255,0.40)'} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: isActive ? acc.text : '#e2e8f0' }}>
+                          {config.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+                          {config.description}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {(selectedChaos === 'timeout' || selectedChaos === 'latency') && (
+                  <div style={{ marginTop: 6 }}>
+                    <label style={labelStyle}>
+                      {selectedChaos === 'timeout' ? 'Timeout Duration (ms)' : 'Max Latency (ms)'}
+                    </label>
+                    <input
+                      type="number"
+                      value={customTimeout}
+                      onChange={(e) => setCustomTimeout(parseInt(e.target.value) || 5000)}
+                      min="100" max="30000" step="100"
+                      style={inputStyle}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ─ Request tab ─ */}
+            {configTab === 'request' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <div>
+                  <label style={labelStyle}>HTTP Method</label>
+                  <select
+                    value={httpMethod}
+                    onChange={(e) => setHttpMethod(e.target.value)}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  >
+                    {['GET','POST','PUT','PATCH','DELETE'].map(m => (
+                      <option key={m} value={m} style={{ background: '#0a0e1a' }}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {['POST', 'PUT', 'PATCH'].includes(httpMethod) && (
+                  <div>
+                    <label style={labelStyle}>Request Body (JSON)</label>
+                    <textarea
+                      value={requestBody}
+                      onChange={(e) => setRequestBody(e.target.value)}
+                      placeholder={'{"key": "value"}'}
+                      rows={6}
+                      style={{ ...inputStyle, fontFamily: '"JetBrains Mono","Fira Code",monospace', resize: 'vertical' }}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label style={labelStyle}>Custom Headers (JSON)</label>
+                  <textarea
+                    value={customHeaders}
+                    onChange={(e) => setCustomHeaders(e.target.value)}
+                    placeholder={'{"Authorization": "Bearer token"}'}
+                    rows={4}
+                    style={{ ...inputStyle, fontFamily: '"JetBrains Mono","Fira Code",monospace', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ─ Run button + progress ─ */}
+            <div style={{ marginTop: 24 }}>
+              <button
+                onClick={runChaosTest}
+                disabled={isRunning || !apiEndpoint}
+                style={{
+                  width: '100%', padding: '13px 0',
+                  borderRadius: 10, fontWeight: 700, fontSize: 14,
+                  border: 'none', cursor: isRunning || !apiEndpoint ? 'not-allowed' : 'pointer',
+                  background: isRunning || !apiEndpoint
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'linear-gradient(135deg,#ea580c,#dc2626)',
+                  color: isRunning || !apiEndpoint ? 'rgba(255,255,255,0.30)' : '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: isRunning || !apiEndpoint ? 'none' : '0 0 24px rgba(234,88,12,0.40)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {isRunning ? (
+                  <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Running Chaos Test…</>
+                ) : (
+                  <><PlayCircle size={16} /> Launch Chaos Test</>
+                )}
+              </button>
+
+              {isRunning && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
+                    <span>Injecting failures…</span>
+                    <span>{progress.toFixed(0)}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 4,
+                      background: 'linear-gradient(90deg,#ea580c,#dc2626)',
+                      width: `${progress}%`, transition: 'width 0.3s ease',
+                    }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ═══ RIGHT: Results / Logs / History ═══ */}
+          <div style={{ ...card, padding: 0, overflow: 'hidden', position: 'sticky', top: 76 }}>
+            {/* Tab bar header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 22px',
+              borderBottom: '1px solid rgba(255,255,255,0.07)',
+            }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { key: 'results', label: 'Results',       accent: ORANGE },
+                  { key: 'logs',    label: `Logs (${logs.length})`, accent: '#34d399' },
+                  { key: 'history', label: 'History',       accent: '#60a5fa' },
+                ].map(t => (
+                  <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                    padding: '6px 14px', borderRadius: 7, fontSize: 13, fontWeight: 600,
+                    border: 'none', cursor: 'pointer', transition: 'all 0.18s',
+                    background: activeTab === t.key ? 'rgba(255,255,255,0.07)' : 'transparent',
+                    color: activeTab === t.key ? t.accent : 'rgba(255,255,255,0.35)',
+                  }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {results && (
+                <button
+                  onClick={() => setShowGitHub(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    color: 'rgba(255,255,255,0.60)', cursor: 'pointer',
+                  }}
+                >
+                  <Github size={13} /> Save
+                </button>
+              )}
+            </div>
+
+            <div style={{ padding: 22, maxHeight: 620, overflowY: 'auto' }}>
+
+              {/* ─ Results Tab ─ */}
+              {activeTab === 'results' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {!results ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.25)' }}>
+                      <AlertTriangle size={44} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.25 }} />
+                      <p style={{ margin: 0, fontSize: 14 }}>Run a chaos test to see resilience results</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Top summary cards */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        {[
+                          {
+                            label: 'Resilience Score',
+                            value: `${results.resilience.toFixed(1)}%`,
+                            color: getResilienceColor(results.resilience),
+                            bg: 'rgba(52,211,153,0.06)',
+                          },
+                          {
+                            label: 'Success Rate',
+                            value: `${results.successRate.toFixed(1)}%`,
+                            color: getSuccessRateColor(results.successRate),
+                            bg: 'rgba(96,165,250,0.06)',
+                          },
+                          {
+                            label: 'Chaos Injected',
+                            value: `${results.chaosInjectedCount}/${results.totalRequests}`,
+                            sub: `${results.actualChaosRate.toFixed(1)}% actual`,
+                            color: ORANGE,
+                            bg: ORANGE_DIM,
+                          },
+                          {
+                            label: 'Total Failures',
+                            value: `${results.failureCount}`,
+                            sub: `${results.failureRate.toFixed(1)}% failure rate`,
+                            color: '#f87171',
+                            bg: 'rgba(248,113,113,0.06)',
+                          },
+                        ].map(c => (
+                          <div key={c.label} style={{
+                            padding: '14px 16px', borderRadius: 10,
+                            background: c.bg,
+                            border: '1px solid rgba(255,255,255,0.06)',
+                          }}>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+                              {c.label}
+                            </div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: c.color, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                              {c.value}
+                            </div>
+                            {c.sub && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 3 }}>{c.sub}</div>}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Chaos type info bar */}
+                      <div style={{
+                        padding: '12px 16px', borderRadius: 10,
+                        background: ORANGE_DIM,
+                        border: `1px solid rgba(249,115,22,0.30)`,
+                        display: 'flex', alignItems: 'center', gap: 10,
+                      }}>
+                        <AlertTriangle size={15} color={ORANGE} />
+                        <div>
+                          <span style={{ fontWeight: 700, color: ORANGE, fontSize: 13 }}>{results.chaosType}</span>
+                          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginLeft: 10 }}>
+                            Target {results.chaosRate}% · Actual {results.actualChaosRate.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Response time sections */}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+                          Response Time Analysis
+                        </div>
+
+                        {/* Overall */}
+                        <div style={{
+                          padding: '14px 16px', borderRadius: 10,
+                          background: 'rgba(96,165,250,0.07)',
+                          border: '1px solid rgba(96,165,250,0.20)',
+                          marginBottom: 8,
+                        }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa', marginBottom: 8 }}>
+                            All Requests
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
+                            {[
+                              ['Avg', results.overall.avg.toFixed(1)+'ms'],
+                              ['P95', results.overall.p95.toFixed(1)+'ms'],
+                              ['P99', results.overall.p99.toFixed(1)+'ms'],
+                              ['Min', results.overall.min.toFixed(1)+'ms'],
+                              ['Max', results.overall.max.toFixed(1)+'ms'],
+                              ['P50', results.overall.p50.toFixed(1)+'ms'],
+                            ].map(([k,v]) => (
+                              <div key={k}>
+                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{k}</div>
+                                <div style={{ color: '#e2e8f0', fontWeight: 700 }}>{v}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Normal */}
+                        {results.normalCount > 0 && (
+                          <div style={{
+                            padding: '14px 16px', borderRadius: 10,
+                            background: 'rgba(52,211,153,0.07)',
+                            border: '1px solid rgba(52,211,153,0.20)',
+                            marginBottom: 8,
+                          }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 8 }}>
+                              Normal Requests ({results.normalCount})
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
+                              {[
+                                ['Avg', results.normal.avg.toFixed(1)+'ms'],
+                                ['P95', results.normal.p95.toFixed(1)+'ms'],
+                                ['P99', results.normal.p99.toFixed(1)+'ms'],
+                              ].map(([k,v]) => (
+                                <div key={k}>
+                                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{k}</div>
+                                  <div style={{ color: '#e2e8f0', fontWeight: 700 }}>{v}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Chaos */}
+                        {results.chaosInjectedCount > 0 && (
+                          <div style={{
+                            padding: '14px 16px', borderRadius: 10,
+                            background: ORANGE_DIM,
+                            border: 'rgba(249,115,22,0.25) 1px solid',
+                          }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: ORANGE, marginBottom: 8 }}>
+                              Chaos Requests ({results.chaosInjectedCount})
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
+                              {[
+                                ['Avg', results.chaos.avg.toFixed(1)+'ms'],
+                                ['P95', results.chaos.p95.toFixed(1)+'ms'],
+                                ['P99', results.chaos.p99.toFixed(1)+'ms'],
+                              ].map(([k,v]) => (
+                                <div key={k}>
+                                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{k}</div>
+                                  <div style={{ color: '#e2e8f0', fontWeight: 700 }}>{v}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Error Distribution */}
+                      {Object.keys(results.errorTypes).length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+                            Error Distribution
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {Object.entries(results.errorTypes).map(([type, count]) => (
+                              <div key={type} style={{
+                                padding: '10px 14px', borderRadius: 8,
+                                background: 'rgba(248,113,113,0.07)',
+                                border: '1px solid rgba(248,113,113,0.18)',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              }}>
+                                <span style={{ fontSize: 13, color: '#e2e8f0', textTransform: 'capitalize' }}>
+                                  {type.replace('_', ' ')}
+                                </span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#f87171', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                                  {count} ({((count / results.totalRequests) * 100).toFixed(1)}%)
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Throughput / timing */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        {[
+                          { label: 'Throughput',  value: `${results.throughput.toFixed(2)} req/s` },
+                          { label: 'Total Time',  value: `${results.totalTime.toFixed(2)}s` },
+                          { label: 'Total Data',  value: `${results.totalSize} KB` },
+                          { label: 'Avg Response',value: `${results.avgSize} KB` },
+                        ].map(m => (
+                          <div key={m.label} style={{
+                            padding: '12px 14px', borderRadius: 9,
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                          }}>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              {m.label}
+                            </div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                              {m.value}
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </>
                   )}
+                </div>
+              )}
 
-                  {/* Additional Metrics */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700">
-                      <div className="text-sm text-slate-400">Throughput</div>
-                      <div className="font-semibold">{results.throughput.toFixed(2)} req/s</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700">
-                      <div className="text-sm text-slate-400">Total Time</div>
-                      <div className="font-semibold">{results.totalTime.toFixed(2)}s</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700">
-                      <div className="text-sm text-slate-400">Total Data</div>
-                      <div className="font-semibold">{results.totalSize} KB</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700">
-                      <div className="text-sm text-slate-400">Avg Size</div>
-                      <div className="font-semibold">{results.avgSize} KB</div>
-                    </div>
+              {/* ─ Logs Tab ─ */}
+              {activeTab === 'logs' && (
+                <div style={{
+                  background: '#050810',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 12, overflow: 'hidden',
+                }}>
+                  {/* macOS title bar */}
+                  <div style={{
+                    padding: '9px 14px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex', alignItems: 'center', gap: 7,
+                  }}>
+                    {['#ff5f57','#febc2e','#28c840'].map(c => (
+                      <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
+                    ))}
+                    <span style={{ marginLeft: 8, fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                      chaos.log — {logs.length} entries
+                    </span>
                   </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Logs Tab */}
-          {activeTab === 'logs' && (
-            <div className="bg-slate-900/50 rounded-lg p-4 max-h-[600px] overflow-y-auto font-mono text-sm">
-              {logs.length === 0 ? (
-                <div className="text-center text-slate-400 py-20">
-                  <Database size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>No logs yet</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {logs.map((log, index) => (
-                    <div
-                      key={index}
-                      className={`p-2 rounded ${
-                        log.type === 'error' ? 'bg-red-900/20 text-red-300' :
-                        log.type === 'warning' ? 'bg-orange-900/20 text-orange-300' :
-                        log.type === 'success' ? 'bg-green-900/20 text-green-300' :
-                        'bg-slate-800/30 text-slate-300'
-                      }`}
-                    >
-                      <span className="text-slate-500">[{log.timestamp}]</span> {log.message}
-                    </div>
-                  ))}
+                  <div style={{ padding: 14, maxHeight: 480, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
+                    {logs.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.20)', padding: '40px 0' }}>
+                        No log entries yet
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {logs.map((log, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 10, lineHeight: 1.5 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{log.timestamp}</span>
+                            <span style={logColor(log.type)}>{log.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* History Tab */}
-          {activeTab === 'history' && (
-            <div className="bg-slate-900/30 rounded-xl p-4">
-              <RecentRuns module="chaos" />
+              {/* ─ History Tab ─ */}
+              {activeTab === 'history' && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 10, padding: 16,
+                }}>
+                  <RecentRuns module="chaos" />
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
+
+      {/* Spin keyframe */}
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       {/* GitHub Integration Modal */}
       {showGitHub && results && (
