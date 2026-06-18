@@ -1120,26 +1120,19 @@ function TestingTypesLanding({ user, onLogout }) {
           <div className="flex flex-col items-center">
             {/* Logo and brand */}
             <div className="flex items-center gap-3 mb-3">
-              <div
-                className="w-8 h-8 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-lg flex items-center justify-center shadow-lg"
-                style={{ animation: 'float1 4s ease-in-out infinite' }}
+              <img
+                src="/flasqo-logo.png"
+                alt="Flasqo"
+                style={{ height: '52px', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen', animation: 'float1 4s ease-in-out infinite' }}
+              />
+              <a
+                href="https://www.evolune.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-purple-400/80 hover:text-purple-300 transition-colors tracking-wide"
               >
-                <Zap size={18} className="text-white" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                  Flasqo
-                </span>
-                <span className="text-gray-600">•</span>
-                <a
-                  href="https://www.evolune.in/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-purple-400/80 hover:text-purple-300 transition-colors tracking-wide"
-                >
-                  by EvoluneEdgeTech
-                </a>
-              </div>
+                by EvoluneEdgeTech
+              </a>
             </div>
 
             {/* Tagline */}
