@@ -317,7 +317,7 @@ function TestingTypesLanding({ user, onLogout }) {
                     animation: 'gradientShift 3s linear infinite'
                   }} />
                   {/* Logo box */}
-                  <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
+                  <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '64px', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
                 </div>
                 {/* Brand text */}
                 <div>

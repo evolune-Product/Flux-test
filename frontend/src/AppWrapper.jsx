@@ -247,7 +247,7 @@ function AppWrapper() {
             {/* Center logo */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div style={{ animation: 'logoFloat 3s ease-in-out infinite' }}>
-                <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '64px', width: 'auto', objectFit: 'contain' }} />
+                <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '90px', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
               </div>
             </div>
 

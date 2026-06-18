@@ -141,12 +141,7 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
           </button>
 
           <div className="flex justify-center mb-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-white rounded-2xl blur-xl opacity-60 animate-pulse"></div>
-              <div className="relative bg-white p-4 rounded-2xl shadow-2xl">
-                <Zap size={40} className="text-blue-600" strokeWidth={2.5} />
-              </div>
-            </div>
+            <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '72px', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
           </div>
 
           <div className="smooth-transition">

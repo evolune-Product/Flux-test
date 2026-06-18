@@ -1301,9 +1301,10 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                     src="/flasqo-logo.png"
                     alt="Flasqo"
                     style={{
-                      height: navExpanded ? '40px' : '32px',
+                      height: navExpanded ? '52px' : '40px',
                       width: 'auto',
                       objectFit: 'contain',
+                      mixBlendMode: 'screen',
                       transition: 'height 0.4s ease',
                     }}
                   />
@@ -2082,7 +2083,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                 <img
                   src="/flasqo-logo.png"
                   alt="Flasqo"
-                  style={{ height: '40px', width: 'auto', objectFit: 'contain', animation: 'logoFloat 4s ease-in-out infinite' }}
+                  style={{ height: '56px', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen', animation: 'logoFloat 4s ease-in-out infinite' }}
                 />
                 <a
                   href="https://www.evolune.in/"

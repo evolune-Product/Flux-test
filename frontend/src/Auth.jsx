@@ -167,13 +167,8 @@ function Auth({ onLoginSuccess }) {
       <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 flex-col justify-between p-12 text-white">
         <div>
           <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Zap size={24} />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">Flasqo</div>
-              <div className="text-xs text-blue-200">by EvoluneEdgeTech</div>
-            </div>
+            <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '52px', width: 'auto', objectFit: 'contain', mixBlendMode: 'screen' }} />
+            <div className="text-xs text-blue-200">by EvoluneEdgeTech</div>
           </div>
 
           <div className="max-w-xl">
@@ -234,13 +229,8 @@ function Auth({ onLoginSuccess }) {
       <div className="w-full lg:w-1/2 xl:w-2/5 bg-white flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Zap size={24} className="text-white" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">Flasqo</div>
-              <div className="text-xs text-gray-500">by EvoluneEdgeTech</div>
-            </div>
+            <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '52px', width: 'auto', objectFit: 'contain' }} />
+            <div className="text-xs text-gray-500">by EvoluneEdgeTech</div>
           </div>
 
           <div className="mb-8">
