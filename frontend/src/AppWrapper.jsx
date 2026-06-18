@@ -246,13 +246,8 @@ function AppWrapper() {
 
             {/* Center logo */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/50"
-                style={{ animation: 'logoFloat 3s ease-in-out infinite' }}
-              >
-                <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
+              <div style={{ animation: 'logoFloat 3s ease-in-out infinite' }}>
+                <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '64px', width: 'auto', objectFit: 'contain' }} />
               </div>
             </div>
 

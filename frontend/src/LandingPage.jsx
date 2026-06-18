@@ -1297,17 +1297,16 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full" />
                     </div>
                   )}
-                  <div
-                    className="flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded-xl overflow-hidden transition-all duration-500 group-hover:scale-105"
+                  <img
+                    src="/flasqo-logo.png"
+                    alt="Flasqo"
                     style={{
-                      width: navExpanded ? '40px' : '32px',
                       height: navExpanded ? '40px' : '32px',
-                      boxShadow: '0 0 12px rgba(59,130,246,0.5)',
-                      transition: 'width 0.4s ease, height 0.4s ease',
+                      width: 'auto',
+                      objectFit: 'contain',
+                      transition: 'height 0.4s ease',
                     }}
-                  >
-                    <Shield size={navExpanded ? 20 : 16} className="text-white" />
-                  </div>
+                  />
                 </div>
 
                 {/* Text */}
@@ -2079,14 +2078,12 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             {/* Logo & Brand */}
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg"
-                style={{ animation: 'logoFloat 4s ease-in-out infinite' }}
-              >
-                <Zap size={22} className="text-white" />
-              </div>
               <div>
-                <div className="text-lg font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Flasqo</div>
+                <img
+                  src="/flasqo-logo.png"
+                  alt="Flasqo"
+                  style={{ height: '40px', width: 'auto', objectFit: 'contain', animation: 'logoFloat 4s ease-in-out infinite' }}
+                />
                 <a
                   href="https://www.evolune.in/"
                   target="_blank"

@@ -317,11 +317,7 @@ function TestingTypesLanding({ user, onLogout }) {
                     animation: 'gradientShift 3s linear infinite'
                   }} />
                   {/* Logo box */}
-                  <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                    {/* Shine effect */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent" style={{ animation: 'shine 3s ease-in-out infinite' }} />
-                    <Zap size={28} className="text-white relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' }} />
-                  </div>
+                  <img src="/flasqo-logo.png" alt="Flasqo" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
                 </div>
                 {/* Brand text */}
                 <div>
