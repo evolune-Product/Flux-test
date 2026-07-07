@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { setPageMeta, HOME_META } from './seo.js';
 import {
   Zap,
   Shield,
@@ -572,7 +573,7 @@ const ComparisonMatrix = () => {
   const { rows, label: groupLabel } = MATRIX_GROUPS[activeTab];
 
   return (
-    <section className="relative z-10 max-w-4xl mx-auto px-6 py-12">
+    <section id="compare" className="relative z-10 max-w-4xl mx-auto px-6 py-12">
 
       {/* Heading */}
       <div className="text-center mb-7">
@@ -1106,11 +1107,85 @@ const TypewriterSnippet = ({ text, delay = 0 }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ── FAQ (content mirrors the FAQPage JSON-LD in index.html — keep in sync) ──
+const FAQ_ITEMS = [
+  {
+    q: 'What is Flasqo?',
+    a: 'Flasqo is a free AI-powered API testing platform. Paste your API URL and it auto-discovers endpoints, generates a full test suite — happy-path, edge-case, negative and security tests — and runs functional, smoke, performance, regression, contract, GraphQL, fuzz and chaos tests from one dashboard.',
+  },
+  {
+    q: 'Is Flasqo free to use?',
+    a: 'Yes. Flasqo is free to use with unlimited test runs and no credit card required.',
+  },
+  {
+    q: 'How is Flasqo different from Postman?',
+    a: "Postman is built around manually created request collections and hand-written test scripts. Flasqo generates test suites automatically with AI and bundles performance, chaos, fuzz, contract and GraphQL testing into the same platform, so you don't need separate tools like JMeter or custom scripts.",
+    link: { href: '/compare/flasqo-vs-postman/', label: 'Read the full Flasqo vs Postman comparison →' },
+  },
+  {
+    q: 'Do I have to write test cases manually?',
+    a: "No. Flasqo's AI generates 10–100 test cases per endpoint covering happy paths, edge cases, negative inputs and security checks. You can review, edit and add your own custom cases before running.",
+  },
+  {
+    q: 'Can Flasqo test GraphQL APIs?',
+    a: 'Yes. Flasqo has a dedicated GraphQL testing module that understands your schema and generates tests for queries and mutations, alongside REST testing.',
+    link: { href: '/guides/graphql-api-testing/', label: 'GraphQL API testing guide →' },
+  },
+  {
+    q: 'Does Flasqo work in CI/CD pipelines?',
+    a: 'Yes. Smoke tests are designed for fast deployment validation, the Production Gate module blocks risky deploys, and results can be saved to GitHub repositories via the built-in integration.',
+  },
+  {
+    q: 'Which authentication methods does Flasqo support?',
+    a: 'Flasqo supports Bearer tokens, API keys and Basic authentication for testing protected APIs.',
+  },
+];
+
+const FaqSection = () => (
+  <section id="faq" className="relative z-10 max-w-3xl mx-auto px-6 py-12">
+    <div className="text-center mb-8">
+      <h2 className="text-3xl md:text-4xl font-bold mb-2 leading-tight">
+        <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">Frequently Asked </span>
+        <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Questions</span>
+      </h2>
+      <p className="text-gray-500 text-sm">Everything developers ask before their first test run</p>
+    </div>
+    <div className="space-y-3">
+      {FAQ_ITEMS.map((item) => (
+        <details
+          key={item.q}
+          className="group rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm px-5 py-4 open:border-blue-500/40 transition-colors"
+        >
+          <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-slate-200 font-semibold text-sm">
+            {item.q}
+            <span className="text-blue-400 group-open:rotate-45 transition-transform text-lg leading-none">+</span>
+          </summary>
+          <p className="mt-3 text-sm text-gray-400 leading-relaxed">
+            {item.a}
+            {item.link && (
+              <>
+                {' '}
+                <a href={item.link.href} className="text-blue-400 hover:text-cyan-300 transition-colors">{item.link.label}</a>
+              </>
+            )}
+          </p>
+        </details>
+      ))}
+    </div>
+  </section>
+);
+
 const LandingPage = ({ onLoginSuccess, authError }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [toast, setToast] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // The landing page renders for logged-out visitors on any path, so keep the
+  // homepage title/description/canonical authoritative for all of them.
+  useEffect(() => {
+    setPageMeta(HOME_META);
+  }, []);
 
   // Dynamic Island nav state
   const [navExpanded, setNavExpanded] = useState(false);
@@ -1553,6 +1628,8 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
 
           {/* Main heading with animation */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            {/* Screen-reader/heading context — same phrase as the visible badge above */}
+            <span className="sr-only">Flasqo — AI-Powered API Testing Platform: </span>
             <span
               className="inline-block bg-gradient-to-r from-white via-blue-100 to-cyan-300 bg-clip-text text-transparent"
               style={{ animation: 'titleSlideIn 0.8s ease-out' }}
@@ -1792,7 +1869,9 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       <FlasqoTrafficVisualizer />
 
       {/* Features Section */}
-      <PipelineDiagram />
+      <div id="features">
+        <PipelineDiagram />
+      </div>
 
       {/* Why Choose Us - Creative Hexagon Design */}
       <section id="why-us" className="relative z-10 max-w-6xl mx-auto px-6 py-10 overflow-hidden">
@@ -1874,7 +1953,12 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       <ComparisonMatrix />
 
       {/* Reviews Marquee */}
-      <ReviewsMarquee />
+      <div id="testimonials">
+        <ReviewsMarquee />
+      </div>
+
+      {/* FAQ */}
+      <FaqSection />
 
       {/* CTA Section - Creative Design */}
       <section className="relative z-10 max-w-5xl mx-auto px-6 py-12">
@@ -2099,8 +2183,9 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             {/* Quick Links */}
             <div className="flex items-center gap-6 text-sm text-gray-400">
               <a href="#features" className="hover:text-white transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+              <a href="#why-us" className="hover:text-white transition-colors">Why Flasqo</a>
               <a href="#testimonials" className="hover:text-white transition-colors">Reviews</a>
+              <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
               <a href="mailto:contact@evolune.in" className="hover:text-white transition-colors">Contact</a>
             </div>
 
@@ -2124,6 +2209,40 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                   <social.icon size={16} className="relative z-10 text-gray-400 group-hover:text-white transition-colors" />
                 </a>
               ))}
+            </div>
+          </div>
+
+          {/* Resource links — crawlable paths into the comparison & guide pages */}
+          <div className="mt-8 pt-6 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 gap-8 text-sm">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Compare</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="/compare/flasqo-vs-postman/" className="hover:text-white transition-colors">Flasqo vs Postman</a></li>
+                <li><a href="/compare/flasqo-vs-insomnia/" className="hover:text-white transition-colors">Flasqo vs Insomnia</a></li>
+                <li><a href="/compare/flasqo-vs-katalon/" className="hover:text-white transition-colors">Flasqo vs Katalon</a></li>
+                <li><a href="/compare/flasqo-vs-bruno/" className="hover:text-white transition-colors">Flasqo vs Bruno</a></li>
+                <li><a href="/compare/flasqo-vs-hoppscotch/" className="hover:text-white transition-colors">Flasqo vs Hoppscotch</a></li>
+                <li><a href="/compare/postman-alternatives/" className="hover:text-white transition-colors">Best Postman alternatives</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Guides</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="/guides/api-testing/" className="hover:text-white transition-colors">What is API testing?</a></li>
+                <li><a href="/guides/api-load-testing/" className="hover:text-white transition-colors">API load testing</a></li>
+                <li><a href="/guides/api-chaos-testing/" className="hover:text-white transition-colors">API chaos testing</a></li>
+                <li><a href="/guides/api-contract-testing/" className="hover:text-white transition-colors">API contract testing</a></li>
+                <li><a href="/guides/graphql-api-testing/" className="hover:text-white transition-colors">GraphQL API testing</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Product</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#compare" className="hover:text-white transition-colors">How we stack up</a></li>
+                <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
+                <li><a href="https://www.evolune.in/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">EvoluneEdgeTech</a></li>
+              </ul>
             </div>
           </div>
 

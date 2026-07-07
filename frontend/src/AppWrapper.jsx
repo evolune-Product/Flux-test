@@ -25,8 +25,17 @@ import LandingPage from './LandingPage.jsx';
 import ProductionGateApp from './ProductionGateApp.jsx';
 import MobileBlocker from './MobileBlocker.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
+import { setPageMeta, NOINDEX_META } from './seo.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+// Wraps user-generated / auth-gated views so search engines never index them.
+function NoIndex({ children }) {
+  useEffect(() => {
+    setPageMeta(NOINDEX_META);
+  }, []);
+  return children;
+}
 
 function AppWrapper() {
   const [user, setUser] = useState(null);
@@ -444,37 +453,37 @@ function AppWrapper() {
   // Public shared flow — no authentication required
   const sharedFlowMatch = window.location.pathname.match(/^\/flow\/([a-zA-Z0-9_-]+)/);
   if (sharedFlowMatch) {
-    return <SharedFlowApp token={sharedFlowMatch[1]} />;
+    return <NoIndex><SharedFlowApp token={sharedFlowMatch[1]} /></NoIndex>;
   }
 
   // Public report page — no authentication required
   const reportMatch = window.location.pathname.match(/^\/report\/([a-zA-Z0-9_-]+)/);
   if (reportMatch) {
-    return <SharedReportApp token={reportMatch[1]} />;
+    return <NoIndex><SharedReportApp token={reportMatch[1]} /></NoIndex>;
   }
 
   // Public shared dashboard — no authentication required
   const dashMatch = window.location.pathname.match(/^\/dashboard\/([a-zA-Z0-9_-]+)/);
   if (dashMatch) {
-    return <SharedDashboardApp token={dashMatch[1]} />;
+    return <NoIndex><SharedDashboardApp token={dashMatch[1]} /></NoIndex>;
   }
 
   // FullSend public report — no authentication required
   const fullSendReportMatch = window.location.pathname.match(/^\/fullsend-report\/([a-zA-Z0-9_-]+)/);
   if (fullSendReportMatch) {
-    return <FullSendReportApp token={fullSendReportMatch[1]} />;
+    return <NoIndex><FullSendReportApp token={fullSendReportMatch[1]} /></NoIndex>;
   }
 
-  // If not logged in, show Landing Page
+  // If not logged in, show Landing Page.
+  // No MobileBlocker here: Google indexes mobile-first (Googlebot Smartphone),
+  // so blocking small screens would make "Mobile Device Detected" the page
+  // Google sees. The marketing page must render for every visitor.
   if (!user) {
-    return (
-      <MobileBlocker>
-        <LandingPage onLoginSuccess={handleLogin} authError={authError} />
-      </MobileBlocker>
-    );
+    return <LandingPage onLoginSuccess={handleLogin} authError={authError} />;
   }
 
-  // If logged in, show Router with routes
+  // If logged in, show Router with routes (the testing tools stay
+  // desktop-gated behind MobileBlocker).
   return (
     <MobileBlocker>
       <Router>
