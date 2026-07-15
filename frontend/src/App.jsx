@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Check, Settings, Lock, Zap, Play, Download, RefreshCw, FileJson, FileText, Loader, Edit, Trash2, Plus, X, User, Github, Activity, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import BackButton from './BackButton';
+import { ChevronRight, Check, Settings, Lock, Zap, Play, Download, RefreshCw, FileJson, FileText, FileCheck, Loader, Edit, Trash2, Plus, X, User, Github, Activity, AlertTriangle, CheckCircle, XCircle, ArrowLeft, LogOut } from 'lucide-react';
 import Profile from './Profile.jsx';
 import GitHubIntegration from './GitHubIntegration.jsx';
 import AIAnalysisPanel from './AIAnalysisPanel.jsx';
@@ -516,76 +515,102 @@ function App({ user, onLogout }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white">
+    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(135deg,#020408 0%,#060c18 50%,#020408 100%)' }}>
 
-      {/* ── Top Navigation Bar ─────────────────────────────────── */}
-      <header className="sticky top-0 z-50 h-14 bg-slate-900/80 backdrop-blur-xl border-b border-white/10 flex items-center px-6 gap-4">
+      {/* ── Sticky Header ── */}
+      <div className="sticky top-0 z-50"
+        style={{ background: 'rgba(2,4,8,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
 
-        {/* Brand + Back */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">🚀 Flasqo</span>
-          <BackButton />
-        </div>
-
-        {/* Step stepper */}
-        <div className="flex-1 flex items-center justify-center gap-0.5">
-          {steps.map((step, idx) => {
-            const isActive   = currentStep === step.num;
-            const isComplete = step.num < currentStep && step.num <= maxAllowedStep;
-            const isLocked   = step.num > maxAllowedStep;
-            return (
-              <React.Fragment key={step.num}>
-                <button
-                  onClick={() => handleStepChange(step.num)}
-                  disabled={isLocked}
-                  title={step.desc}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    isLocked   ? 'text-slate-600 cursor-not-allowed' :
-                    isActive   ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20' :
-                    isComplete ? 'text-green-400 hover:bg-green-500/10' :
-                                 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    isLocked   ? 'bg-white/5 text-slate-600' :
-                    isActive   ? 'bg-white/20 text-white' :
-                    isComplete ? 'bg-green-500/20 text-green-400' :
-                                 'bg-white/10 text-slate-300'
-                  }`}>
-                    {isComplete ? <Check size={10} /> : isLocked ? <Lock size={9} /> : <span className="text-[10px] font-bold">{step.num}</span>}
-                  </span>
-                  <span className="hidden sm:inline">{step.title}</span>
-                </button>
-                {idx < steps.length - 1 && (
-                  <div className={`w-5 h-px flex-shrink-0 transition-all ${step.num < maxAllowedStep ? 'bg-purple-500/50' : 'bg-white/10'}`} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        {/* Progress + user avatar */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="hidden md:flex items-center gap-2">
-            <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
-                style={{ width: `${((maxAllowedStep - 1) / 4) * 100}%` }}
-              />
+        {/* Main header row */}
+        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/')}
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-300 transition-colors text-xs font-mono">
+              <ArrowLeft size={14} /> modules
+            </button>
+            <div className="w-px h-4 bg-slate-800" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', boxShadow: '0 0 16px rgba(124,58,237,0.30)' }}>
+                <FileCheck size={16} className="text-white" />
+              </div>
+              <div>
+                <div className="text-sm font-black text-white leading-none">Functional API Testing</div>
+                <div className="text-[9px] font-mono mt-0.5" style={{ color: '#4338ca' }}>
+                  AI-powered test generation &amp; validation
+                </div>
+              </div>
             </div>
-            <span className="text-xs text-slate-400">{Math.round(((maxAllowedStep - 1) / 4) * 100)}%</span>
           </div>
           {user && (
-            <button
-              onClick={() => setShowProfile(true)}
-              title={`${user.username} — click to view profile`}
-              className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-sm font-bold hover:scale-110 transition-transform shadow-md"
-            >
-              {user.username.charAt(0).toUpperCase()}
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{ background: 'linear-gradient(135deg,#3b82f6,#7c3aed)' }}>
+                  {user.username?.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs text-slate-500">{user.username}</span>
+              </div>
+              <button onClick={onLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-red-500/70 hover:text-red-400 transition-colors font-mono"
+                style={{ border: '1px solid rgba(239,68,68,0.15)' }}>
+                <LogOut size={12} /> Logout
+              </button>
+            </div>
           )}
         </div>
-      </header>
+
+        {/* Step wizard sub-bar */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.25)' }}>
+          <div className="max-w-6xl mx-auto px-6 py-1.5 flex items-center gap-1 overflow-x-auto">
+            {steps.map((step, idx) => {
+              const isActive   = currentStep === step.num;
+              const isComplete = step.num < currentStep && step.num <= maxAllowedStep;
+              const isLocked   = step.num > maxAllowedStep;
+              return (
+                <React.Fragment key={step.num}>
+                  <button
+                    onClick={() => handleStepChange(step.num)}
+                    disabled={isLocked}
+                    title={step.desc}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      isLocked   ? 'text-slate-700 cursor-not-allowed' :
+                      isActive   ? 'text-white' :
+                      isComplete ? 'text-green-400 hover:bg-green-500/10' :
+                                   'text-slate-500 hover:text-white hover:bg-white/5'
+                    }`}
+                    style={isActive ? { background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', boxShadow: '0 0 10px rgba(124,58,237,0.3)' } : {}}
+                  >
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold ${
+                      isLocked   ? 'bg-white/5 text-slate-700' :
+                      isActive   ? 'bg-white/25 text-white' :
+                      isComplete ? 'bg-green-500/20 text-green-400' :
+                                   'bg-white/10 text-slate-500'
+                    }`}>
+                      {isComplete ? <Check size={8} /> : isLocked ? <Lock size={7} /> : step.num}
+                    </span>
+                    <span className="hidden sm:inline">{step.title}</span>
+                  </button>
+                  {idx < steps.length - 1 && (
+                    <div className={`w-4 h-px flex-shrink-0 transition-all ${step.num < maxAllowedStep ? 'bg-purple-500/40' : 'bg-white/10'}`} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+            <div className="ml-auto flex items-center gap-2 pl-4 flex-shrink-0">
+              <div className="w-14 h-0.5 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${((maxAllowedStep - 1) / 4) * 100}%`, background: 'linear-gradient(90deg,#3b82f6,#7c3aed)' }}
+                />
+              </div>
+              <span className="text-[10px] text-slate-600 font-mono">
+                {Math.round(((maxAllowedStep - 1) / 4) * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ── Main Content ───────────────────────────────────────── */}
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">

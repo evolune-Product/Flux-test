@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Profile from './Profile';
 import {
   Activity,
   AlertTriangle,
@@ -19,11 +20,15 @@ import {
   Sparkles,
   Globe,
   Workflow,
-  Link2
+  Link2,
+  GitBranch,
+  GitMerge
 } from 'lucide-react';
 
 function TestingTypesLanding({ user, onLogout }) {
   const navigate = useNavigate();
+  const [showProfile, setShowProfile] = React.useState(false);
+  const [currentUser, setCurrentUser] = React.useState(user);
   // Seeded with first module so panel is always visible; never set to null
   const [activeType, setActiveType] = React.useState(null);
   React.useLayoutEffect(() => {
@@ -332,7 +337,7 @@ function TestingTypesLanding({ user, onLogout }) {
               {user && (
                 <div className="flex items-center gap-3">
                   {/* Floating Avatar with Orbital Ring */}
-                  <div className="hidden md:flex items-center gap-3 group cursor-pointer">
+                  <div className="hidden md:flex items-center gap-3 group cursor-pointer" onClick={() => setShowProfile(true)}>
                     {/* Avatar container */}
                     <div className="relative" style={{ animation: 'avatarFloat 4s ease-in-out infinite' }}>
                       {/* Outer orbital ring */}
@@ -357,7 +362,7 @@ function TestingTypesLanding({ user, onLogout }) {
                         <div className="absolute inset-0 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500" />
                         <div className="absolute inset-[2px] rounded-full bg-slate-900 flex items-center justify-center">
                           <span className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                            {user.username?.charAt(0).toUpperCase()}
+                            {currentUser.username?.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         {/* Online indicator */}
@@ -369,13 +374,39 @@ function TestingTypesLanding({ user, onLogout }) {
 
                     {/* User info - floating style */}
                     <div className="relative">
-                      <div className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">{user.username}</div>
+                      <div className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">{currentUser.username}</div>
                       <div className="text-[10px] text-gray-400 flex items-center gap-1">
                         <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
                         Online
                       </div>
                     </div>
                   </div>
+
+                  {/* CI/CD Trigger shortcut */}
+                  <button
+                    onClick={() => navigate('/ci-trigger')}
+                    title="CI/CD Trigger"
+                    className="relative group"
+                  >
+                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full opacity-0 group-hover:opacity-40 blur-md transition-all duration-300" />
+                    <div className="relative flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-full border border-emerald-500/25 group-hover:border-emerald-400/50 group-hover:bg-emerald-500/20 transition-all duration-300">
+                      <GitBranch size={15} className="text-emerald-400 group-hover:text-white transition-colors" />
+                      <span className="hidden lg:inline text-xs text-emerald-400 group-hover:text-white transition-colors font-medium">CI/CD</span>
+                    </div>
+                  </button>
+
+                  {/* Webhook Trigger shortcut */}
+                  <button
+                    onClick={() => navigate('/webhook-trigger')}
+                    title="GitHub Webhook Trigger"
+                    className="relative group"
+                  >
+                    <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-sky-500 rounded-full opacity-0 group-hover:opacity-40 blur-md transition-all duration-300" />
+                    <div className="relative flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-500/10 to-sky-500/10 rounded-full border border-cyan-500/25 group-hover:border-cyan-400/50 group-hover:bg-cyan-500/20 transition-all duration-300">
+                      <GitMerge size={15} className="text-cyan-400 group-hover:text-white transition-colors" />
+                      <span className="hidden lg:inline text-xs text-cyan-400 group-hover:text-white transition-colors font-medium">Webhooks</span>
+                    </div>
+                  </button>
 
                   {/* Logout button - Floating orb style */}
                   <button
@@ -1143,6 +1174,17 @@ function TestingTypesLanding({ user, onLogout }) {
         </div>
       </div>
 
+      {showProfile && (
+        <Profile
+          user={currentUser}
+          onClose={() => setShowProfile(false)}
+          onUpdate={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }}
+          onLogout={onLogout}
+        />
+      )}
     </div>
   );
 }

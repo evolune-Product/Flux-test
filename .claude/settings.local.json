@@ -79,7 +79,8 @@
       "mcp__claude_ai_Gamma__get_themes",
       "mcp__claude_ai_Gamma__generate",
       "Bash(node:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "WebFetch(domain:pricepertoken.com)"
     ],
     "deny": [],
     "ask": []

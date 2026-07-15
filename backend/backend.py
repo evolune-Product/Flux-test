@@ -13,6 +13,7 @@ import io
 from io import BytesIO
 import os
 import secrets
+import random
 import uuid
 import time
 import asyncio
@@ -127,6 +128,8 @@ class UserDB(Base):
     github_token = Column(String, nullable=True)  # GitHub access token for repo access
     github_username = Column(String, nullable=True)  # GitHub username
     github_repo = Column(String, nullable=True)  # Default GitHub repo name
+    flasqo_id = Column(String, unique=True, nullable=True, index=True)  # 5-digit platform ID e.g. "38472"
+    plan = Column(String, nullable=False, default='free', server_default='free')  # 'free' or 'pro'
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # Team model
@@ -452,6 +455,8 @@ try:
     with engine.connect() as _conn:
         _conn.execute(_text("ALTER TABLE saved_flows ADD COLUMN IF NOT EXISTS share_token VARCHAR UNIQUE"))
         _conn.execute(_text("ALTER TABLE saved_flows ADD COLUMN IF NOT EXISTS custom_slug VARCHAR UNIQUE"))
+        _conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS flasqo_id VARCHAR UNIQUE"))
+        _conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR NOT NULL DEFAULT 'free'"))
         _conn.commit()
 except Exception:
     pass
@@ -560,6 +565,13 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
+def generate_flasqo_id(db: Session) -> str:
+    """Generate a unique 5-digit Flasqo ID"""
+    while True:
+        candidate = str(random.randint(10000, 99999))
+        if not db.query(UserDB).filter(UserDB.flasqo_id == candidate).first():
+            return candidate
+
 def get_or_create_oauth_user(db: Session, email: str, username: str, provider: str, oauth_id: str):
     """Get or create user from OAuth login"""
     # Check if user exists by email
@@ -583,6 +595,8 @@ def get_or_create_oauth_user(db: Session, email: str, username: str, provider: s
         username = f"{base_username}{counter}"
         counter += 1
     
+    flasqo_id = generate_flasqo_id(db)
+
     new_user = UserDB(
         user_id=user_id,
         username=username,
@@ -590,6 +604,8 @@ def get_or_create_oauth_user(db: Session, email: str, username: str, provider: s
         password_hash=None,  # OAuth users don't have password
         oauth_provider=provider,
         oauth_id=oauth_id,
+        flasqo_id=flasqo_id,
+        plan='free',
         created_at=datetime.utcnow()
     )
     
@@ -834,7 +850,8 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
         
         hashed_password = hash_password(request.password)
         user_id = secrets.token_urlsafe(16)
-        
+        flasqo_id = generate_flasqo_id(db)
+
         new_user = UserDB(
             user_id=user_id,
             username=request.username,
@@ -842,6 +859,8 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
             password_hash=hashed_password,
             oauth_provider=None,
             oauth_id=None,
+            flasqo_id=flasqo_id,
+            plan='free',
             created_at=datetime.utcnow()
         )
         
@@ -1006,6 +1025,11 @@ async def get_current_user(username: str = Depends(verify_token), db: Session = 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Backfill flasqo_id for users who signed up before this feature was added
+    if not user.flasqo_id:
+        user.flasqo_id = generate_flasqo_id(db)
+        db.commit()
+
     return {
         "user_id": user.user_id,
         "username": user.username,
@@ -1014,6 +1038,11 @@ async def get_current_user(username: str = Depends(verify_token), db: Session = 
         "linkedin_url": user.linkedin_url,
         "github_url": user.github_url,
         "oauth_provider": user.oauth_provider,
+        "flasqo_id": user.flasqo_id,
+        "plan": user.plan or 'free',
+        "github_connected": bool(user.github_token),
+        "github_username": user.github_username,
+        "github_repo": user.github_repo,
         "created_at": user.created_at.isoformat()
     }
 
@@ -1084,6 +1113,37 @@ async def change_password(
 async def logout():
     """Logout endpoint"""
     return {"message": "Logged out successfully"}
+
+@app.delete("/auth/account")
+async def delete_account(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Permanently delete user account and all associated data"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_id = user.user_id
+
+    # Delete associated data in order (FK constraints)
+    try:
+        db.query(GitHubTestResultDB).filter(GitHubTestResultDB.user_id == user_id).delete()
+        db.query(TeamMemberDB).filter(TeamMemberDB.user_id == user_id).delete()
+        # Remove teams created by this user (cascade handles members)
+        owned_teams = db.query(TeamDB).filter(TeamDB.created_by == user_id).all()
+        for team in owned_teams:
+            db.query(TeamMemberDB).filter(TeamMemberDB.team_id == team.team_id).delete()
+            db.query(TestSuiteDB).filter(TestSuiteDB.team_id == team.team_id).delete()
+        db.query(TeamDB).filter(TeamDB.created_by == user_id).delete()
+        db.query(TestSuiteDB).filter(TestSuiteDB.created_by == user_id).delete()
+        db.delete(user)
+        db.commit()
+        return {"message": "Account deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")
 
 # ============================================
 # API TESTING ENDPOINTS (keep your existing ones)
@@ -6357,6 +6417,17 @@ async def get_prod_gate_sessions(username: str = Depends(verify_token), db: Sess
              "executedAt": s.executed_at.isoformat()} for s in rows]
 
 # PROD-GATE: END
+
+
+# ── CI/CD Trigger ──────────────────────────────────────────────────────────────
+from ci_trigger import router as ci_router
+app.include_router(ci_router)
+# ───────────────────────────────────────────────────────────────────────────────
+
+# ── GitHub Webhook Trigger ──────────────────────────────────────────────────────
+from webhook_trigger import router as webhook_router
+app.include_router(webhook_router)
+# ───────────────────────────────────────────────────────────────────────────────
 
 
 if __name__ == "__main__":
