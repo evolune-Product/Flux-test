@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Users, Plus, Trash2, UserPlus, Shield, Crown, Save, FolderOpen, Share2, Loader, AlertCircle, CheckCircle, Download } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 function Teams({ user, onClose, currentTestSuite, onLoadSuite }) {
   const [activeTab, setActiveTab] = useState('teams');

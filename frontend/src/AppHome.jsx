@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Upload, Plus, ArrowRight, Clock, FlaskConical, Library, Sparkles } from 'lucide-react';
 import { SUITES } from './DesktopShell.jsx';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
 const METHOD_COLORS = {

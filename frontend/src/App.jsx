@@ -7,8 +7,8 @@ import GitHubIntegration from './GitHubIntegration.jsx';
 import AIAnalysisPanel from './AIAnalysisPanel.jsx';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiFetch } from './lib/api.js';
+import { StatusBadge, getStatusColors } from './components/ui/StatusBadge.jsx';
 
 // TestResultItem Component with AI Analysis Support
 const TestResultItem = ({ result, idx }) => {
@@ -22,13 +22,9 @@ const TestResultItem = ({ result, idx }) => {
   const handleAnalyzeFailure = async () => {
     setAnalyzing(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/analyze-failure`, {
+      const response = await apiFetch('/analyze-failure', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           test_name: result.test,
           test_type: 'functional',
@@ -57,14 +53,11 @@ const TestResultItem = ({ result, idx }) => {
     }
   };
 
+  const { bg, border } = getStatusColors(result.status);
   return (
-    <div className={`p-3 rounded-xl border-l-2 ${
-      result.status === 'PASS' ? 'bg-green-500/5 border-green-500' : 'bg-red-500/5 border-red-500'
-    }`}>
+    <div className={`p-3 rounded-xl border-l-2 ${bg} ${border}`}>
       <div className="flex items-center gap-2">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-          result.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-        }`}>{result.status}</span>
+        <StatusBadge status={result.status} />
         <span className="text-sm text-white font-medium">{result.test}</span>
       </div>
       <div className="text-xs text-slate-400 mt-1">{result.details}</div>
@@ -236,7 +229,7 @@ function App({ user, onLogout }) {
       const selectedTypes = Object.keys(testTypes).filter(key => testTypes[key]);
       const hasAuth = authConfig.type !== 'none';
 
-      const response = await fetch(`${API_BASE_URL}/generate-tests`, {
+      const response = await apiFetch('/generate-tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -281,7 +274,7 @@ function App({ user, onLogout }) {
     try {
       let sampleJson = {};
       try { sampleJson = JSON.parse(sampleData); } catch { sampleJson = {}; }
-      const response = await fetch(`${API_BASE_URL}/library/generate`, {
+      const response = await apiFetch('/library/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -376,7 +369,7 @@ function App({ user, onLogout }) {
 
     setNlGenerating(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/generate-test-from-nl`, {
+      const response = await apiFetch('/generate-test-from-nl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -476,11 +469,9 @@ function App({ user, onLogout }) {
     setStatusMessage('Running tests...');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/run-tests`, {
+      const response = await apiFetch('/run-tests', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           base_url: apiUrl,
           http_method: httpMethod,
@@ -521,7 +512,7 @@ function App({ user, onLogout }) {
   };
   const handleDownloadReport = async (format) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/download-report/${format}`, {
+      const response = await apiFetch(`/download-report/${format}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

@@ -37,3 +37,19 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated reports and runtime output
+backend/fullsend_reports/
+backend/accuracy_report.json
+
+# Desktop build artifacts
+desktop/
+backend/build.sh
+backend/flasqo-backend.spec
+
+# Debug / one-time scripts
+debug_oauth.sh
+fix_oauth_production.sh
+quick_fix.sh
+frontend/debug-token.html
+coming-soon.html

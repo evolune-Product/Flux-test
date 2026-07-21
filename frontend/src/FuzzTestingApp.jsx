@@ -21,7 +21,7 @@ import BackButton from './BackButton';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 const FuzzTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();

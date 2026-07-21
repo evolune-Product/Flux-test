@@ -21,8 +21,7 @@ import {
 } from 'lucide-react';
 import BackButton from './BackButton';
 import { saveTestRun } from './testHistoryUtils.js';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiFetch, API_BASE_URL } from './lib/api.js';
 
 const RegressionTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -55,7 +54,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
     if (!nlTestInput.trim()) return;
     setNlGenerating(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/generate-test-from-nl`, {
+      const response = await apiFetch('/generate-test-from-nl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: nlTestInput, base_url: 'http://api.example.com' })
@@ -119,12 +118,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
   // Fetch baselines
   const fetchBaselines = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/regression/my-baselines`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiFetch('/regression/my-baselines');
 
       if (response.ok) {
         const data = await response.json();
@@ -146,8 +140,6 @@ const RegressionTestingApp = ({ user, onLogout }) => {
     addLog('Creating baseline...', 'info');
 
     try {
-      const token = localStorage.getItem('token');
-
       // Parse request body and headers
       let requestBody = null;
       let customHeaders = null;
@@ -187,12 +179,9 @@ const RegressionTestingApp = ({ user, onLogout }) => {
       addLog(`Sending request to: ${API_BASE_URL}/regression/create-baseline`, 'info');
       addLog(`Payload: ${JSON.stringify(payload, null, 2)}`, 'info');
 
-      const response = await fetch(`${API_BASE_URL}/regression/create-baseline`, {
+      const response = await apiFetch('/regression/create-baseline', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -245,13 +234,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/regression/baselines/${baselineId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiFetch(`/regression/baselines/${baselineId}`, { method: 'DELETE' });
 
       if (response.ok) {
         addLog('Baseline deleted successfully', 'success');
@@ -280,13 +263,9 @@ const RegressionTestingApp = ({ user, onLogout }) => {
     addLog('Running regression test...', 'info');
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/regression/run-test`, {
+      const response = await apiFetch('/regression/run-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           baseline_id: baselineId,
           timeout: 10
@@ -330,12 +309,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
   // Fetch test history for a baseline
   const fetchTestHistory = async (baselineId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/regression/results/${baselineId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiFetch(`/regression/results/${baselineId}`);
 
       if (response.ok) {
         const data = await response.json();

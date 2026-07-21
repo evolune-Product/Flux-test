@@ -31,8 +31,7 @@ import ProductionGateApp from "./ProductionGateApp.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import { setPageMeta, NOINDEX_META } from "./seo.js";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+import { API_BASE_URL } from './lib/api.js';
 
 // Wraps user-generated / auth-gated views so search engines never index them.
 function NoIndex({ children }) {
@@ -51,8 +50,19 @@ function AppPageShell({ children }) {
 }
 
 function AppWrapper() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    // Initialise synchronously so returning users never see the landing page flash
+    try {
+      const savedUser = localStorage.getItem('user');
+      const savedToken = localStorage.getItem('token');
+      if (savedUser && savedToken) return JSON.parse(savedUser);
+    } catch {}
+    return null;
+  });
+  // Only show loading screen during OAuth callback processing
+  const [loading, setLoading] = useState(() =>
+    !!(new URLSearchParams(window.location.search).get('token'))
+  );
   const [authError, setAuthError] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -134,7 +144,7 @@ function AppWrapper() {
           };
           localStorage.setItem("user", JSON.stringify(userData));
           setUser(userData);
-          print(err)
+          console.error(err)
         }
 
         // Clean URL parameters
@@ -146,20 +156,6 @@ function AppWrapper() {
       // Check for saved user in localStorage (normal flow)
       const savedUser = localStorage.getItem("user");
       const savedToken = localStorage.getItem("token");
-
-      if (import.meta.env.DEV) {
-        const mockUser = {
-          user_id: "dev-local-user-999",
-          username: "LocalDeveloper",
-          email: "dev@flasqo.local",
-          oauth_provider: "local-mock",
-        };
-        localStorage.setItem("user", JSON.stringify(mockUser));
-        localStorage.setItem("token", "dev-bypass-jwtoken-xyz");
-        setUser(mockUser);
-        setLoading(false);
-        return;
-      }
 
       if (savedUser && savedToken) {
         try {
@@ -184,61 +180,26 @@ function AppWrapper() {
   };
 
   // Handle logout
-  const handleLogout = async () => {
-    setLoggingOut(true);
+  const handleLogout = () => {
+    // Fire-and-forget — backend endpoint is a no-op
+    fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    }).catch(() => {});
 
-    // Show logout animation for 1.5 seconds
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Call backend logout endpoint
-    try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
-
-    // Clear user data
-    setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-
-    // Clear all testing suite state so results don't persist across sessions
-    const testingKeys = [
-      "performanceTestingState",
-      "smokeTestingState",
-      "chaosTestingState",
-      "fuzzTestingState",
-      "regressionTestingState",
-      "contractTestingState",
-      "graphqlTestingState",
-      "autoDiscoveryState",
-      "discoveryData",
+    // Clear session immediately (security — token gone before animation ends)
+    [
+      "user", "token",
+      "performanceTestingState", "smokeTestingState", "chaosTestingState",
+      "fuzzTestingState", "regressionTestingState", "contractTestingState",
+      "graphqlTestingState", "autoDiscoveryState", "discoveryData",
       "github_redirect_path",
-    ];
-    testingKeys.forEach((key) => localStorage.removeItem(key));
+    ].forEach((k) => localStorage.removeItem(k));
+    setUser(null);
 
-    // Desktop/local mode: there is no login screen — sign straight back
-    // into the local workspace after clearing session state.
-    if (LOCAL_MODE) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/auth/local`);
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          setUser(data.user);
-        }
-      } catch (err) {
-        console.error('Local mode re-login failed:', err);
-      }
-    }
-
-    setLoggingOut(false);
+    // Show "See you soon" for 2 s, then let AppWrapper render landing
+    setLoggingOut(true);
+    setTimeout(() => setLoggingOut(false), 2000);
   };
 
   // Loading screen - Creative OAuth Animation

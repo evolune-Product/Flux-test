@@ -5,8 +5,7 @@ import {
   ChevronRight, ChevronDown, Copy, Download, Upload, Globe, Settings,
   Play, ArrowLeft, RefreshCw, FileJson, Terminal, CircleCheck, CircleX, Layers, Code2
 } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiFetch } from './lib/api.js';
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -131,6 +130,7 @@ const statusColor = (s) => {
   return 'bg-red-600';
 };
 
+// authHeaders kept for code-gen snippets only (not used for actual requests)
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
 // ─────────────────────────────────────────────
@@ -231,10 +231,10 @@ const CODE_GENERATORS = {
 };
 
 const api = {
-  async get(path) { const r = await fetch(`${API_BASE_URL}${path}`, { headers: authHeaders() }); if (!r.ok) throw new Error(await r.text()); return r.json(); },
-  async post(path, body) { const r = await fetch(`${API_BASE_URL}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); },
-  async put(path, body) { const r = await fetch(`${API_BASE_URL}${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); },
-  async del(path) { const r = await fetch(`${API_BASE_URL}${path}`, { method: 'DELETE', headers: authHeaders() }); if (!r.ok) throw new Error(await r.text()); return r.json(); },
+  async get(path) { const r = await apiFetch(path); if (!r.ok) throw new Error(await r.text()); return r.json(); },
+  async post(path, body) { const r = await apiFetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); },
+  async put(path, body) { const r = await apiFetch(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); },
+  async del(path) { const r = await apiFetch(path, { method: 'DELETE' }); if (!r.ok) throw new Error(await r.text()); return r.json(); },
 };
 
 // ─────────────────────────────────────────────

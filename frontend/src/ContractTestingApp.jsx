@@ -20,8 +20,7 @@ import {
 } from 'lucide-react';
 import BackButton from './BackButton';
 import { saveTestRun } from './testHistoryUtils.js';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiFetch } from './lib/api.js';
 
 const ContractTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -95,10 +94,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
 
   const fetchContracts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/contract/my-contracts`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiFetch('/contract/my-contracts');
       if (response.ok) {
         const data = await response.json();
         setContracts(data.contracts);
@@ -118,7 +114,6 @@ const ContractTestingApp = ({ user, onLogout }) => {
     addLog('Creating contract...', 'info');
 
     try {
-      const token = localStorage.getItem('token');
       let responseBodySchema;
 
       try {
@@ -142,12 +137,9 @@ const ContractTestingApp = ({ user, onLogout }) => {
         is_shared: false
       };
 
-      const response = await fetch(`${API_BASE_URL}/contract/create`, {
+      const response = await apiFetch('/contract/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -188,13 +180,9 @@ const ContractTestingApp = ({ user, onLogout }) => {
     addLog('AI is generating your contract...', 'info');
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/contract/ai/generate`, {
+      const response = await apiFetch('/contract/ai/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: aiDescription,
           include_request_schema: true,
@@ -236,11 +224,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
     if (!confirm('Are you sure you want to delete this contract?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/contract/${contractId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiFetch(`/contract/${contractId}`, { method: 'DELETE' });
 
       if (response.ok) {
         addLog('Contract deleted successfully', 'success');
@@ -267,7 +251,6 @@ const ContractTestingApp = ({ user, onLogout }) => {
     addLog('Verifying provider against contract...', 'info');
 
     try {
-      const token = localStorage.getItem('token');
       let customHeaders = null;
 
       if (providerForm.custom_headers) {
@@ -287,12 +270,9 @@ const ContractTestingApp = ({ user, onLogout }) => {
         custom_headers: customHeaders
       };
 
-      const response = await fetch(`${API_BASE_URL}/contract/verify-provider`, {
+      const response = await apiFetch('/contract/verify-provider', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -329,10 +309,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
 
   const fetchVerificationHistory = async (contractId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/contract/verifications/${contractId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiFetch(`/contract/verifications/${contractId}`);
       if (response.ok) {
         const data = await response.json();
         setVerificationHistory(data);

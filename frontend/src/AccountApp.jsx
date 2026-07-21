@@ -4,7 +4,7 @@ import {
   Mail, Lock, AtSign, Save, ExternalLink
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 const api = {
   async get(p) { const r = await fetch(`${API_BASE_URL}${p}`); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText); return r.json(); },

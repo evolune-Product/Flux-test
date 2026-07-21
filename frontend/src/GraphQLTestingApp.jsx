@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List, LogOut, RefreshCw } from 'lucide-react';
 import BackButton from './BackButton';
-import Toast from './Toast';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
+import { apiFetch } from './lib/api.js';
+import { useToast } from './hooks/useToast.js';
 
 const FUCHSIA = '#e879f9';
 const FUCHSIA_DIM = 'rgba(232,121,249,0.12)';
@@ -28,7 +29,7 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
     errors: true,
     performance: true
   });
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const { showToast, ToastEl } = useToast();
 
   // Natural Language Query Builder states
   const [nlDescription, setNlDescription] = useState('');
@@ -37,10 +38,6 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
   const [queryExplanation, setQueryExplanation] = useState('');
   const [expandedSections, setExpandedSections] = useState({ queries: true, mutations: true, types: false });
   const [schemaSearch, setSchemaSearch] = useState('');
-
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-  };
 
   const addTestFromSchemaExplorer = (operation, opType) => {
     const resolveType = (t) => (typeof t === 'string' ? t : t?.name || 'String');
@@ -68,8 +65,6 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
     });
     showToast(`Added test for ${operation.name}`, 'success');
   };
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
   // Load saved state from localStorage on mount
   useEffect(() => {
@@ -116,20 +111,9 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        showToast('You are not logged in. Please refresh the page and log in again.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/graphql/discover-schema`, {
+      const response = await apiFetch('/graphql/discover-schema', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           endpoint: graphqlEndpoint,
           auth_config: authConfig
@@ -159,20 +143,9 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
   const generateTests = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        showToast('You are not logged in. Please refresh the page and log in again.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/graphql/generate-tests`, {
+      const response = await apiFetch('/graphql/generate-tests', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           endpoint: graphqlEndpoint,
           schema: schema,
@@ -202,20 +175,9 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
   const runTests = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        showToast('You are not logged in. Please refresh the page and log in again.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/graphql/run-tests`, {
+      const response = await apiFetch('/graphql/run-tests', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           endpoint: graphqlEndpoint,
           auth_config: authConfig,
@@ -283,20 +245,9 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
     setQueryExplanation('');
 
     try {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        showToast('You are not logged in. Please refresh the page and log in again.', 'error');
-        setNlGenerating(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/graphql/nl-to-query`, {
+      const response = await apiFetch('/graphql/nl-to-query', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: nlDescription,
           schema: schema
@@ -338,19 +289,9 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
   // Download report
   const downloadReport = async (format) => {
     try {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        showToast('You are not logged in. Please refresh the page and log in again.', 'error');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/graphql/download-report/${format}`, {
+      const response = await apiFetch(`/graphql/download-report/${format}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           endpoint: graphqlEndpoint,
           results: testResults
@@ -468,13 +409,7 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
         backgroundSize: '28px 28px',
       }} />
 
-      {toast.show && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast({ ...toast, show: false })}
-        />
-      )}
+      {ToastEl}
 
       {/* ── Sticky Header */}
       <div style={{

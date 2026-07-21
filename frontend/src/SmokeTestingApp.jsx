@@ -8,6 +8,7 @@ import {
 import GitHubIntegration from './GitHubIntegration.jsx';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
+import { API_BASE_URL } from './lib/api.js';
 
 const SmokeTestingApp = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -32,7 +33,6 @@ const SmokeTestingApp = ({ user, onLogout }) => {
   const [nlGenerating, setNlGenerating] = useState(false);
 
   const logsEndRef = useRef(null);
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
   // ─── Effects (unchanged) ──────────────────────────────────────────────────
   useEffect(() => {

@@ -4,7 +4,7 @@ import {
   ExternalLink, BarChart3, AlertTriangle
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 const MODULE_META = {
   functional:       { label: 'Functional Testing',    color: 'from-blue-600 to-purple-600' },

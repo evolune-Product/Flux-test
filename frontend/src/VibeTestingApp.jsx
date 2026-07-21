@@ -25,7 +25,7 @@ import {
 
 import { saveTestRun } from './testHistoryUtils.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 // Strip large base64 screenshots before storing in history to avoid DB bloat
 function stripScreenshots(data) {

@@ -85,7 +85,10 @@
       "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\hooks\\\\useTrialCounter.js\")",
       "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\DesktopShell.jsx\")",
       "Bash(git -C \"E:\\\\Evolune_Products\\\\Evo-TFX-main\" ls-files --others --exclude-standard frontend/src/)",
-      "WebFetch(domain:www.postman.com)"
+      "WebFetch(domain:www.postman.com)",
+      "Bash(pwsh:*)",
+      "Bash(# Check backend static dir, logs, fullsend_reports echo \"\"=== backend/static ===\"\" && ls \"\"E:/Evolune_Products/Evo-TFX-main/backend/static/\"\" echo \"\"=== backend/logs ===\"\" && ls \"\"E:/Evolune_Products/Evo-TFX-main/backend/logs/\"\")",
+      "Bash(head -5 echo \"=== root package-lock \\(no package.json at root?\\) ===\")"
     ],
     "deny": [],
     "ask": []

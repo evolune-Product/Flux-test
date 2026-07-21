@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Github, CheckCircle, AlertCircle, Loader, ExternalLink, FolderGit2 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 function GitHubIntegration({ testResults, apiUrl, onClose }) {
   const [connected, setConnected] = useState(false);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, User, Mail, Briefcase, Github, Lock, Save, AlertCircle, CheckCircle, Loader, Linkedin, LogOut } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 function Profile({ user, onClose, onUpdate, onLogout }) {
   const [activeTab, setActiveTab] = useState('profile');
@@ -130,13 +130,8 @@ function Profile({ user, onClose, onUpdate, onLogout }) {
   };
 
   const handleLogoutConfirm = () => {
-    setIsLoggingOut(true);
-
-    // Show logging out message with animation
-    setTimeout(() => {
-      onLogout();
-      onClose();
-    }, 1500);
+    onLogout();
+    onClose();
   };
 
   const handleLogoutCancel = () => {

@@ -11,7 +11,7 @@ import '@xyflow/react/dist/style.css';
 import { GitFork, Loader, ArrowLeft, Calendar, User, Layers } from 'lucide-react';
 import RequestNode from './components/nodes/RequestNode.jsx';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './lib/api.js';
 
 // Module-level to prevent React Flow re-mounting
 const nodeTypes = { requestNode: RequestNode };

@@ -23,8 +23,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import BackButton from './BackButton';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiFetch } from './lib/api.js';
 
 const ROSE = '#fb7185';
 const ROSE_DIM = 'rgba(251,113,133,0.12)';
@@ -238,7 +237,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
         timeout: 15,
       };
 
-      const res = await fetch(`${API_BASE_URL}/run-integration-tests`, {
+      const res = await apiFetch('/run-integration-tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -277,16 +276,12 @@ export default function IntegrationTestingApp({ user, onLogout }) {
       return;
     }
     try {
-      const token = localStorage.getItem('token');
       if (overwriteId) {
-        await fetch(`${API_BASE_URL}/integration-scenarios/${overwriteId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
+        await apiFetch(`/integration-scenarios/${overwriteId}`, { method: 'DELETE' });
       }
-      const res = await fetch(`${API_BASE_URL}/integration-scenarios`, {
+      const res = await apiFetch('/integration-scenarios', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: scenarioName, description: '', services, steps }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -301,10 +296,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
 
   async function fetchSavedScenarios() {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/integration-scenarios`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const res = await apiFetch('/integration-scenarios');
       if (res.ok) setSavedScenarios(await res.json());
     } catch { /* silent */ }
   }
@@ -319,11 +311,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
 
   async function handleDeleteScenario(id) {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`${API_BASE_URL}/integration-scenarios/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      await apiFetch(`/integration-scenarios/${id}`, { method: 'DELETE' });
       fetchSavedScenarios();
     } catch { /* silent */ }
   }

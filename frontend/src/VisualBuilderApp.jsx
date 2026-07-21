@@ -15,8 +15,7 @@ import '@xyflow/react/dist/style.css';
 import { ArrowLeft, Play, Plus, Loader, Trash2, Save, FolderOpen, X, Check, Link, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RequestNode from './components/nodes/RequestNode.jsx';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiFetch } from './lib/api.js';
 
 // Must be module-level to prevent React Flow re-mounting on re-render
 const nodeTypes = { requestNode: RequestNode };
@@ -69,10 +68,7 @@ function VisualBuilderInner({ user, onLogout }) {
     if (!forkId) return;
     // Clean the URL immediately
     window.history.replaceState({}, document.title, '/flow-builder');
-    const token = localStorage.getItem('token');
-    fetch(`${API_BASE_URL}/flows/${forkId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/flows/${forkId}`)
       .then((r) => r.json())
       .then((data) => {
         setBaseUrl(data.base_url || '');
@@ -233,13 +229,9 @@ function VisualBuilderInner({ user, onLogout }) {
     }));
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/run-flow`, {
+      const response = await apiFetch('/run-flow', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           base_url: baseUrl.trim(),
           auth_config: authConfig,
@@ -282,12 +274,9 @@ function VisualBuilderInner({ user, onLogout }) {
 
       // Save to history (non-blocking)
       try {
-        await fetch(`${API_BASE_URL}/test-runs`, {
+        await apiFetch('/test-runs', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             module: 'flow-builder',
             api_url: baseUrl.trim(),
@@ -332,7 +321,6 @@ function VisualBuilderInner({ user, onLogout }) {
     if (!saveFlowName.trim()) { alert('Enter a name for this flow.'); return; }
     setIsSaving(true);
     setSaveSuccess(false);
-    const token = localStorage.getItem('token');
     const cleanNodes = nodes.map((n) => ({
       id: n.id,
       type: n.type,
@@ -360,15 +348,15 @@ function VisualBuilderInner({ user, onLogout }) {
     };
     try {
       if (currentFlowId) {
-        await fetch(`${API_BASE_URL}/flows/${currentFlowId}`, {
+        await apiFetch(`/flows/${currentFlowId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
-        const res = await fetch(`${API_BASE_URL}/flows`, {
+        const res = await apiFetch('/flows', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         const data = await res.json();
@@ -388,10 +376,7 @@ function VisualBuilderInner({ user, onLogout }) {
     setShowFlowsModal(true);
     setIsLoadingFlows(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/flows`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch('/flows');
       const data = await res.json();
       setSavedFlows(data.flows || []);
     } catch {
@@ -403,10 +388,7 @@ function VisualBuilderInner({ user, onLogout }) {
 
   const loadFlow = useCallback(async (flowId) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/flows/${flowId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/flows/${flowId}`);
       if (!res.ok) throw new Error('Failed to load flow');
       const data = await res.json();
       setBaseUrl(data.base_url || '');
@@ -431,11 +413,7 @@ function VisualBuilderInner({ user, onLogout }) {
   const handleDeleteFlow = useCallback(async (flowId, e) => {
     e.stopPropagation();
     if (!window.confirm('Delete this flow? This cannot be undone.')) return;
-    const token = localStorage.getItem('token');
-    await fetch(`${API_BASE_URL}/flows/${flowId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await apiFetch(`/flows/${flowId}`, { method: 'DELETE' });
     setSavedFlows((fs) => fs.filter((f) => f.flow_id !== flowId));
     if (currentFlowId === flowId) {
       setCurrentFlowId(null);
@@ -465,10 +443,9 @@ function VisualBuilderInner({ user, onLogout }) {
     setIsSharing(true);
     setSlugError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/flows/${currentFlowId}/share`, {
+      const res = await apiFetch(`/flows/${currentFlowId}/share`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ custom_slug: customSlugInput.trim() || null }),
       });
       const data = await res.json();
