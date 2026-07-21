@@ -79,7 +79,12 @@
       "mcp__claude_ai_Gamma__get_themes",
       "mcp__claude_ai_Gamma__generate",
       "Bash(node:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(git status:*)",
+      "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\TrialGate.jsx\")",
+      "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\hooks\\\\useTrialCounter.js\")",
+      "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\DesktopShell.jsx\")",
+      "Bash(git -C \"E:\\\\Evolune_Products\\\\Evo-TFX-main\" ls-files --others --exclude-standard frontend/src/)"
     ],
     "deny": [],
     "ask": []
