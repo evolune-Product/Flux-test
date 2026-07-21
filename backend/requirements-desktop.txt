@@ -1,0 +1,27 @@
+# Desktop (local mode) dependencies — no Postgres driver, no Streamlit, no Playwright.
+# Playwright-powered features (FullSend crawl, Vibe screenshots) degrade gracefully when absent.
+fastapi
+uvicorn
+python-multipart
+sqlalchemy
+passlib
+bcrypt
+python-jose
+PyJWT
+cryptography
+authlib
+httpx
+starlette
+itsdangerous
+openai
+jsonschema
+requests
+PyGithub
+python-dotenv
+email-validator
+pydantic
+reportlab
+pillow
+beautifulsoup4
+lxml
+pyyaml

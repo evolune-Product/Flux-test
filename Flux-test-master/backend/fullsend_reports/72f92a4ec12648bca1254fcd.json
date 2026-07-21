@@ -1,0 +1,261 @@
+{
+  "report_token": "72f92a4ec12648bca1254fcd",
+  "scan_id": "21ece41d-d738-4b57-8e7c-b40f6ecd15be",
+  "target_url": "https://jsonplaceholder.typicode.com",
+  "scanned_at": "2026-05-14T17:01:18.216911+00:00",
+  "elapsed_seconds": 42.2,
+  "app_health_score": 56,
+  "executive_summary": "The automated test report for the web application at https://jsonplaceholder.typicode.com reveals several security vulnerabilities due to missing HTTP security headers. While the smoke tests passed successfully, the absence of critical security headers poses a significant risk to the application's security posture.",
+  "ai_issues": [
+    {
+      "id": 1,
+      "title": "Missing HSTS header",
+      "severity": "critical",
+      "type": "security",
+      "url": "https://jsonplaceholder.typicode.com",
+      "root_cause": "The HTTP Strict Transport Security (HSTS) header is not set, which can expose the application to man-in-the-middle attacks.",
+      "business_impact": "Without HSTS, users may be vulnerable to attacks that could compromise sensitive data, leading to potential data breaches and loss of user trust.",
+      "fix_recommendation": "Implement the HSTS header to enforce secure connections over HTTPS."
+    },
+    {
+      "id": 2,
+      "title": "Missing CSP header",
+      "severity": "high",
+      "type": "security",
+      "url": "https://jsonplaceholder.typicode.com",
+      "root_cause": "The Content Security Policy (CSP) header is not set, which can allow the execution of malicious scripts.",
+      "business_impact": "Lack of CSP can lead to cross-site scripting (XSS) attacks, potentially compromising user data and application integrity.",
+      "fix_recommendation": "Define and implement a Content Security Policy to restrict the sources of content that can be loaded."
+    },
+    {
+      "id": 3,
+      "title": "Missing X-Content-Type-Options header",
+      "severity": "medium",
+      "type": "security",
+      "url": "https://jsonplaceholder.typicode.com",
+      "root_cause": "The X-Content-Type-Options header is not set, which can lead to MIME type sniffing vulnerabilities.",
+      "business_impact": "This can result in the execution of malicious files, potentially compromising user data and application security.",
+      "fix_recommendation": "Add the X-Content-Type-Options header with the value 'nosniff' to prevent MIME type sniffing."
+    },
+    {
+      "id": 4,
+      "title": "Missing X-Frame-Options header",
+      "severity": "medium",
+      "type": "security",
+      "url": "https://jsonplaceholder.typicode.com",
+      "root_cause": "The X-Frame-Options header is not set, which can allow clickjacking attacks.",
+      "business_impact": "Clickjacking can lead to unauthorized actions being performed on behalf of the user, compromising user trust and application security.",
+      "fix_recommendation": "Implement the X-Frame-Options header to prevent the application from being framed by other sites."
+    },
+    {
+      "id": 5,
+      "title": "Missing Referrer-Policy header",
+      "severity": "low",
+      "type": "security",
+      "url": "https://jsonplaceholder.typicode.com",
+      "root_cause": "The Referrer-Policy header is not set, which can lead to the leakage of sensitive URL information.",
+      "business_impact": "Sensitive information in URLs can be exposed to third parties, potentially leading to privacy issues.",
+      "fix_recommendation": "Set the Referrer-Policy header to control the amount of referrer information sent with requests."
+    },
+    {
+      "id": 6,
+      "title": "Missing Permissions-Policy header",
+      "severity": "low",
+      "type": "security",
+      "url": "https://jsonplaceholder.typicode.com",
+      "root_cause": "The Permissions-Policy header is not set, which can allow the use of browser features without explicit permission.",
+      "business_impact": "Unauthorized use of browser features can lead to privacy and security concerns.",
+      "fix_recommendation": "Implement the Permissions-Policy header to control the use of browser features."
+    }
+  ],
+  "positive_findings": [
+    "All smoke tests passed successfully, indicating basic functionality is intact.",
+    "No performance issues were detected, with an average response time of 660ms.",
+    "No visual issues were reported, suggesting the UI is rendering correctly."
+  ],
+  "priority_actions": [
+    "Implement the HSTS header to enforce secure connections over HTTPS.",
+    "Define and implement a Content Security Policy to restrict the sources of content that can be loaded.",
+    "Add the X-Content-Type-Options header with the value 'nosniff' to prevent MIME type sniffing.",
+    "Implement the X-Frame-Options header to prevent the application from being framed by other sites.",
+    "Set the Referrer-Policy header to control the amount of referrer information sent with requests."
+  ],
+  "pages_discovered": 0,
+  "routes_tested": 1,
+  "api_calls_found": 0,
+  "smoke": {
+    "type": "smoke",
+    "results": [
+      {
+        "url": "https://jsonplaceholder.typicode.com",
+        "status_code": 200,
+        "response_ms": 407,
+        "passed": true,
+        "note": "OK"
+      }
+    ],
+    "passed": 1,
+    "failed": 0,
+    "total": 1
+  },
+  "functional": {
+    "type": "functional",
+    "results": [],
+    "passed": 0,
+    "failed": 0,
+    "total": 0,
+    "ai_used": true
+  },
+  "visual": {
+    "type": "visual",
+    "results": [],
+    "total_pages": 0,
+    "screenshots_captured": 0,
+    "issues_found": 0
+  },
+  "security": {
+    "type": "security",
+    "results": [
+      {
+        "url": "https://jsonplaceholder.typicode.com",
+        "headers_present": [],
+        "headers_missing": [
+          "HSTS",
+          "CSP",
+          "X-Content-Type-Options",
+          "X-Frame-Options",
+          "Referrer-Policy",
+          "Permissions-Policy"
+        ],
+        "issues": [
+          {
+            "type": "missing_header",
+            "severity": "critical",
+            "title": "Missing HSTS header",
+            "url": "https://jsonplaceholder.typicode.com",
+            "detail": "The HSTS security header is absent."
+          },
+          {
+            "type": "missing_header",
+            "severity": "high",
+            "title": "Missing CSP header",
+            "url": "https://jsonplaceholder.typicode.com",
+            "detail": "The CSP security header is absent."
+          },
+          {
+            "type": "missing_header",
+            "severity": "medium",
+            "title": "Missing X-Content-Type-Options header",
+            "url": "https://jsonplaceholder.typicode.com",
+            "detail": "The X-Content-Type-Options security header is absent."
+          },
+          {
+            "type": "missing_header",
+            "severity": "medium",
+            "title": "Missing X-Frame-Options header",
+            "url": "https://jsonplaceholder.typicode.com",
+            "detail": "The X-Frame-Options security header is absent."
+          },
+          {
+            "type": "missing_header",
+            "severity": "low",
+            "title": "Missing Referrer-Policy header",
+            "url": "https://jsonplaceholder.typicode.com",
+            "detail": "The Referrer-Policy security header is absent."
+          },
+          {
+            "type": "missing_header",
+            "severity": "low",
+            "title": "Missing Permissions-Policy header",
+            "url": "https://jsonplaceholder.typicode.com",
+            "detail": "The Permissions-Policy security header is absent."
+          }
+        ],
+        "fuzz_findings": []
+      }
+    ],
+    "issues": [
+      {
+        "type": "missing_header",
+        "severity": "critical",
+        "title": "Missing HSTS header",
+        "url": "https://jsonplaceholder.typicode.com",
+        "detail": "The HSTS security header is absent."
+      },
+      {
+        "type": "missing_header",
+        "severity": "high",
+        "title": "Missing CSP header",
+        "url": "https://jsonplaceholder.typicode.com",
+        "detail": "The CSP security header is absent."
+      },
+      {
+        "type": "missing_header",
+        "severity": "medium",
+        "title": "Missing X-Content-Type-Options header",
+        "url": "https://jsonplaceholder.typicode.com",
+        "detail": "The X-Content-Type-Options security header is absent."
+      },
+      {
+        "type": "missing_header",
+        "severity": "medium",
+        "title": "Missing X-Frame-Options header",
+        "url": "https://jsonplaceholder.typicode.com",
+        "detail": "The X-Frame-Options security header is absent."
+      },
+      {
+        "type": "missing_header",
+        "severity": "low",
+        "title": "Missing Referrer-Policy header",
+        "url": "https://jsonplaceholder.typicode.com",
+        "detail": "The Referrer-Policy security header is absent."
+      },
+      {
+        "type": "missing_header",
+        "severity": "low",
+        "title": "Missing Permissions-Policy header",
+        "url": "https://jsonplaceholder.typicode.com",
+        "detail": "The Permissions-Policy security header is absent."
+      }
+    ],
+    "critical": 1,
+    "high": 1,
+    "medium": 2,
+    "low": 2
+  },
+  "performance": {
+    "type": "performance",
+    "results": [
+      {
+        "url": "https://jsonplaceholder.typicode.com",
+        "avg_ms": 660,
+        "samples": [
+          1119,
+          201
+        ],
+        "rating": "acceptable"
+      }
+    ],
+    "avg_ms": 660,
+    "slowest": {
+      "url": "https://jsonplaceholder.typicode.com",
+      "avg_ms": 660,
+      "samples": [
+        1119,
+        201
+      ],
+      "rating": "acceptable"
+    },
+    "fastest": {
+      "url": "https://jsonplaceholder.typicode.com",
+      "avg_ms": 660,
+      "samples": [
+        1119,
+        201
+      ],
+      "rating": "acceptable"
+    },
+    "slow_routes": []
+  },
+  "page_screenshots": []
+}

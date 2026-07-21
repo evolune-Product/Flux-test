@@ -39,7 +39,11 @@ from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Text, I
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON as _SA_JSON
+from sqlalchemy.dialects.postgresql import JSONB as _PG_JSONB
+
+# Cross-database JSON column: JSONB on PostgreSQL, generic JSON elsewhere (SQLite for desktop/local mode)
+JSONB = _SA_JSON().with_variant(_PG_JSONB(), "postgresql")
 
 # Import classes from your existing v3.py
 from v3 import APITester, OpenAITestGenerator, generate_pdf_report
@@ -52,6 +56,10 @@ except ImportError:
 
 load_dotenv()
 
+# Desktop/local mode flag: no login required, SQLite storage
+FLASQO_LOCAL = os.getenv("FLASQO_LOCAL", "0") == "1"
+FLASQO_DATA_DIR = os.getenv("FLASQO_DATA_DIR", os.path.expanduser("~/.flasqo"))
+
 # Security configuration
 SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
 ALGORITHM = "HS256"
@@ -61,7 +69,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=not FLASQO_LOCAL)
 
 # ============================================
 # OAUTH CONFIGURATION
@@ -101,13 +109,18 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 # DATABASE SETUP (PostgreSQL)
 # ============================================
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/evo_tfx")
+if FLASQO_LOCAL:
+    os.makedirs(FLASQO_DATA_DIR, exist_ok=True)
+    DATABASE_URL = f"sqlite:///{os.path.join(FLASQO_DATA_DIR, 'flasqo.db')}"
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/evo_tfx")
 
 # Render.com provides postgres:// but SQLAlchemy 1.4+ requires postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(DATABASE_URL)
+_engine_kwargs = {"connect_args": {"check_same_thread": False}} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, **_engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -552,7 +565,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+LOCAL_USERNAME = "local"
+
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if FLASQO_LOCAL:
+        return LOCAL_USERNAME
     try:
         token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -562,6 +579,26 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         return username
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+def ensure_local_user():
+    """Create the built-in local user for desktop mode (no login)."""
+    if not FLASQO_LOCAL:
+        return
+    db = SessionLocal()
+    try:
+        user = db.query(UserDB).filter(UserDB.username == LOCAL_USERNAME).first()
+        if not user:
+            user = UserDB(
+                user_id="local",
+                username=LOCAL_USERNAME,
+                email="local@flasqo.desktop",
+                full_name="Local Workspace",
+                oauth_provider=None,
+            )
+            db.add(user)
+            db.commit()
+    finally:
+        db.close()
 
 def get_or_create_oauth_user(db: Session, email: str, username: str, provider: str, oauth_id: str):
     """Get or create user from OAuth login"""
@@ -1001,6 +1038,26 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
 # OTHER AUTH ENDPOINTS
 # ============================================
 
+@app.get("/auth/local")
+async def local_login(db: Session = Depends(get_db)):
+    """Desktop/local mode auto-login: returns the built-in local user and a token."""
+    if not FLASQO_LOCAL:
+        raise HTTPException(status_code=404, detail="Not available")
+    ensure_local_user()
+    user = db.query(UserDB).filter(UserDB.username == LOCAL_USERNAME).first()
+    access_token = create_access_token(data={"sub": user.username})
+    return {
+        "token": access_token,
+        "user": {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "oauth_provider": user.oauth_provider,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        },
+    }
+
 @app.get("/auth/me")
 async def get_current_user(username: str = Depends(verify_token), db: Session = Depends(get_db)):
     """Get current user info"""
@@ -1094,6 +1151,12 @@ async def logout():
 
 @app.get("/")
 async def root():
+    if FLASQO_LOCAL:
+        from fastapi.responses import FileResponse
+        _static = os.getenv("FLASQO_STATIC_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"))
+        index = os.path.join(_static, "index.html")
+        if os.path.isfile(index):
+            return FileResponse(index)
     return {
         "message": "AI API Tester Backend",
         "version": "1.0.0",
@@ -6361,6 +6424,51 @@ async def get_prod_gate_sessions(username: str = Depends(verify_token), db: Sess
 
 # PROD-GATE: END
 
+# ============================================
+# REQUEST BUILDER MODULE (manual API client — Postman-style)
+# ============================================
+try:
+    from request_builder import request_builder_router
+    app.include_router(request_builder_router, prefix="/rb", tags=["Request-Builder"])
+except ImportError:
+    pass  # Feature disabled if module missing
+
+# ============================================
+# BUILT-IN TEST LIBRARY (offline test cases — no API cost)
+# ============================================
+try:
+    from test_library import test_library_router
+    app.include_router(test_library_router, prefix="/library", tags=["Test-Library"])
+except ImportError:
+    pass  # Feature disabled if module missing
+
+# ============================================
+# CLOUD ACCOUNT (hybrid: optional sign-in to flasqo.com; local testing stays local)
+# ============================================
+try:
+    from cloud_account import cloud_account_router
+    app.include_router(cloud_account_router, prefix="/account", tags=["Cloud-Account"])
+except ImportError:
+    pass  # Feature disabled if module missing
+
+# Create built-in local user for desktop mode
+ensure_local_user()
+
+# ============================================
+# DESKTOP MODE: serve the built frontend (SPA)
+# Must be registered last so API routes take priority.
+# ============================================
+if FLASQO_LOCAL:
+    from fastapi.responses import FileResponse
+    _static_dir = os.getenv("FLASQO_STATIC_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"))
+    if os.path.isdir(_static_dir):
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def spa_static(full_path: str):
+            candidate = os.path.normpath(os.path.join(_static_dir, full_path))
+            if candidate.startswith(os.path.normpath(_static_dir)) and full_path and os.path.isfile(candidate):
+                return FileResponse(candidate)
+            return FileResponse(os.path.join(_static_dir, "index.html"))
+
 
 if __name__ == "__main__":
     import uvicorn
@@ -6373,4 +6481,9 @@ if __name__ == "__main__":
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
     print("Starting AI API Tester Backend")
-    uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
+    _port = int(os.getenv("PORT", "8000"))
+    if os.getenv("FLASQO_RELOAD", "0") == "1":
+        uvicorn.run("backend:app", host="127.0.0.1", port=_port, reload=True)
+    else:
+        # PyInstaller-compatible: pass the app object directly (no import string, no reload)
+        uvicorn.run(app, host="127.0.0.1", port=_port)
