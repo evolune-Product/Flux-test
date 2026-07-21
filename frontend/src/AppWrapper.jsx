@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import TrialGate from './TrialGate.jsx';
+import { useTrialCounter } from './hooks/useTrialCounter.js';
 import App from './App.jsx'
 import Auth from './Auth';
 import PerformanceTestingApp from './Performance_testing.jsx';
@@ -20,13 +22,21 @@ import VisualBuilderApp from './VisualBuilderApp.jsx';
 import IntegrationTestingApp from './IntegrationTestingApp.jsx';
 import SharedFlowApp from './SharedFlowApp.jsx';
 import TestingTypesLanding from './TestingTypesLanding.jsx';
+import RequestBuilderApp from './RequestBuilderApp.jsx';
+import DesktopShell from './DesktopShell.jsx';
+import AppHome from './AppHome.jsx';
+import SuitesPage from './SuitesPage.jsx';
+import AccountApp from './AccountApp.jsx';
 import LandingPage from './LandingPage.jsx';
 // PROD-GATE: import (remove this line to disable the module)
 import ProductionGateApp from './ProductionGateApp.jsx';
 import MobileBlocker from './MobileBlocker.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const LOCAL_MODE = import.meta.env.VITE_LOCAL_MODE === '1';
+const API_BASE_URL = LOCAL_MODE
+  ? window.location.origin
+  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
 
 function AppWrapper() {
   const [user, setUser] = useState(null);
@@ -37,6 +47,26 @@ function AppWrapper() {
   // Check if user is already logged in on mount AND handle OAuth callbacks
   useEffect(() => {
     const checkAuthStatus = async () => {
+      // Desktop/local mode: auto-login with the built-in local workspace user
+      if (LOCAL_MODE) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/local`);
+          if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setUser(data.user);
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.error('Local mode auto-login failed:', err);
+        }
+        // Backend may still be starting up (Electron launch) — retry shortly
+        setTimeout(checkAuthStatus, 1000);
+        return;
+      }
+
       // First, check for OAuth callback parameters
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
@@ -181,6 +211,22 @@ function AppWrapper() {
       'github_redirect_path',
     ];
     testingKeys.forEach(key => localStorage.removeItem(key));
+
+    // Desktop/local mode: there is no login screen — sign straight back
+    // into the local workspace after clearing session state.
+    if (LOCAL_MODE) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/local`);
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error('Local mode re-login failed:', err);
+      }
+    }
 
     setLoggingOut(false);
   };
@@ -474,12 +520,19 @@ function AppWrapper() {
     );
   }
 
+  // Desktop/local mode: wrap everything in the native app shell (persistent icon rail)
+  // and use the app-style home + suites launcher instead of the marketing landing.
+  if (LOCAL_MODE) {
+    return <DesktopLocalApp user={user} onLogout={handleLogout} onLogin={handleLogin} />;
+  }
+
   // If logged in, show Router with routes
   return (
     <MobileBlocker>
       <Router>
         <Routes>
           <Route path="/" element={<ErrorBoundary><TestingTypesLanding user={user} onLogout={handleLogout} /></ErrorBoundary>} />
+          <Route path="/request-builder" element={<ErrorBoundary><RequestBuilderApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/functional" element={<ErrorBoundary><App user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/smoke" element={<ErrorBoundary><SmokeTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
           <Route path="/performance" element={<ErrorBoundary><PerformanceTestingApp user={user} onLogout={handleLogout} /></ErrorBoundary>} />
@@ -500,6 +553,83 @@ function AppWrapper() {
         </Routes>
       </Router>
     </MobileBlocker>
+  );
+}
+
+// Routes that count as a "trial run" when navigated to
+const TEST_ROUTES = [
+  '/functional', '/smoke', '/performance', '/chaos',
+  '/fuzz', '/regression', '/contract', '/graphql', '/auto-discovery',
+  '/vibe-testing', '/fullsend', '/flow-builder', '/integration', '/prod-gate',
+];
+
+// Watches location changes and increments trial counter for test-suite routes.
+// Must live inside <Router> to use useLocation().
+function TrialTracker({ onVisit }) {
+  const location = useLocation();
+  useEffect(() => {
+    if (TEST_ROUTES.includes(location.pathname)) {
+      onVisit(location.pathname);
+    }
+  }, [location.pathname]);
+  return null;
+}
+
+// Standalone component for LOCAL_MODE so hooks (useTrialCounter) can be called
+// unconditionally at the top level and useLocation is available inside Router.
+function DesktopLocalApp({ user, onLogout, onLogin }) {
+  const { trialCount, isExpired, increment, reset } = useTrialCounter();
+  const isLocalUser = user?.username === 'local';
+
+  const handleTrialLogin = (userData) => {
+    reset();       // clear trial counter
+    onLogin(userData);
+  };
+
+  // GatedRoute: renders TrialGate instead of the suite when trial is exhausted
+  // and the user is still on the built-in local account.
+  const GatedRoute = ({ element }) =>
+    isExpired && isLocalUser
+      ? <TrialGate onLogin={handleTrialLogin} />
+      : element;
+
+  return (
+    <Router>
+      <TrialTracker onVisit={increment} />
+      <DesktopShell
+        user={user}
+        onLogout={onLogout}
+        trialCount={trialCount}
+        isLocalUser={isLocalUser}
+      >
+        <Routes>
+          {/* Free routes — never gated */}
+          <Route path="/" element={<ErrorBoundary><AppHome user={user} /></ErrorBoundary>} />
+          <Route path="/suites" element={<ErrorBoundary><SuitesPage /></ErrorBoundary>} />
+          <Route path="/request-builder" element={<ErrorBoundary><RequestBuilderApp user={user} onLogout={onLogout} /></ErrorBoundary>} />
+          <Route path="/history" element={<ErrorBoundary><TestHistoryApp user={user} onLogout={onLogout} /></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><AccountApp /></ErrorBoundary>} />
+
+          {/* Gated test-suite routes */}
+          <Route path="/functional" element={<GatedRoute element={<ErrorBoundary><App user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/smoke" element={<GatedRoute element={<ErrorBoundary><SmokeTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/performance" element={<GatedRoute element={<ErrorBoundary><PerformanceTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/chaos" element={<GatedRoute element={<ErrorBoundary><ChaosTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/fuzz" element={<GatedRoute element={<ErrorBoundary><FuzzTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/regression" element={<GatedRoute element={<ErrorBoundary><RegressionTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/contract" element={<GatedRoute element={<ErrorBoundary><ContractTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/graphql" element={<GatedRoute element={<ErrorBoundary><GraphQLTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/auto-discovery" element={<GatedRoute element={<ErrorBoundary><AutoDiscoveryApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/vibe-testing" element={<GatedRoute element={<ErrorBoundary><VibeTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/fullsend" element={<GatedRoute element={<ErrorBoundary><FullSendApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/flow-builder" element={<GatedRoute element={<ErrorBoundary><VisualBuilderApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/integration" element={<GatedRoute element={<ErrorBoundary><IntegrationTestingApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+          <Route path="/prod-gate" element={<GatedRoute element={<ErrorBoundary><ProductionGateApp user={user} onLogout={onLogout} /></ErrorBoundary>} />} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </DesktopShell>
+    </Router>
   );
 }
 

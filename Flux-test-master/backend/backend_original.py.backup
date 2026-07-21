@@ -1,0 +1,1460 @@
+# -*- coding: utf-8 -*-
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, EmailStr
+from passlib.context import CryptContext
+import jwt
+from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta
+import json
+import io
+import os
+import secrets
+from dotenv import load_dotenv
+import httpx
+
+# GitHub API
+from github import Github, GithubException
+
+# OAuth imports
+from authlib.integrations.starlette_client import OAuth
+from starlette.config import Config
+from starlette.middleware.sessions import SessionMiddleware
+
+# SQLAlchemy imports
+from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Text, Integer, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session, relationship
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import JSONB
+
+# Import classes from your existing v3.py
+from v3 import APITester, GeminiTestGenerator, generate_pdf_report
+
+load_dotenv()
+
+# Security configuration
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer()
+
+# ============================================
+# OAUTH CONFIGURATION
+# ============================================
+
+config = Config(environ=os.environ)
+
+oauth = OAuth(config)
+
+# Google OAuth
+oauth.register(
+    name='google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
+
+# GitHub OAuth
+oauth.register(
+    name='github',
+    client_id=os.getenv('GITHUB_CLIENT_ID'),
+    client_secret=os.getenv('GITHUB_CLIENT_SECRET'),
+    access_token_url='https://github.com/login/oauth/access_token',
+    access_token_params=None,
+    authorize_url='https://github.com/login/oauth/authorize',
+    authorize_params=None,
+    api_base_url='https://api.github.com/',
+    client_kwargs={'scope': 'user:email'},
+)
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# ============================================
+# DATABASE SETUP (PostgreSQL)
+# ============================================
+
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/evo_tfx")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# User model
+class UserDB(Base):
+    __tablename__ = "users"
+
+    user_id = Column(String, primary_key=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=True)  # Nullable for OAuth users
+    oauth_provider = Column(String, nullable=True)  # 'google', 'github', or None
+    oauth_id = Column(String, nullable=True)  # ID from OAuth provider
+    full_name = Column(String, nullable=True)  # User's full name
+    linkedin_url = Column(String, nullable=True)  # LinkedIn profile
+    github_url = Column(String, nullable=True)  # GitHub profile
+    github_token = Column(String, nullable=True)  # GitHub access token for repo access
+    github_username = Column(String, nullable=True)  # GitHub username
+    github_repo = Column(String, nullable=True)  # Default GitHub repo name
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# Team model
+class TeamDB(Base):
+    __tablename__ = "teams"
+
+    team_id = Column(String, primary_key=True)
+    team_name = Column(String, nullable=False)
+    created_by = Column(String, ForeignKey('users.user_id'), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# Team member model
+class TeamMemberDB(Base):
+    __tablename__ = "team_members"
+
+    team_id = Column(String, ForeignKey('teams.team_id'), primary_key=True)
+    user_id = Column(String, ForeignKey('users.user_id'), primary_key=True)
+    role = Column(String, nullable=False)  # 'owner', 'admin', 'member'
+    joined_at = Column(DateTime, default=datetime.utcnow)
+
+# Test suite model
+class TestSuiteDB(Base):
+    __tablename__ = "test_suites"
+
+    suite_id = Column(String, primary_key=True)
+    suite_name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    api_url = Column(String, nullable=False)
+    sample_data = Column(JSONB, nullable=True)
+    auth_config = Column(JSONB, nullable=True)
+    test_cases = Column(JSONB, nullable=True)
+    created_by = Column(String, ForeignKey('users.user_id'), nullable=False)
+    team_id = Column(String, ForeignKey('teams.team_id'), nullable=True)
+    is_shared = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# GitHub test result model
+class GitHubTestResultDB(Base):
+    __tablename__ = "github_test_results"
+
+    result_id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey('users.user_id'), nullable=False)
+    suite_name = Column(String, nullable=False)
+    github_url = Column(String, nullable=False)
+    commit_sha = Column(String, nullable=False)
+    results_data = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# OAuth state storage model
+class OAuthStateDB(Base):
+    __tablename__ = "oauth_states"
+
+    state = Column(String, primary_key=True)
+    username = Column(String, nullable=False)
+    provider = Column(String, nullable=False)  # 'github_repo', 'google', etc.
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# ============================================
+# FASTAPI APP
+# ============================================
+
+app = FastAPI(title="AI API Tester Backend", version="1.0.0")
+
+# IMPORTANT: Add middlewares in reverse order (last added = first executed)
+# CORS should be added AFTER SessionMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:5173",
+        FRONTEND_URL
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# SessionMiddleware MUST be added last (so it executes first)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SECRET_KEY,
+    max_age=3600,  # Session expires after 1 hour
+    same_site="lax",
+    https_only=False  # Set to True in production with HTTPS
+)
+
+# ============================================
+# AUTHENTICATION HELPER FUNCTIONS
+# ============================================
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        return username
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+def get_or_create_oauth_user(db: Session, email: str, username: str, provider: str, oauth_id: str):
+    """Get or create user from OAuth login"""
+    # Check if user exists by email
+    user = db.query(UserDB).filter(UserDB.email == email).first()
+    
+    if user:
+        # Update OAuth info if not set
+        if not user.oauth_provider:
+            user.oauth_provider = provider
+            user.oauth_id = oauth_id
+            db.commit()
+        return user
+    
+    # Create new user
+    user_id = secrets.token_urlsafe(16)
+    
+    # Make username unique if it already exists
+    base_username = username
+    counter = 1
+    while db.query(UserDB).filter(UserDB.username == username).first():
+        username = f"{base_username}{counter}"
+        counter += 1
+    
+    new_user = UserDB(
+        user_id=user_id,
+        username=username,
+        email=email,
+        password_hash=None,  # OAuth users don't have password
+        oauth_provider=provider,
+        oauth_id=oauth_id,
+        created_at=datetime.utcnow()
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return new_user
+
+# ============================================
+# PYDANTIC MODELS
+# ============================================
+
+class SignupRequest(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    user_id: str
+    username: str
+    email: str
+    token: str
+
+class GenerateTestsRequest(BaseModel):
+    api_url: str
+    sample_data: Dict[str, Any]
+    num_tests: int = 30
+    test_types: List[str] = ["happy_path", "edge_cases", "negative_tests", "security_tests"]
+    has_auth: bool = False
+
+class RunTestsRequest(BaseModel):
+    base_url: str
+    auth_config: Dict[str, Any]
+    timeout: int = 10
+    test_cases: List[Dict[str, Any]]
+
+class DownloadReportRequest(BaseModel):
+    test_results: Dict[str, Any]
+    api_url: str
+    auth_enabled: bool = False
+
+class UpdateProfileRequest(BaseModel):
+    full_name: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+# Team models
+class CreateTeamRequest(BaseModel):
+    team_name: str
+
+class InviteMemberRequest(BaseModel):
+    email: str
+    role: str = 'member'
+
+class SaveTestSuiteRequest(BaseModel):
+    suite_name: str
+    description: Optional[str] = None
+    api_url: str
+    sample_data: Dict[str, Any]
+    auth_config: Dict[str, Any]
+    test_cases: List[Dict[str, Any]]
+    team_id: Optional[str] = None
+    is_shared: bool = False
+
+class UpdateTestSuiteRequest(BaseModel):
+    suite_name: Optional[str] = None
+    description: Optional[str] = None
+    team_id: Optional[str] = None
+    is_shared: Optional[bool] = None
+
+class SaveToGitHubRequest(BaseModel):
+    suite_name: str
+    test_results: Dict[str, Any]
+    repo_name: str
+    file_path: str = "test-results"
+    commit_message: Optional[str] = None
+
+# ============================================
+# AUTHENTICATION ENDPOINTS
+# ============================================
+
+@app.post("/auth/signup", response_model=UserResponse)
+async def signup(request: SignupRequest, db: Session = Depends(get_db)):
+    """User signup endpoint"""
+    try:
+        existing_user = db.query(UserDB).filter(UserDB.username == request.username).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        
+        existing_email = db.query(UserDB).filter(UserDB.email == request.email).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        hashed_password = hash_password(request.password)
+        user_id = secrets.token_urlsafe(16)
+        
+        new_user = UserDB(
+            user_id=user_id,
+            username=request.username,
+            email=request.email,
+            password_hash=hashed_password,
+            oauth_provider=None,
+            oauth_id=None,
+            created_at=datetime.utcnow()
+        )
+        
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        
+        access_token = create_access_token(data={"sub": request.username})
+        
+        return UserResponse(
+            user_id=new_user.user_id,
+            username=new_user.username,
+            email=new_user.email,
+            token=access_token
+        )
+    
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Username or email already exists")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/login", response_model=UserResponse)
+async def login(request: LoginRequest, db: Session = Depends(get_db)):
+    """User login endpoint"""
+    user = db.query(UserDB).filter(UserDB.username == request.username).first()
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    if not user.password_hash:
+        raise HTTPException(status_code=401, detail="This account uses OAuth login. Please use Google or GitHub.")
+    
+    if not verify_password(request.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    access_token = create_access_token(data={"sub": user.username})
+    
+    return UserResponse(
+        user_id=user.user_id,
+        username=user.username,
+        email=user.email,
+        token=access_token
+    )
+
+# ============================================
+# GOOGLE OAUTH ENDPOINTS
+# ============================================
+
+@app.get("/auth/google")
+async def google_login(request: Request):
+    """Initiate Google OAuth login"""
+    redirect_uri = request.url_for('google_callback')
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback"""
+    try:
+        token = await oauth.google.authorize_access_token(request)
+        user_info = token.get('userinfo')
+        
+        if not user_info:
+            raise HTTPException(status_code=400, detail="Failed to get user info from Google")
+        
+        email = user_info.get('email')
+        name = user_info.get('name', email.split('@')[0])
+        google_id = user_info.get('sub')
+        
+        # Get or create user
+        user = get_or_create_oauth_user(
+            db=db,
+            email=email,
+            username=name.replace(' ', '_').lower(),
+            provider='google',
+            oauth_id=google_id
+        )
+        
+        # Create access token
+        access_token = create_access_token(data={"sub": user.username})
+        
+        # Redirect to frontend with token
+        return RedirectResponse(
+            url=f"{FRONTEND_URL}?token={access_token}&user_id={user.user_id}&username={user.username}&email={user.email}"
+        )
+    
+    except Exception as e:
+        print(f"Google OAuth error: {str(e)}")
+        return RedirectResponse(url=f"{FRONTEND_URL}?error=google_auth_failed")
+
+# ============================================
+# GITHUB OAUTH ENDPOINTS
+# ============================================
+
+@app.get("/auth/github")
+async def github_login(request: Request):
+    """Initiate GitHub OAuth login"""
+    redirect_uri = request.url_for('github_callback')
+    return await oauth.github.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/github/callback")
+async def github_callback(request: Request, db: Session = Depends(get_db)):
+    """Handle GitHub OAuth callback"""
+    try:
+        token = await oauth.github.authorize_access_token(request)
+        
+        # Get user info from GitHub
+        async with httpx.AsyncClient() as client:
+            headers = {'Authorization': f'token {token["access_token"]}'}
+            
+            # Get user profile
+            user_response = await client.get('https://api.github.com/user', headers=headers)
+            user_info = user_response.json()
+            
+            # Get user email (if not public, fetch from emails endpoint)
+            email = user_info.get('email')
+            if not email:
+                email_response = await client.get('https://api.github.com/user/emails', headers=headers)
+                emails = email_response.json()
+                primary_email = next((e for e in emails if e['primary']), None)
+                email = primary_email['email'] if primary_email else None
+            
+            if not email:
+                raise HTTPException(status_code=400, detail="Could not get email from GitHub")
+        
+        username = user_info.get('login', email.split('@')[0])
+        github_id = str(user_info.get('id'))
+        
+        # Get or create user
+        user = get_or_create_oauth_user(
+            db=db,
+            email=email,
+            username=username,
+            provider='github',
+            oauth_id=github_id
+        )
+        
+        # Create access token
+        access_token = create_access_token(data={"sub": user.username})
+        
+        # Redirect to frontend with token
+        return RedirectResponse(
+            url=f"{FRONTEND_URL}?token={access_token}&user_id={user.user_id}&username={user.username}&email={user.email}"
+        )
+    
+    except Exception as e:
+        print(f"GitHub OAuth error: {str(e)}")
+        return RedirectResponse(url=f"{FRONTEND_URL}?error=github_auth_failed")
+
+# ============================================
+# OTHER AUTH ENDPOINTS
+# ============================================
+
+@app.get("/auth/me")
+async def get_current_user(username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    """Get current user info"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "user_id": user.user_id,
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "linkedin_url": user.linkedin_url,
+        "github_url": user.github_url,
+        "oauth_provider": user.oauth_provider,
+        "created_at": user.created_at.isoformat()
+    }
+
+@app.put("/auth/profile")
+async def update_profile(
+    request: UpdateProfileRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Update user profile"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if request.full_name is not None:
+        user.full_name = request.full_name
+    if request.linkedin_url is not None:
+        user.linkedin_url = request.linkedin_url
+    if request.github_url is not None:
+        user.github_url = request.github_url
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "message": "Profile updated successfully",
+        "user": {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "linkedin_url": user.linkedin_url,
+            "github_url": user.github_url
+        }
+    }
+
+@app.post("/auth/change-password")
+async def change_password(
+    request: ChangePasswordRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Change user password"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user has password (not OAuth user)
+    if not user.password_hash:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot change password for OAuth accounts. Please use your OAuth provider."
+        )
+    
+    # Verify current password
+    if not verify_password(request.current_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    
+    # Update password
+    user.password_hash = hash_password(request.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
+
+@app.post("/auth/logout")
+async def logout():
+    """Logout endpoint"""
+    return {"message": "Logged out successfully"}
+
+# ============================================
+# API TESTING ENDPOINTS (keep your existing ones)
+# ============================================
+
+@app.get("/")
+async def root():
+    return {
+        "message": "AI API Tester Backend",
+        "version": "1.0.0",
+        "database": "PostgreSQL",
+        "oauth": "Google & GitHub enabled"
+    }
+
+@app.post("/generate-tests")
+async def generate_tests(request: GenerateTestsRequest):
+    """Generate AI-powered test cases"""
+    try:
+        gemini_api_key = os.getenv('GEMINI_API_KEY')
+        
+        if not gemini_api_key:
+            print("⚠️ GEMINI_API_KEY not found, using fallback generation")
+            generator = GeminiTestGenerator("dummy_key")
+            test_cases = generator._generate_fallback_tests(
+                api_url=request.api_url,
+                sample_data=request.sample_data,
+                num=request.num_tests,
+                has_auth=request.has_auth
+            )
+            
+            return {
+                "success": True,
+                "test_cases": test_cases,
+                "used_fallback": True,
+                "count": len(test_cases),
+                "message": f"Generated {len(test_cases)} test cases using fallback"
+            }
+        
+        try:
+            generator = GeminiTestGenerator(gemini_api_key)
+            
+            test_cases, used_fallback = generator.generate_test_cases(
+                api_url=request.api_url,
+                sample_data=request.sample_data,
+                num_tests=request.num_tests,
+                test_types=request.test_types,
+                has_auth=request.has_auth,
+                status_container=None
+            )
+            
+            return {
+                "success": True,
+                "test_cases": test_cases,
+                "used_fallback": used_fallback,
+                "count": len(test_cases),
+                "message": f"Generated {len(test_cases)} test cases" + 
+                          (" using fallback" if used_fallback else " using AI")
+            }
+        
+        except Exception as ai_error:
+            print(f"⚠️ Gemini AI failed: {str(ai_error)}, using fallback generation")
+            generator = GeminiTestGenerator(gemini_api_key)
+            test_cases = generator._generate_fallback_tests(
+                api_url=request.api_url,
+                sample_data=request.sample_data,
+                num=request.num_tests,
+                has_auth=request.has_auth
+            )
+            
+            return {
+                "success": True,
+                "test_cases": test_cases,
+                "used_fallback": True,
+                "count": len(test_cases),
+                "message": f"Generated {len(test_cases)} test cases using fallback"
+            }
+    
+    except Exception as e:
+        print(f"❌ Error in generate_tests: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/run-tests")
+async def run_tests(request: RunTestsRequest):
+    """Run test cases against the API"""
+    try:
+        tester = APITester(
+            base_url=request.base_url,
+            auth_config=request.auth_config,
+            timeout=request.timeout
+        )
+        
+        for idx, test_case in enumerate(request.test_cases, 1):
+            tester.test_request(
+                method=test_case.get('method', 'GET'),
+                endpoint=test_case.get('endpoint', ''),
+                data=test_case.get('data'),
+                expected_status=test_case.get('expected_status', 200),
+                test_name=f"Test {idx}: {test_case.get('description', 'N/A')}",
+                params=test_case.get('params'),
+                expected_body=test_case.get('expected_body'),
+                expected_schema=test_case.get('expected_schema'),
+                validate_body=test_case.get('validate_body', False)
+            )
+        
+        summary = tester.get_summary()
+        
+        return {
+            "success": True,
+            "summary": summary,
+            "results": tester.results,
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/download-report/json")
+async def download_json_report(request: DownloadReportRequest):
+    """Generate and download JSON report"""
+    try:
+        tester = APITester(request.api_url)
+        tester.results = request.test_results.get('results', [])
+        
+        json_report = {
+            'api_url': request.api_url,
+            'timestamp': datetime.now().isoformat(),
+            'authentication': {
+                'enabled': request.auth_enabled,
+            },
+            'summary': request.test_results.get('summary', {}),
+            'results': tester.results
+        }
+        
+        json_str = json.dumps(json_report, indent=2)
+        
+        return StreamingResponse(
+            io.BytesIO(json_str.encode()),
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f"attachment; filename=api_test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            }
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/download-report/pdf")
+async def download_pdf_report(request: DownloadReportRequest):
+    """Generate and download PDF report"""
+    try:
+        tester = APITester(request.api_url)
+        tester.results = request.test_results.get('results', [])
+        
+        pdf_buffer = generate_pdf_report(
+            tester=tester,
+            api_url=request.api_url,
+            auth_enabled=request.auth_enabled
+        )
+        
+        if not pdf_buffer:
+            raise HTTPException(status_code=500, detail="Failed to generate PDF")
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=api_test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            }
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    """Health check endpoint"""
+    gemini_key_exists = bool(os.getenv('GEMINI_API_KEY'))
+    google_oauth_configured = bool(os.getenv('GOOGLE_CLIENT_ID'))
+    github_oauth_configured = bool(os.getenv('GITHUB_CLIENT_ID'))
+    
+    try:
+        db.execute("SELECT 1")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    return {
+        "status": "healthy",
+        "database": db_status,
+        "gemini_api_configured": gemini_key_exists,
+        "google_oauth_configured": google_oauth_configured,
+        "github_oauth_configured": github_oauth_configured,
+        "timestamp": datetime.now().isoformat()
+    }
+
+# ============================================
+# TEAM MANAGEMENT ENDPOINTS
+# ============================================
+
+@app.post("/teams/create")
+async def create_team(
+    request: CreateTeamRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Create a new team"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    team_id = secrets.token_urlsafe(16)
+    
+    new_team = TeamDB(
+        team_id=team_id,
+        team_name=request.team_name,
+        created_by=user.user_id,
+        created_at=datetime.utcnow()
+    )
+    
+    # Add creator as owner
+    team_member = TeamMemberDB(
+        team_id=team_id,
+        user_id=user.user_id,
+        role='owner',
+        joined_at=datetime.utcnow()
+    )
+    
+    db.add(new_team)
+    db.add(team_member)
+    db.commit()
+    
+    return {
+        "message": "Team created successfully",
+        "team_id": team_id,
+        "team_name": request.team_name
+    }
+
+@app.get("/teams/my-teams")
+async def get_my_teams(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get all teams user is part of"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get teams where user is a member
+    team_memberships = db.query(TeamMemberDB, TeamDB).join(
+        TeamDB, TeamMemberDB.team_id == TeamDB.team_id
+    ).filter(TeamMemberDB.user_id == user.user_id).all()
+    
+    teams = []
+    for membership, team in team_memberships:
+        # Get member count
+        member_count = db.query(TeamMemberDB).filter(TeamMemberDB.team_id == team.team_id).count()
+        
+        teams.append({
+            "team_id": team.team_id,
+            "team_name": team.team_name,
+            "role": membership.role,
+            "member_count": member_count,
+            "created_at": team.created_at.isoformat()
+        })
+    
+    return {"teams": teams}
+
+@app.get("/teams/{team_id}/members")
+async def get_team_members(
+    team_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get all members of a team"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user is member of team
+    membership = db.query(TeamMemberDB).filter(
+        TeamMemberDB.team_id == team_id,
+        TeamMemberDB.user_id == user.user_id
+    ).first()
+    
+    if not membership:
+        raise HTTPException(status_code=403, detail="You are not a member of this team")
+    
+    # Get all members
+    members = db.query(TeamMemberDB, UserDB).join(
+        UserDB, TeamMemberDB.user_id == UserDB.user_id
+    ).filter(TeamMemberDB.team_id == team_id).all()
+    
+    member_list = []
+    for member, user_info in members:
+        member_list.append({
+            "user_id": user_info.user_id,
+            "username": user_info.username,
+            "email": user_info.email,
+            "full_name": user_info.full_name,
+            "role": member.role,
+            "joined_at": member.joined_at.isoformat()
+        })
+    
+    return {"members": member_list}
+
+@app.post("/teams/{team_id}/invite")
+async def invite_member(
+    team_id: str,
+    request: InviteMemberRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Invite a member to team"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user is admin or owner
+    membership = db.query(TeamMemberDB).filter(
+        TeamMemberDB.team_id == team_id,
+        TeamMemberDB.user_id == user.user_id
+    ).first()
+    
+    if not membership or membership.role not in ['owner', 'admin']:
+        raise HTTPException(status_code=403, detail="Only owners and admins can invite members")
+    
+    # Find user to invite
+    invite_user = db.query(UserDB).filter(UserDB.email == request.email).first()
+    if not invite_user:
+        raise HTTPException(status_code=404, detail="User with this email not found")
+    
+    # Check if already member
+    existing = db.query(TeamMemberDB).filter(
+        TeamMemberDB.team_id == team_id,
+        TeamMemberDB.user_id == invite_user.user_id
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="User is already a member")
+    
+    # Add member
+    new_member = TeamMemberDB(
+        team_id=team_id,
+        user_id=invite_user.user_id,
+        role=request.role,
+        joined_at=datetime.utcnow()
+    )
+    
+    db.add(new_member)
+    db.commit()
+    
+    return {"message": f"Successfully added {invite_user.username} to team"}
+
+@app.delete("/teams/{team_id}/members/{member_user_id}")
+async def remove_member(
+    team_id: str,
+    member_user_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Remove a member from team"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user is admin or owner
+    membership = db.query(TeamMemberDB).filter(
+        TeamMemberDB.team_id == team_id,
+        TeamMemberDB.user_id == user.user_id
+    ).first()
+    
+    if not membership or membership.role not in ['owner', 'admin']:
+        raise HTTPException(status_code=403, detail="Only owners and admins can remove members")
+    
+    # Remove member
+    member_to_remove = db.query(TeamMemberDB).filter(
+        TeamMemberDB.team_id == team_id,
+        TeamMemberDB.user_id == member_user_id
+    ).first()
+    
+    if not member_to_remove:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Don't allow removing owner
+    if member_to_remove.role == 'owner':
+        raise HTTPException(status_code=400, detail="Cannot remove team owner")
+    
+    db.delete(member_to_remove)
+    db.commit()
+    
+    return {"message": "Member removed successfully"}
+
+# ============================================
+# TEST SUITE MANAGEMENT ENDPOINTS
+# ============================================
+
+@app.post("/test-suites/save")
+async def save_test_suite(
+    request: SaveTestSuiteRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Save a test suite"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # If sharing with team, verify membership
+    if request.team_id:
+        membership = db.query(TeamMemberDB).filter(
+            TeamMemberDB.team_id == request.team_id,
+            TeamMemberDB.user_id == user.user_id
+        ).first()
+        
+        if not membership:
+            raise HTTPException(status_code=403, detail="You are not a member of this team")
+    
+    suite_id = secrets.token_urlsafe(16)
+    
+    new_suite = TestSuiteDB(
+        suite_id=suite_id,
+        suite_name=request.suite_name,
+        description=request.description,
+        api_url=request.api_url,
+        sample_data=request.sample_data,
+        auth_config=request.auth_config,
+        test_cases=request.test_cases,
+        created_by=user.user_id,
+        team_id=request.team_id,
+        is_shared=request.is_shared,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    
+    db.add(new_suite)
+    db.commit()
+    
+    return {
+        "message": "Test suite saved successfully",
+        "suite_id": suite_id,
+        "suite_name": request.suite_name
+    }
+
+@app.get("/test-suites/my-suites")
+async def get_my_suites(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get all test suites accessible to user"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get user's teams
+    user_teams = db.query(TeamMemberDB.team_id).filter(
+        TeamMemberDB.user_id == user.user_id
+    ).all()
+    team_ids = [t[0] for t in user_teams]
+    
+    # Get suites created by user or shared with their teams
+    suites = db.query(TestSuiteDB).filter(
+        (TestSuiteDB.created_by == user.user_id) |
+        (TestSuiteDB.team_id.in_(team_ids) if team_ids else False)
+    ).all()
+    
+    suite_list = []
+    for suite in suites:
+        # Get creator info
+        creator = db.query(UserDB).filter(UserDB.user_id == suite.created_by).first()
+        
+        # Get team info if shared
+        team_name = None
+        if suite.team_id:
+            team = db.query(TeamDB).filter(TeamDB.team_id == suite.team_id).first()
+            team_name = team.team_name if team else None
+        
+        suite_list.append({
+            "suite_id": suite.suite_id,
+            "suite_name": suite.suite_name,
+            "description": suite.description,
+            "api_url": suite.api_url,
+            "test_count": len(suite.test_cases) if suite.test_cases else 0,
+            "created_by": creator.username if creator else "Unknown",
+            "is_owner": suite.created_by == user.user_id,
+            "team_name": team_name,
+            "is_shared": suite.is_shared,
+            "created_at": suite.created_at.isoformat(),
+            "updated_at": suite.updated_at.isoformat()
+        })
+    
+    return {"suites": suite_list}
+
+@app.get("/test-suites/{suite_id}")
+async def get_test_suite(
+    suite_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get a specific test suite"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    suite = db.query(TestSuiteDB).filter(TestSuiteDB.suite_id == suite_id).first()
+    if not suite:
+        raise HTTPException(status_code=404, detail="Test suite not found")
+    
+    # Check access
+    has_access = False
+    if suite.created_by == user.user_id:
+        has_access = True
+    elif suite.team_id:
+        membership = db.query(TeamMemberDB).filter(
+            TeamMemberDB.team_id == suite.team_id,
+            TeamMemberDB.user_id == user.user_id
+        ).first()
+        if membership:
+            has_access = True
+    
+    if not has_access:
+        raise HTTPException(status_code=403, detail="You don't have access to this test suite")
+    
+    return {
+        "suite_id": suite.suite_id,
+        "suite_name": suite.suite_name,
+        "description": suite.description,
+        "api_url": suite.api_url,
+        "sample_data": suite.sample_data,
+        "auth_config": suite.auth_config,
+        "test_cases": suite.test_cases,
+        "created_by": suite.created_by,
+        "team_id": suite.team_id,
+        "is_shared": suite.is_shared,
+        "created_at": suite.created_at.isoformat(),
+        "updated_at": suite.updated_at.isoformat()
+    }
+
+@app.delete("/test-suites/{suite_id}")
+async def delete_test_suite(
+    suite_id: str,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Delete a test suite"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    suite = db.query(TestSuiteDB).filter(TestSuiteDB.suite_id == suite_id).first()
+    if not suite:
+        raise HTTPException(status_code=404, detail="Test suite not found")
+    
+    # Only creator can delete
+    if suite.created_by != user.user_id:
+        raise HTTPException(status_code=403, detail="Only the creator can delete this test suite")
+    
+    db.delete(suite)
+    db.commit()
+    
+    return {"message": "Test suite deleted successfully"}
+
+# ============================================
+# GITHUB INTEGRATION ENDPOINTS
+# ============================================
+
+@app.get("/github/connect")
+async def connect_github_repo(request: Request, username: str = Depends(verify_token), db: Session = Depends(get_db)):
+    """Initiate GitHub OAuth for repository access - returns OAuth URL"""
+    # Store state and user context to retrieve later
+    state = secrets.token_urlsafe(32)
+
+    # Build the full callback URL
+    callback_url = f"{request.base_url}github/callback"
+
+    # Use separate GitHub OAuth app for repo access with 'repo' scope
+    github_client_id = os.getenv('GITHUB_REPO_CLIENT_ID')
+
+    if not github_client_id:
+        raise HTTPException(status_code=500, detail="GitHub Repository OAuth not configured. Please set GITHUB_REPO_CLIENT_ID and GITHUB_REPO_CLIENT_SECRET in .env")
+
+    github_auth_url = (
+        f"https://github.com/login/oauth/authorize?"
+        f"client_id={github_client_id}&"
+        f"redirect_uri={callback_url}&"
+        f"scope=repo&"
+        f"state={state}"
+    )
+
+    # Store state in database instead of session (more reliable for OAuth)
+    # Clean up expired states first
+    db.query(OAuthStateDB).filter(OAuthStateDB.expires_at < datetime.utcnow()).delete()
+
+    # Create new OAuth state entry
+    oauth_state = OAuthStateDB(
+        state=state,
+        username=username,
+        provider='github_repo',
+        created_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(minutes=10)  # 10 minute expiry
+    )
+
+    db.add(oauth_state)
+    db.commit()
+
+    # Return the URL as JSON instead of redirecting
+    return JSONResponse({
+        "auth_url": github_auth_url,
+        "message": "Please redirect to this URL to authorize GitHub"
+    })
+
+@app.get("/github/callback")
+async def github_repo_callback(
+    request: Request,
+    code: str,
+    state: str,
+    db: Session = Depends(get_db)
+):
+    """Handle GitHub OAuth callback for repository access"""
+    try:
+        # Verify state from database
+        oauth_state = db.query(OAuthStateDB).filter(
+            OAuthStateDB.state == state,
+            OAuthStateDB.provider == 'github_repo'
+        ).first()
+
+        if not oauth_state:
+            print(f"GitHub repo OAuth error: 400: Invalid state parameter")
+            raise HTTPException(status_code=400, detail="Invalid state parameter")
+
+        # Check if state has expired
+        if oauth_state.expires_at < datetime.utcnow():
+            db.delete(oauth_state)
+            db.commit()
+            print(f"GitHub repo OAuth error: 400: State has expired")
+            raise HTTPException(status_code=400, detail="OAuth state has expired")
+
+        stored_username = oauth_state.username
+
+        if not stored_username:
+            raise HTTPException(status_code=400, detail="User session not found")
+
+        # Exchange code for access token
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                'https://github.com/login/oauth/access_token',
+                data={
+                    'client_id': os.getenv('GITHUB_REPO_CLIENT_ID'),
+                    'client_secret': os.getenv('GITHUB_REPO_CLIENT_SECRET'),
+                    'code': code,
+                },
+                headers={'Accept': 'application/json'}
+            )
+
+            token_data = token_response.json()
+            access_token = token_data.get('access_token')
+
+            if not access_token:
+                raise HTTPException(status_code=400, detail="Failed to get access token")
+
+            # Get GitHub username
+            user_response = await client.get(
+                'https://api.github.com/user',
+                headers={'Authorization': f'token {access_token}'}
+            )
+            github_data = user_response.json()
+            github_username = github_data.get('login')
+
+        # Store token in database using username from OAuth state
+        user = db.query(UserDB).filter(UserDB.username == stored_username).first()
+        if user:
+            user.github_token = access_token
+            user.github_username = github_username
+            db.commit()
+
+        # Clean up OAuth state from database
+        db.delete(oauth_state)
+        db.commit()
+
+        return RedirectResponse(url=f"{FRONTEND_URL}?github_connected=true")
+
+    except Exception as e:
+        print(f"GitHub repo OAuth error: {str(e)}")
+        return RedirectResponse(url=f"{FRONTEND_URL}?github_connected=false&error={str(e)}")
+
+@app.post("/github/save-results")
+async def save_results_to_github(
+    request: SaveToGitHubRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Save test results to GitHub repository"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.github_token:
+        raise HTTPException(
+            status_code=400, 
+            detail="GitHub not connected. Please connect your GitHub account first."
+        )
+    
+    try:
+        # Initialize GitHub client
+        g = Github(user.github_token)
+        github_user = g.get_user()
+        
+        # Get or create repository
+        try:
+            repo = github_user.get_repo(request.repo_name)
+        except GithubException:
+            # Create repo if it doesn't exist
+            repo = github_user.create_repo(
+                request.repo_name,
+                description="API Test Results - Generated by API TestLab",
+                private=True,
+                auto_init=True
+            )
+        
+        # Create file path with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_path = f"{request.file_path}/{request.suite_name}_{timestamp}.json"
+        
+        # Prepare JSON content
+        json_content = json.dumps(request.test_results, indent=2)
+        
+        # Commit message
+        commit_msg = request.commit_message or f"Add test results for {request.suite_name} - {timestamp}"
+        
+        # Check if file exists (update) or create new
+        try:
+            contents = repo.get_contents(file_path)
+            repo.update_file(
+                path=file_path,
+                message=commit_msg,
+                content=json_content,
+                sha=contents.sha
+            )
+        except GithubException:
+            # File doesn't exist, create it
+            repo.create_file(
+                path=file_path,
+                message=commit_msg,
+                content=json_content
+            )
+        
+        # Get the file URL
+        file_url = f"https://github.com/{github_user.login}/{request.repo_name}/blob/main/{file_path}"
+        
+        # Store record in database
+        result_id = secrets.token_urlsafe(16)
+        github_result = GitHubTestResultDB(
+            result_id=result_id,
+            user_id=user.user_id,
+            suite_name=request.suite_name,
+            github_url=file_url,
+            commit_sha=repo.get_branch("main").commit.sha,
+            results_data=request.test_results,
+            created_at=datetime.utcnow()
+        )
+        
+        db.add(github_result)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Test results saved to GitHub successfully",
+            "github_url": file_url,
+            "repo_name": request.repo_name,
+            "file_path": file_path
+        }
+    
+    except GithubException as e:
+        raise HTTPException(status_code=400, detail=f"GitHub error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving to GitHub: {str(e)}")
+
+@app.get("/github/status")
+async def get_github_status(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Check if user has connected GitHub"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    is_connected = bool(user.github_token)
+    
+    return {
+        "connected": is_connected,
+        "github_username": user.github_username if is_connected else None,
+        "default_repo": user.github_repo
+    }
+
+@app.delete("/github/disconnect")
+async def disconnect_github(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Disconnect GitHub integration"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.github_token = None
+    user.github_username = None
+    user.github_repo = None
+    db.commit()
+    
+    return {"message": "GitHub disconnected successfully"}
+
+@app.get("/github/my-results")
+async def get_my_github_results(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get all GitHub saved results for user"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    results = db.query(GitHubTestResultDB).filter(
+        GitHubTestResultDB.user_id == user.user_id
+    ).order_by(GitHubTestResultDB.created_at.desc()).all()
+    
+    result_list = []
+    for result in results:
+        result_list.append({
+            "result_id": result.result_id,
+            "suite_name": result.suite_name,
+            "github_url": result.github_url,
+            "commit_sha": result.commit_sha,
+            "created_at": result.created_at.isoformat()
+        })
+    
+    return {"results": result_list}
+
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Starting AI API Tester Backend with OAuth...")
+    print(f"📊 Database: {DATABASE_URL}")
+    print(f"🔐 Google OAuth: {'✅' if os.getenv('GOOGLE_CLIENT_ID') else '❌'}")
+    print(f"🔐 GitHub OAuth: {'✅' if os.getenv('GITHUB_CLIENT_ID') else '❌'}")
+    uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
