@@ -1,0 +1,76 @@
+{
+  "timestamp": "2025-11-01T13:11:18.152283",
+  "overall_score": 72.66666666666667,
+  "components": {
+    "test_generation": 100,
+    "test_execution": 83.33333333333334,
+    "security_coverage": 75.0,
+    "owasp_coverage": 30.0
+  },
+  "detailed_results": {
+    "test_generation": {
+      "total_generated": 30,
+      "distribution": {
+        "happy_path": 10,
+        "security_test": 7,
+        "edge_case": 6,
+        "negative_test": 7
+      }
+    },
+    "test_execution": {
+      "total": 30,
+      "passed": 25,
+      "failed": 5,
+      "pass_rate": 83.33333333333334
+    },
+    "coverage": {
+      "happy_path": {
+        "total": 11,
+        "passed": 10,
+        "failed": 1
+      },
+      "security_test": {
+        "total": 7,
+        "passed": 5,
+        "failed": 2
+      },
+      "edge_case": {
+        "total": 6,
+        "passed": 5,
+        "failed": 1
+      },
+      "negative_test": {
+        "total": 6,
+        "passed": 5,
+        "failed": 1
+      }
+    },
+    "accuracy_metrics": {
+      "security_coverage": {
+        "sql_injection_coverage": 2,
+        "xss_coverage": 2,
+        "path_traversal_coverage": 1,
+        "command_injection_coverage": 2,
+        "authentication_bypass_coverage": 2,
+        "total_security_tests": 12
+      },
+      "owasp_coverage": {
+        "covered": 3,
+        "total": 10,
+        "percentage": 30.0,
+        "details": {
+          "A01_Broken_Access_Control": true,
+          "A02_Cryptographic_Failures": false,
+          "A03_Injection": true,
+          "A04_Insecure_Design": false,
+          "A05_Security_Misconfiguration": false,
+          "A06_Vulnerable_Components": false,
+          "A07_Auth_Failures": true,
+          "A08_Data_Integrity_Failures": false,
+          "A09_Logging_Failures": false,
+          "A10_SSRF": false
+        }
+      }
+    }
+  }
+}

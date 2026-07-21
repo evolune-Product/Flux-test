@@ -1,0 +1,193 @@
+{
+  "report_token": "bc6ce4665547456a8dde0785",
+  "scan_id": "4ee84d8e-e1d6-4bee-b78c-cf2bd2084561",
+  "target_url": "https://dummyjson.com",
+  "scanned_at": "2026-06-10T13:15:37.316029+00:00",
+  "elapsed_seconds": 56.9,
+  "app_health_score": 88,
+  "executive_summary": "The automated test report for the web application at https://dummyjson.com indicates that while basic smoke tests passed, there are significant security concerns due to missing headers. No functional or visual issues were detected, but attention is needed to address security vulnerabilities.",
+  "ai_issues": [
+    {
+      "id": 1,
+      "title": "Missing CSP header",
+      "severity": "high",
+      "type": "security",
+      "url": "https://dummyjson.com",
+      "root_cause": "The Content Security Policy (CSP) header is not set, which is crucial for preventing a variety of attacks including Cross-Site Scripting (XSS).",
+      "business_impact": "Without a CSP header, the application is vulnerable to XSS attacks, which can lead to data breaches and compromise user trust.",
+      "fix_recommendation": "Implement a robust CSP header to define the sources from which content can be loaded."
+    },
+    {
+      "id": 2,
+      "title": "Missing Referrer-Policy header",
+      "severity": "low",
+      "type": "security",
+      "url": "https://dummyjson.com",
+      "root_cause": "The Referrer-Policy header is not set, which controls the amount of referrer information sent with requests.",
+      "business_impact": "Lack of a Referrer-Policy header can lead to unintentional leakage of sensitive URL information.",
+      "fix_recommendation": "Add a Referrer-Policy header to control the referrer information sent with requests."
+    },
+    {
+      "id": 3,
+      "title": "Missing Permissions-Policy header",
+      "severity": "low",
+      "type": "security",
+      "url": "https://dummyjson.com",
+      "root_cause": "The Permissions-Policy header is not set, which helps control which features and APIs can be used in the browser.",
+      "business_impact": "Without this header, the application may unintentionally allow access to features that could be exploited.",
+      "fix_recommendation": "Set a Permissions-Policy header to restrict the use of browser features and APIs."
+    }
+  ],
+  "positive_findings": [
+    "All smoke tests passed successfully.",
+    "No performance issues were detected with an average response time of 646 ms.",
+    "No visual issues were identified."
+  ],
+  "priority_actions": [
+    "Implement a Content Security Policy (CSP) header to enhance security against XSS attacks.",
+    "Add a Referrer-Policy header to prevent leakage of sensitive URL information.",
+    "Set a Permissions-Policy header to control browser feature access.",
+    "Conduct a thorough security review to identify any additional vulnerabilities.",
+    "Monitor and test regularly to ensure new vulnerabilities do not arise."
+  ],
+  "pages_discovered": 0,
+  "routes_tested": 1,
+  "api_calls_found": 0,
+  "smoke": {
+    "type": "smoke",
+    "results": [
+      {
+        "url": "https://dummyjson.com",
+        "status_code": 200,
+        "response_ms": 858,
+        "passed": true,
+        "note": "OK"
+      }
+    ],
+    "passed": 1,
+    "failed": 0,
+    "total": 1
+  },
+  "functional": {
+    "type": "functional",
+    "results": [],
+    "passed": 0,
+    "failed": 0,
+    "total": 0,
+    "ai_used": true
+  },
+  "visual": {
+    "type": "visual",
+    "results": [],
+    "total_pages": 0,
+    "screenshots_captured": 0,
+    "issues_found": 0
+  },
+  "security": {
+    "type": "security",
+    "results": [
+      {
+        "url": "https://dummyjson.com",
+        "headers_present": [
+          "HSTS",
+          "X-Content-Type-Options",
+          "X-Frame-Options"
+        ],
+        "headers_missing": [
+          "CSP",
+          "Referrer-Policy",
+          "Permissions-Policy"
+        ],
+        "issues": [
+          {
+            "type": "missing_header",
+            "severity": "high",
+            "title": "Missing CSP header",
+            "url": "https://dummyjson.com",
+            "detail": "The CSP security header is absent."
+          },
+          {
+            "type": "missing_header",
+            "severity": "low",
+            "title": "Missing Referrer-Policy header",
+            "url": "https://dummyjson.com",
+            "detail": "The Referrer-Policy security header is absent."
+          },
+          {
+            "type": "missing_header",
+            "severity": "low",
+            "title": "Missing Permissions-Policy header",
+            "url": "https://dummyjson.com",
+            "detail": "The Permissions-Policy security header is absent."
+          }
+        ],
+        "fuzz_findings": []
+      }
+    ],
+    "issues": [
+      {
+        "type": "missing_header",
+        "severity": "high",
+        "title": "Missing CSP header",
+        "url": "https://dummyjson.com",
+        "detail": "The CSP security header is absent.",
+        "affected_urls": 1
+      },
+      {
+        "type": "missing_header",
+        "severity": "low",
+        "title": "Missing Referrer-Policy header",
+        "url": "https://dummyjson.com",
+        "detail": "The Referrer-Policy security header is absent.",
+        "affected_urls": 1
+      },
+      {
+        "type": "missing_header",
+        "severity": "low",
+        "title": "Missing Permissions-Policy header",
+        "url": "https://dummyjson.com",
+        "detail": "The Permissions-Policy security header is absent.",
+        "affected_urls": 1
+      }
+    ],
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 2
+  },
+  "performance": {
+    "type": "performance",
+    "results": [
+      {
+        "url": "https://dummyjson.com",
+        "avg_ms": 646,
+        "samples": [
+          1101,
+          191
+        ],
+        "rating": "acceptable"
+      }
+    ],
+    "avg_ms": 646,
+    "slowest": {
+      "url": "https://dummyjson.com",
+      "avg_ms": 646,
+      "samples": [
+        1101,
+        191
+      ],
+      "rating": "acceptable"
+    },
+    "fastest": {
+      "url": "https://dummyjson.com",
+      "avg_ms": 646,
+      "samples": [
+        1101,
+        191
+      ],
+      "rating": "acceptable"
+    },
+    "slow_routes": []
+  },
+  "page_screenshots": []
+}

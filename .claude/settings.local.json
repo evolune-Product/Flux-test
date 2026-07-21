@@ -84,7 +84,8 @@
       "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\TrialGate.jsx\")",
       "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\hooks\\\\useTrialCounter.js\")",
       "Bash(Test-Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\\\\DesktopShell.jsx\")",
-      "Bash(git -C \"E:\\\\Evolune_Products\\\\Evo-TFX-main\" ls-files --others --exclude-standard frontend/src/)"
+      "Bash(git -C \"E:\\\\Evolune_Products\\\\Evo-TFX-main\" ls-files --others --exclude-standard frontend/src/)",
+      "WebFetch(domain:www.postman.com)"
     ],
     "deny": [],
     "ask": []

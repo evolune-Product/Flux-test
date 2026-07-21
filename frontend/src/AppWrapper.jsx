@@ -222,6 +222,22 @@ function AppWrapper() {
     ];
     testingKeys.forEach((key) => localStorage.removeItem(key));
 
+    // Desktop/local mode: there is no login screen — sign straight back
+    // into the local workspace after clearing session state.
+    if (LOCAL_MODE) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/local`);
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error('Local mode re-login failed:', err);
+      }
+    }
+
     setLoggingOut(false);
   };
 
