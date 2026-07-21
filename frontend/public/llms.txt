@@ -1,0 +1,35 @@
+# Flasqo
+
+> Flasqo is a free AI-powered API testing platform by EvoluneEdgeTech. Paste an API URL and it auto-discovers endpoints and generates a complete test suite — functional, smoke, performance/load, regression, contract, GraphQL, fuzz and chaos testing — in one browser-based dashboard. No manual test-script writing is required.
+
+Key facts:
+- Free to use, no credit card required; runs in the browser at https://flasqo.com/
+- AI generates 10–100 test cases per endpoint: happy-path, edge-case, negative and security tests
+- 13 testing modules: functional, smoke, performance (load/stress/spike/endurance), chaos engineering, fuzz, regression, contract, GraphQL, integration flows, API auto-discovery, natural-language "vibe testing", a visual flow builder and a production deploy gate
+- Supports Bearer token, API key and Basic authentication
+- Exports JSON/PDF reports and saves results to GitHub via built-in integration
+- Positioned as an all-in-one alternative to combining Postman (manual collections), JMeter (load) and custom chaos/fuzz scripts
+
+## Core pages
+
+- [Home](https://flasqo.com/): product overview, feature list, comparison table and FAQ
+- [What is API testing?](https://flasqo.com/guides/api-testing/): pillar guide covering all API testing types
+- [API load testing guide](https://flasqo.com/guides/api-load-testing/): load, stress, spike and endurance testing explained
+- [API chaos testing guide](https://flasqo.com/guides/api-chaos-testing/): chaos engineering for APIs — latency injection, failure simulation
+- [API contract testing guide](https://flasqo.com/guides/api-contract-testing/): schema drift and consumer-breaking changes
+- [GraphQL API testing guide](https://flasqo.com/guides/graphql-api-testing/): testing queries and mutations
+
+## Comparisons
+
+- [Best Postman alternatives](https://flasqo.com/compare/postman-alternatives/): honest roundup including Insomnia, Bruno, Hoppscotch, Apidog and Flasqo
+- [Flasqo vs Postman](https://flasqo.com/compare/flasqo-vs-postman/)
+- [Flasqo vs Insomnia](https://flasqo.com/compare/flasqo-vs-insomnia/)
+- [Flasqo vs Katalon](https://flasqo.com/compare/flasqo-vs-katalon/)
+- [Flasqo vs Bruno](https://flasqo.com/compare/flasqo-vs-bruno/)
+- [Flasqo vs Hoppscotch](https://flasqo.com/compare/flasqo-vs-hoppscotch/)
+
+## Contact
+
+- Email: contact@evolune.in
+- GitHub: https://github.com/EvoluneEdgeTech
+- Company: EvoluneEdgeTech (https://www.evolune.in/)

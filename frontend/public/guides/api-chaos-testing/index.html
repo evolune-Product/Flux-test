@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020617">
+<link rel="icon" type="image/png" href="/icon_svg.png">
+<title>API Chaos Testing: A Practical Guide to Chaos Engineering for APIs</title>
+<meta name="description" content="Chaos testing for APIs: inject latency, simulate dependency failures, timeouts and rate limits to prove your system degrades gracefully. Principles, scenarios and how to start free.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="https://flasqo.com/guides/api-chaos-testing/">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://flasqo.com/guides/api-chaos-testing/">
+<meta property="og:title" content="API Chaos Testing: A Practical Guide to Chaos Engineering for APIs">
+<meta property="og:description" content="Chaos testing for APIs: inject latency, simulate dependency failures, timeouts and rate limits to prove your system degrades gracefully. Principles, scenarios and how to start free.">
+<meta property="og:image" content="https://flasqo.com/og-image.png">
+<meta property="og:site_name" content="Flasqo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="API Chaos Testing: A Practical Guide to Chaos Engineering for APIs">
+<meta name="twitter:description" content="Chaos testing for APIs: inject latency, simulate dependency failures, timeouts and rate limits to prove your system degrades gracefully. Principles, scenarios and how to start free.">
+<meta name="twitter:image" content="https://flasqo.com/og-image.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Home",
+     "item": "https://flasqo.com/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Guides",
+     "item": "https://flasqo.com/guides/api-testing/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "API chaos testing",
+     "item": "https://flasqo.com/guides/api-chaos-testing/"
+    }
+   ]
+  },
+  {
+   "@type": "Article",
+   "@id": "https://flasqo.com/guides/api-chaos-testing/#article",
+   "headline": "API chaos testing: break it on purpose, before production does",
+   "description": "Chaos testing for APIs: inject latency, simulate dependency failures, timeouts and rate limits to prove your system degrades gracefully. Principles, scenarios and how to start free.",
+   "url": "https://flasqo.com/guides/api-chaos-testing/",
+   "datePublished": "2026-07-07",
+   "dateModified": "2026-07-07",
+   "image": "https://flasqo.com/og-image.png",
+   "author": {
+    "@type": "Organization",
+    "name": "Flasqo",
+    "url": "https://flasqo.com/"
+   },
+   "publisher": {
+    "@type": "Organization",
+    "name": "Flasqo",
+    "logo": {
+     "@type": "ImageObject",
+     "url": "https://flasqo.com/flasqo-logo.png"
+    }
+   }
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://flasqo.com/guides/api-chaos-testing/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is the difference between chaos testing and load testing?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Load testing raises traffic volume to find performance limits under healthy conditions. Chaos testing injects failures — latency, outages, timeouts — to verify the system's behavior when conditions turn unhealthy. Mature teams run both."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is chaos testing safe to run in production?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Netflix-style chaos runs in production, but that's the advanced class. Start in staging with one endpoint and one failure type, prove the practice, then expand blast radius deliberately."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Do I need Kubernetes or special infrastructure for chaos testing?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not for API-level chaos. Platforms like Flasqo simulate latency, failures, timeouts and rate limiting at the API layer, so you can validate resilience without touching cluster infrastructure."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
+.site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.logo img{height:30px;width:auto}
+nav.top{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav.top a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+nav.top a:hover{color:#fff}
+nav.top a.cta{background:linear-gradient(90deg,#2563eb,#06b6d4);color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}
+.crumbs{font-size:.8rem;color:#64748b;margin:26px 0 0}
+.crumbs a{color:#64748b;text-decoration:none}
+.crumbs a:hover{color:#cbd5e1}
+h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spacing:-.01em;margin:14px 0 10px}
+.byline{color:#64748b;font-size:.85rem;margin-bottom:26px}
+.tldr{border:1px solid rgba(59,130,246,.35);background:rgba(30,58,138,.14);border-radius:14px;padding:18px 20px;margin:0 0 34px}
+.tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7dd3fc;margin-bottom:8px}
+.tldr p{margin:0;color:#dbeafe;font-size:.98rem}
+main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
+main h3{color:#e2e8f0;font-size:1.1rem;margin:26px 0 8px}
+main p{margin:0 0 16px;font-size:.98rem}
+main ul,main ol{margin:0 0 16px;padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:#60a5fa;text-decoration:none}
+main a:hover{text-decoration:underline}
+strong{color:#e2e8f0}
+.tblwrap{overflow-x:auto;border:1px solid rgba(255,255,255,.09);border-radius:14px;margin:0 0 20px}
+table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:540px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+th{color:#e2e8f0;background:rgba(30,41,59,.65);font-size:.84rem}
+tr:last-child td{border-bottom:0}
+td.c,th.c{text-align:center}
+.yes{color:#4ade80}.part{color:#facc15}.no{color:#64748b}
+.callout{border-left:3px solid #22d3ee;background:rgba(8,47,73,.25);padding:14px 18px;border-radius:0 12px 12px 0;margin:0 0 20px;font-size:.94rem;color:#bae6fd}
+.cta-box{border:1px solid rgba(59,130,246,.4);background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(6,182,212,.10));border-radius:16px;padding:26px;text-align:center;margin:44px 0}
+.cta-box h2{margin:0 0 8px;font-size:1.35rem}
+.cta-box p{color:#94a3b8;margin:0 0 18px}
+.cta-box a{display:inline-block;background:linear-gradient(90deg,#2563eb,#06b6d4);color:#fff;font-weight:700;padding:12px 30px;border-radius:999px;text-decoration:none}
+.faq details{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:13px 17px;margin-bottom:10px;background:rgba(15,23,42,.6)}
+.faq summary{color:#e2e8f0;font-weight:600;cursor:pointer}
+.faq p{color:#94a3b8;font-size:.93rem;margin:10px 0 0}
+.more{border-top:1px solid rgba(255,255,255,.07);margin-top:48px;padding-top:28px}
+.more h2{font-size:1rem;color:#e2e8f0;margin:0 0 14px;text-transform:uppercase;letter-spacing:.08em}
+.more-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.more-grid a{display:block;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 14px;color:#94a3b8;text-decoration:none;font-size:.87rem;background:rgba(15,23,42,.5)}
+.more-grid a:hover{color:#fff;border-color:rgba(96,165,250,.5)}
+footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:26px 0 34px}
+.foot-inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#64748b;font-size:.8rem}
+.foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
+.foot-inner a:hover{color:#fff}
+</style>
+</head>
+<body>
+<header class="site"><div class="site-inner">
+<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
+<nav class="top" aria-label="Main">
+<a href="/guides/api-testing/">Guides</a>
+<a href="/compare/postman-alternatives/">Compare</a>
+<a href="/#faq">FAQ</a>
+<a class="cta" href="/">Start Testing Free</a>
+</nav></div></header>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/guides/api-testing/">Guides</a> › API chaos testing</nav>
+<h1>API chaos testing: break it on purpose, before production does</h1>
+<p class="byline">By the Flasqo team · Updated July 7, 2026</p>
+<div class="tldr"><span class="tag">TL;DR</span><p>Chaos testing deliberately injects failure — latency, dropped dependencies, timeouts, rate limits — into your API environment to verify the system degrades gracefully instead of cascading. Define a steady state, form a hypothesis, limit the blast radius, inject one failure, and fix what surprised you. <a href='/'>Flasqo</a> includes an API chaos module, free.</p></div>
+<main>
+
+<h2>What is chaos testing?</h2>
+<p>Chaos testing (chaos engineering) is the discipline of injecting controlled failures into a system to discover weaknesses before real outages do. Popularised by Netflix's Chaos Monkey, the practice matters doubly for APIs: they sit in the middle of dependency chains, so one slow downstream call can cascade into a full outage — timeouts pile up, thread pools exhaust, retries amplify the load.</p>
+
+<h2>Why functional tests aren't enough</h2>
+<p>Your functional suite proves the API works when everything around it works. Production never grants that assumption. The database gets slow. The payment provider times out. A partner hammers you at 10× the agreed rate. Chaos testing asks the only question that matters during an incident: <strong>what does the system do next?</strong> Fail fast with a clear error? Serve stale cache? Or hang, exhaust connections and take neighbours down with it?</p>
+
+<h2>The five core chaos scenarios for APIs</h2>
+<div class="tblwrap"><table>
+<thead><tr><th>Scenario</th><th>What's injected</th><th>What it exposes</th></tr></thead>
+<tbody>
+<tr><td><strong>Latency injection</strong></td><td>+500ms–5s on responses or dependencies</td><td>Missing timeouts, UI hangs, retry storms</td></tr>
+<tr><td><strong>Service failure</strong></td><td>A dependency returns 5xx or drops</td><td>Absent fallbacks, cascade paths, poor error messages</td></tr>
+<tr><td><strong>Timeout scenarios</strong></td><td>Connections that never complete</td><td>Connection-pool exhaustion, hung workers</td></tr>
+<tr><td><strong>Rate limiting</strong></td><td>429s and throttling from dependencies</td><td>Backoff bugs, retry amplification</td></tr>
+<tr><td><strong>Resource pressure</strong></td><td>Bursts alongside constrained resources</td><td>Memory leaks, queue overflow, GC spirals</td></tr>
+</tbody></table></div>
+
+<h2>How to run a chaos experiment (the method)</h2>
+<ol>
+<li><strong>Define steady state.</strong> Pick measurable normals: p95 latency, error rate, throughput.</li>
+<li><strong>Form a hypothesis.</strong> "If the search dependency times out, checkout still completes within 2s using cached results."</li>
+<li><strong>Limit the blast radius.</strong> Start in staging, one endpoint, one failure type. Chaos in production is a graduation, not a starting point.</li>
+<li><strong>Inject exactly one failure.</strong> Multiple simultaneous variables teach nothing.</li>
+<li><strong>Compare against steady state.</strong> Did the system degrade gracefully or surprisingly?</li>
+<li><strong>Fix, document, repeat harder.</strong> Every surprise is a production incident you cancelled in advance.</li>
+</ol>
+
+<h2>What "graceful degradation" looks like</h2>
+<ul>
+<li>Timeouts are explicit and short; nothing waits forever.</li>
+<li>Failures return fast, structured errors — not hangs or stack traces.</li>
+<li>Retries use exponential backoff with jitter and a budget.</li>
+<li>Circuit breakers isolate sick dependencies.</li>
+<li>The core user journey survives non-core failures.</li>
+</ul>
+
+<h2>Chaos testing with Flasqo</h2>
+<p>Flasqo's chaos module simulates latency injection, service failures, timeout scenarios and rate limiting against your API without infrastructure changes — configure the scenario, run it, and read the resilience report alongside your <a href="/guides/api-load-testing/">load tests</a> and functional suites. It's free: <a href="/">run your first chaos experiment</a>.</p>
+
+</main>
+<div class="cta-box">
+<h2>Generate your first API test suite in minutes</h2>
+<p>Flasqo is free — paste your API URL, let AI build the tests, and ship with proof. No credit card required.</p>
+<a href="/">Try Flasqo Free</a>
+</div>
+<section class="faq"><h2>Frequently asked questions</h2><details><summary>What is the difference between chaos testing and load testing?</summary><p>Load testing raises traffic volume to find performance limits under healthy conditions. Chaos testing injects failures — latency, outages, timeouts — to verify the system's behavior when conditions turn unhealthy. Mature teams run both.</p></details><details><summary>Is chaos testing safe to run in production?</summary><p>Netflix-style chaos runs in production, but that's the advanced class. Start in staging with one endpoint and one failure type, prove the practice, then expand blast radius deliberately.</p></details><details><summary>Do I need Kubernetes or special infrastructure for chaos testing?</summary><p>Not for API-level chaos. Platforms like Flasqo simulate latency, failures, timeouts and rate limiting at the API layer, so you can validate resilience without touching cluster infrastructure.</p></details></section>
+<div class="more"><h2>More from Flasqo</h2><div class="more-grid"><a href="/guides/api-testing/">What is API testing? The complete guide</a><a href="/guides/api-load-testing/">API load testing: load, stress, spike & endurance</a><a href="/guides/api-contract-testing/">API contract testing & schema drift</a><a href="/guides/graphql-api-testing/">How to test GraphQL APIs</a><a href="/compare/postman-alternatives/">Best Postman alternatives in 2026</a><a href="/compare/flasqo-vs-postman/">Flasqo vs Postman</a><a href="/compare/flasqo-vs-insomnia/">Flasqo vs Insomnia</a><a href="/compare/flasqo-vs-katalon/">Flasqo vs Katalon</a><a href="/compare/flasqo-vs-bruno/">Flasqo vs Bruno</a><a href="/compare/flasqo-vs-hoppscotch/">Flasqo vs Hoppscotch</a></div></div>
+</div>
+<footer class="site"><div class="foot-inner">
+<div>© 2026 Flasqo by <a href="https://www.evolune.in/" rel="noopener">EvoluneEdgeTech</a></div>
+<div>
+<a href="/">Home</a>
+<a href="/guides/api-testing/">API testing guide</a>
+<a href="/compare/postman-alternatives/">Postman alternatives</a>
+<a href="mailto:contact@evolune.in">Contact</a>
+</div></div></footer>
+</body>
+</html>
