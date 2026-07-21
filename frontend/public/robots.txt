@@ -1,0 +1,65 @@
+# robots.txt for flasqo.com
+# All crawlers welcome, including AI/answer-engine crawlers.
+
+User-agent: *
+Allow: /
+# Auth-gated app routes render no public content — skip crawling them
+Disallow: /functional
+Disallow: /smoke
+Disallow: /performance
+Disallow: /chaos
+Disallow: /fuzz
+Disallow: /regression
+Disallow: /contract
+Disallow: /graphql
+Disallow: /auto-discovery
+Disallow: /vibe-testing
+Disallow: /history
+Disallow: /fullsend
+Disallow: /flow-builder
+Disallow: /integration
+Disallow: /prod-gate
+# User-generated shared reports — private-by-link, not for indexing
+Disallow: /report/
+Disallow: /dashboard/
+Disallow: /flow/
+Disallow: /fullsend-report/
+
+# AI / answer-engine crawlers (explicitly allowed)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://flasqo.com/sitemap.xml
