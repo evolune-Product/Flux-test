@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Github } from 'lucide-react';
+import { CheckCircle2, Github, ArrowLeft } from 'lucide-react';
 
 const API_BASE_URL = window.location.origin;
 
@@ -10,7 +10,7 @@ const BENEFITS = [
   'AI root cause analysis',
 ];
 
-export default function TrialGate({ onLogin }) {
+export default function TrialGate({ onLogin, onBack }) {
   const [mode, setMode] = useState('signup'); // 'signup' | 'login'
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -59,8 +59,24 @@ export default function TrialGate({ onLogin }) {
     window.location.href = `${API_BASE_URL}/auth/${provider}`;
   };
 
+  const handleBack = () => {
+    if (onBack) { onBack(); return; }
+    // Fallback: go to previous history entry or home
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = '/';
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
+      {/* Back button */}
+      <button
+        onClick={handleBack}
+        className="absolute top-5 left-5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+      >
+        <ArrowLeft size={15} />
+        Back to app
+      </button>
+
       {/* Logo */}
       <div className="mb-6">
         <img

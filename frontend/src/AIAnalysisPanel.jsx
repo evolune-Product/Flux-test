@@ -175,13 +175,13 @@ ${analysis.next_steps?.map((s, i) => `${i + 1}. ${s}`).join('\n') || 'None'}
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              className="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
             >
               {copied ? '✓ Copied' : 'Copy'}
             </button>
             <button
               onClick={() => setExpanded(!expanded)}
-              className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              className="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
             >
               {expanded ? 'Collapse' : 'Expand'}
             </button>

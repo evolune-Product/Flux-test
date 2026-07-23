@@ -38,12 +38,13 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Desktop (Electron) — not part of the web app
+desktop/
+
 # Generated reports and runtime output
 backend/fullsend_reports/
 backend/accuracy_report.json
 
-# Desktop build artifacts
-desktop/
 backend/build.sh
 backend/flasqo-backend.spec
 

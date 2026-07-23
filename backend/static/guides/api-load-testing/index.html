@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020617">
+<link rel="icon" type="image/png" href="/icon_svg.png">
+<title>API Load Testing Guide: Load vs Stress vs Spike vs Endurance (2026)</title>
+<meta name="description" content="How to load test an API in 2026: the four performance test types, the metrics that matter (p95, p99, RPS, error rate), common mistakes, and how to run your first test free.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="https://flasqo.com/guides/api-load-testing/">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://flasqo.com/guides/api-load-testing/">
+<meta property="og:title" content="API Load Testing Guide: Load vs Stress vs Spike vs Endurance (2026)">
+<meta property="og:description" content="How to load test an API in 2026: the four performance test types, the metrics that matter (p95, p99, RPS, error rate), common mistakes, and how to run your first test free.">
+<meta property="og:image" content="https://flasqo.com/og-image.png">
+<meta property="og:site_name" content="Flasqo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="API Load Testing Guide: Load vs Stress vs Spike vs Endurance (2026)">
+<meta name="twitter:description" content="How to load test an API in 2026: the four performance test types, the metrics that matter (p95, p99, RPS, error rate), common mistakes, and how to run your first test free.">
+<meta name="twitter:image" content="https://flasqo.com/og-image.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Home",
+     "item": "https://flasqo.com/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Guides",
+     "item": "https://flasqo.com/guides/api-testing/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "API load testing",
+     "item": "https://flasqo.com/guides/api-load-testing/"
+    }
+   ]
+  },
+  {
+   "@type": "Article",
+   "@id": "https://flasqo.com/guides/api-load-testing/#article",
+   "headline": "API load testing: load, stress, spike and endurance explained",
+   "description": "How to load test an API in 2026: the four performance test types, the metrics that matter (p95, p99, RPS, error rate), common mistakes, and how to run your first test free.",
+   "url": "https://flasqo.com/guides/api-load-testing/",
+   "datePublished": "2026-07-07",
+   "dateModified": "2026-07-07",
+   "image": "https://flasqo.com/og-image.png",
+   "author": {
+    "@type": "Organization",
+    "name": "Flasqo",
+    "url": "https://flasqo.com/"
+   },
+   "publisher": {
+    "@type": "Organization",
+    "name": "Flasqo",
+    "logo": {
+     "@type": "ImageObject",
+     "url": "https://flasqo.com/flasqo-logo.png"
+    }
+   }
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://flasqo.com/guides/api-load-testing/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "How many requests per second should I load test with?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Start from reality: your current peak traffic plus the growth you must survive (a launch, a campaign). A common pattern is testing at 1×, 2× and 5× expected peak, then a stress ramp to find the ceiling."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What is a good p95 latency for an API?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It depends on the consumer, but common budgets are p95 under 200ms for user-facing reads and under 500ms for writes. The critical practice is setting an explicit budget and failing the test when it's exceeded."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I load test for free?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes — Flasqo's performance testing (load, stress, spike, endurance) is free to use from the browser, with real-time metrics and exportable reports."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
+.site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.logo img{height:30px;width:auto}
+nav.top{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav.top a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+nav.top a:hover{color:#fff}
+nav.top a.cta{background:linear-gradient(90deg,#2563eb,#06b6d4);color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}
+.crumbs{font-size:.8rem;color:#64748b;margin:26px 0 0}
+.crumbs a{color:#64748b;text-decoration:none}
+.crumbs a:hover{color:#cbd5e1}
+h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spacing:-.01em;margin:14px 0 10px}
+.byline{color:#64748b;font-size:.85rem;margin-bottom:26px}
+.tldr{border:1px solid rgba(59,130,246,.35);background:rgba(30,58,138,.14);border-radius:14px;padding:18px 20px;margin:0 0 34px}
+.tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7dd3fc;margin-bottom:8px}
+.tldr p{margin:0;color:#dbeafe;font-size:.98rem}
+main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
+main h3{color:#e2e8f0;font-size:1.1rem;margin:26px 0 8px}
+main p{margin:0 0 16px;font-size:.98rem}
+main ul,main ol{margin:0 0 16px;padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:#60a5fa;text-decoration:none}
+main a:hover{text-decoration:underline}
+strong{color:#e2e8f0}
+.tblwrap{overflow-x:auto;border:1px solid rgba(255,255,255,.09);border-radius:14px;margin:0 0 20px}
+table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:540px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+th{color:#e2e8f0;background:rgba(30,41,59,.65);font-size:.84rem}
+tr:last-child td{border-bottom:0}
+td.c,th.c{text-align:center}
+.yes{color:#4ade80}.part{color:#facc15}.no{color:#64748b}
+.callout{border-left:3px solid #22d3ee;background:rgba(8,47,73,.25);padding:14px 18px;border-radius:0 12px 12px 0;margin:0 0 20px;font-size:.94rem;color:#bae6fd}
+.cta-box{border:1px solid rgba(59,130,246,.4);background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(6,182,212,.10));border-radius:16px;padding:26px;text-align:center;margin:44px 0}
+.cta-box h2{margin:0 0 8px;font-size:1.35rem}
+.cta-box p{color:#94a3b8;margin:0 0 18px}
+.cta-box a{display:inline-block;background:linear-gradient(90deg,#2563eb,#06b6d4);color:#fff;font-weight:700;padding:12px 30px;border-radius:999px;text-decoration:none}
+.faq details{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:13px 17px;margin-bottom:10px;background:rgba(15,23,42,.6)}
+.faq summary{color:#e2e8f0;font-weight:600;cursor:pointer}
+.faq p{color:#94a3b8;font-size:.93rem;margin:10px 0 0}
+.more{border-top:1px solid rgba(255,255,255,.07);margin-top:48px;padding-top:28px}
+.more h2{font-size:1rem;color:#e2e8f0;margin:0 0 14px;text-transform:uppercase;letter-spacing:.08em}
+.more-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.more-grid a{display:block;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 14px;color:#94a3b8;text-decoration:none;font-size:.87rem;background:rgba(15,23,42,.5)}
+.more-grid a:hover{color:#fff;border-color:rgba(96,165,250,.5)}
+footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:26px 0 34px}
+.foot-inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#64748b;font-size:.8rem}
+.foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
+.foot-inner a:hover{color:#fff}
+</style>
+</head>
+<body>
+<header class="site"><div class="site-inner">
+<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
+<nav class="top" aria-label="Main">
+<a href="/guides/api-testing/">Guides</a>
+<a href="/compare/postman-alternatives/">Compare</a>
+<a href="/#faq">FAQ</a>
+<a class="cta" href="/">Start Testing Free</a>
+</nav></div></header>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/guides/api-testing/">Guides</a> › API load testing</nav>
+<h1>API load testing: load, stress, spike and endurance explained</h1>
+<p class="byline">By the Flasqo team · Updated July 7, 2026</p>
+<div class="tldr"><span class="tag">TL;DR</span><p>Load testing pushes realistic traffic at your API and measures latency and errors. Run four variants — <strong>load</strong> (expected traffic), <strong>stress</strong> (find the breaking point), <strong>spike</strong> (sudden bursts) and <strong>endurance</strong> (hours-long stability). Watch p95/p99 latency and error rate, not averages. <a href='/'>Flasqo</a> runs all four from the browser for free.</p></div>
+<main>
+
+<h2>What is API load testing?</h2>
+<p>Load testing sends controlled volumes of concurrent traffic at your API and measures how response time, throughput and error rate behave as pressure rises. Functional tests prove your API is <em>correct</em>; load tests prove it stays correct — and fast — when 500 users arrive at once.</p>
+
+<h2>The four performance test types</h2>
+<div class="tblwrap"><table>
+<thead><tr><th>Type</th><th>Traffic pattern</th><th>Question answered</th></tr></thead>
+<tbody>
+<tr><td><strong>Load test</strong></td><td>Sustained expected traffic (e.g. 100 RPS for 10 min)</td><td>Does normal production traffic hit our latency targets?</td></tr>
+<tr><td><strong>Stress test</strong></td><td>Ramp up until failure</td><td>Where is the breaking point, and how does it fail?</td></tr>
+<tr><td><strong>Spike test</strong></td><td>Instant jump (e.g. 10× in seconds)</td><td>Do we survive a launch, a sale, a viral moment?</td></tr>
+<tr><td><strong>Endurance (soak)</strong></td><td>Moderate traffic for hours</td><td>Do leaks, connection exhaustion or drift appear over time?</td></tr>
+</tbody></table></div>
+
+<h2>The metrics that actually matter</h2>
+<ul>
+<li><strong>p95 / p99 latency</strong> — the experience of your slowest 5% and 1% of requests. Averages hide disasters: an average of 80ms can coexist with a p99 of 4 seconds.</li>
+<li><strong>Error rate under load</strong> — 0.5% errors at 200 RPS is a thousand failures an hour.</li>
+<li><strong>Throughput ceiling</strong> — the RPS where latency starts climbing nonlinearly; capacity planning starts here.</li>
+<li><strong>Recovery time</strong> — after a spike ends, how long until latency returns to baseline?</li>
+</ul>
+
+<h2>How to run your first API load test</h2>
+<ol>
+<li><strong>Pick one endpoint that matters</strong> — usually login or your most-hit read.</li>
+<li><strong>Establish the baseline</strong>: single-user latency. If it's slow with one user, load testing will only confirm the obvious.</li>
+<li><strong>Model realistic traffic</strong>: expected concurrent users and request mix, not a random big number.</li>
+<li><strong>Run load → stress → spike in that order</strong>, against a production-like environment (never a shared prod DB without a plan).</li>
+<li><strong>Set budgets</strong>: e.g. p95 &lt; 200ms, error rate &lt; 0.1%. A test without pass criteria is a demo, not a test.</li>
+<li><strong>Re-run on every significant release</strong> — performance regresses in silence.</li>
+</ol>
+
+<h2>Common mistakes</h2>
+<ul>
+<li><strong>Testing averages.</strong> Percentiles or nothing.</li>
+<li><strong>Ignoring warm-up.</strong> Cold caches and JIT make the first minute unrepresentative.</li>
+<li><strong>One giant burst, no ramp.</strong> You learn the ceiling but not the curve.</li>
+<li><strong>Testing localhost.</strong> Network, TLS and load balancers are part of the answer.</li>
+<li><strong>No error-rate assertion.</strong> Fast 500s look great on a latency chart.</li>
+</ul>
+
+<h2>Load testing with Flasqo</h2>
+<p>Flasqo's performance module runs load, stress, spike and endurance profiles from the browser with live latency/throughput charts — no JMeter scripts or infrastructure. Set the profile, watch p95/p99 in real time, export the report, and gate deploys on the result with the Production Gate. It's free: <a href="/">start a load test now</a>, or see <a href="/guides/api-chaos-testing/">chaos testing</a> for what to break next.</p>
+
+</main>
+<div class="cta-box">
+<h2>Generate your first API test suite in minutes</h2>
+<p>Flasqo is free — paste your API URL, let AI build the tests, and ship with proof. No credit card required.</p>
+<a href="/">Try Flasqo Free</a>
+</div>
+<section class="faq"><h2>Frequently asked questions</h2><details><summary>How many requests per second should I load test with?</summary><p>Start from reality: your current peak traffic plus the growth you must survive (a launch, a campaign). A common pattern is testing at 1×, 2× and 5× expected peak, then a stress ramp to find the ceiling.</p></details><details><summary>What is a good p95 latency for an API?</summary><p>It depends on the consumer, but common budgets are p95 under 200ms for user-facing reads and under 500ms for writes. The critical practice is setting an explicit budget and failing the test when it's exceeded.</p></details><details><summary>Can I load test for free?</summary><p>Yes — Flasqo's performance testing (load, stress, spike, endurance) is free to use from the browser, with real-time metrics and exportable reports.</p></details></section>
+<div class="more"><h2>More from Flasqo</h2><div class="more-grid"><a href="/guides/api-testing/">What is API testing? The complete guide</a><a href="/guides/api-chaos-testing/">API chaos testing: break it before production does</a><a href="/guides/api-contract-testing/">API contract testing & schema drift</a><a href="/guides/graphql-api-testing/">How to test GraphQL APIs</a><a href="/compare/postman-alternatives/">Best Postman alternatives in 2026</a><a href="/compare/flasqo-vs-postman/">Flasqo vs Postman</a><a href="/compare/flasqo-vs-insomnia/">Flasqo vs Insomnia</a><a href="/compare/flasqo-vs-katalon/">Flasqo vs Katalon</a><a href="/compare/flasqo-vs-bruno/">Flasqo vs Bruno</a><a href="/compare/flasqo-vs-hoppscotch/">Flasqo vs Hoppscotch</a></div></div>
+</div>
+<footer class="site"><div class="foot-inner">
+<div>© 2026 Flasqo by <a href="https://www.evolune.in/" rel="noopener">EvoluneEdgeTech</a></div>
+<div>
+<a href="/">Home</a>
+<a href="/guides/api-testing/">API testing guide</a>
+<a href="/compare/postman-alternatives/">Postman alternatives</a>
+<a href="mailto:contact@evolune.in">Contact</a>
+</div></div></footer>
+</body>
+</html>

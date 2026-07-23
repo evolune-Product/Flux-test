@@ -933,27 +933,39 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
 # ============================================
 
 @app.get("/auth/google")
-async def google_login(request: Request):
-    """Initiate Google OAuth login"""
+async def google_login(request: Request, desktop: bool = False):
+    """Initiate Google OAuth login. Pass ?desktop=1 from the Electron app."""
     backend_url = os.getenv('BACKEND_URL', 'http://localhost:8000')
     redirect_uri = f"{backend_url}/auth/google/callback"
+    if desktop:
+        request.session['oauth_desktop'] = True
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/google/callback")
 async def google_callback(request: Request, db: Session = Depends(get_db)):
     """Handle Google OAuth callback"""
+    is_desktop = request.session.pop('oauth_desktop', False)
+
+    def _redirect_success(access_token, user):
+        params = f"token={access_token}&user_id={user.user_id}&username={user.username}&email={user.email}"
+        target = f"flasqo://auth/callback?{params}" if is_desktop else f"{FRONTEND_URL}?{params}"
+        return RedirectResponse(url=target)
+
+    def _redirect_error(reason: str):
+        target = f"flasqo://auth/callback?error={reason}" if is_desktop else f"{FRONTEND_URL}?error={reason}"
+        return RedirectResponse(url=target)
+
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
-        
+
         if not user_info:
             raise HTTPException(status_code=400, detail="Failed to get user info from Google")
-        
+
         email = user_info.get('email')
         name = user_info.get('name', email.split('@')[0])
         google_id = user_info.get('sub')
-        
-        # Get or create user
+
         user = get_or_create_oauth_user(
             db=db,
             email=email,
@@ -961,59 +973,62 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             provider='google',
             oauth_id=google_id
         )
-        
-        # Create access token
         access_token = create_access_token(data={"sub": user.username})
-        
-        # Redirect to frontend with token
-        return RedirectResponse(
-            url=f"{FRONTEND_URL}?token={access_token}&user_id={user.user_id}&username={user.username}&email={user.email}"
-        )
-    
+        return _redirect_success(access_token, user)
+
     except Exception as e:
         print(f"Google OAuth error: {str(e)}")
-        return RedirectResponse(url=f"{FRONTEND_URL}?error=google_auth_failed")
+        return _redirect_error("google_auth_failed")
 
 # ============================================
 # GITHUB OAUTH ENDPOINTS
 # ============================================
 
 @app.get("/auth/github")
-async def github_login(request: Request):
-    """Initiate GitHub OAuth login"""
+async def github_login(request: Request, desktop: bool = False):
+    """Initiate GitHub OAuth login. Pass ?desktop=1 from the Electron app."""
     backend_url = os.getenv('BACKEND_URL', 'http://localhost:8000')
     redirect_uri = f"{backend_url}/auth/github/callback"
+    if desktop:
+        request.session['oauth_desktop'] = True
     return await oauth.github.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/github/callback")
 async def github_callback(request: Request, db: Session = Depends(get_db)):
     """Handle GitHub OAuth callback"""
+    is_desktop = request.session.pop('oauth_desktop', False)
+
+    def _redirect_success(access_token, user):
+        params = f"token={access_token}&user_id={user.user_id}&username={user.username}&email={user.email}"
+        target = f"flasqo://auth/callback?{params}" if is_desktop else f"{FRONTEND_URL}?{params}"
+        return RedirectResponse(url=target)
+
+    def _redirect_error(reason: str):
+        target = f"flasqo://auth/callback?error={reason}" if is_desktop else f"{FRONTEND_URL}?error={reason}"
+        return RedirectResponse(url=target)
+
     try:
         token = await oauth.github.authorize_access_token(request)
-        
-        # Get user info from GitHub
+
         async with httpx.AsyncClient() as client:
             headers = {'Authorization': f'token {token["access_token"]}'}
-            
-            # Get user profile
+
             user_response = await client.get('https://api.github.com/user', headers=headers)
             user_info = user_response.json()
-            
-            # Get user email (if not public, fetch from emails endpoint)
+
             email = user_info.get('email')
             if not email:
                 email_response = await client.get('https://api.github.com/user/emails', headers=headers)
                 emails = email_response.json()
                 primary_email = next((e for e in emails if e['primary']), None)
                 email = primary_email['email'] if primary_email else None
-            
+
             if not email:
                 raise HTTPException(status_code=400, detail="Could not get email from GitHub")
-        
-        username = user_info.get('login', email.split('@')[0])
+
+        username  = user_info.get('login', email.split('@')[0])
         github_id = str(user_info.get('id'))
-        
-        # Get or create user
+
         user = get_or_create_oauth_user(
             db=db,
             email=email,
@@ -1021,18 +1036,12 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
             provider='github',
             oauth_id=github_id
         )
-        
-        # Create access token
         access_token = create_access_token(data={"sub": user.username})
-        
-        # Redirect to frontend with token
-        return RedirectResponse(
-            url=f"{FRONTEND_URL}?token={access_token}&user_id={user.user_id}&username={user.username}&email={user.email}"
-        )
-    
+        return _redirect_success(access_token, user)
+
     except Exception as e:
         print(f"GitHub OAuth error: {str(e)}")
-        return RedirectResponse(url=f"{FRONTEND_URL}?error=github_auth_failed")
+        return _redirect_error("github_auth_failed")
 
 # ============================================
 # OTHER AUTH ENDPOINTS

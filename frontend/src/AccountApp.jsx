@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   User, LogOut, Crown, Check, ShieldCheck, Cloud, CloudOff, Loader,
-  Mail, Lock, AtSign, Save, ExternalLink
+  Mail, Lock, AtSign, Save, Github
 } from 'lucide-react';
 
 import { API_BASE_URL } from './lib/api.js';
@@ -21,6 +21,7 @@ export default function AccountApp() {
     catch { setSession({ signed_in: false }); }
     finally { setLoading(false); }
   };
+
   useEffect(() => { refresh(); }, []);
 
   if (loading) {
@@ -92,7 +93,7 @@ function SignedOut({ onSignedIn, cloudApi }) {
         </div>
 
         <p className="text-[11px] text-gray-600 mt-4 flex items-center gap-1.5">
-          <ShieldCheck size={12} /> Authenticates against {cloudApi || 'flasqo.com'}. Google/GitHub sign-in coming to desktop soon.
+          <ShieldCheck size={12} /> Authenticates against {cloudApi || 'flasqo.com'}.
         </p>
       </div>
 

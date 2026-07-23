@@ -22,21 +22,21 @@ export default function BackButton() {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '6px 14px',
+        gap: 8,
+        padding: '8px 18px',
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.09)',
-        borderRadius: 8,
+        borderRadius: 10,
         color: 'rgba(255,255,255,0.55)',
         cursor: 'pointer',
-        fontSize: 13,
+        fontSize: 15,
         fontWeight: 500,
         transition: 'background 0.15s, color 0.15s',
         flexShrink: 0,
       }}
       title="Back to Dashboard"
     >
-      <ArrowLeft size={14} />
+      <ArrowLeft size={16} />
       Back
     </button>
   );

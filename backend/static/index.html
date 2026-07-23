@@ -2,41 +2,342 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="icon_svg.png" />
+    <link rel="icon" type="image/png" href="/icon_svg.png" />
+    <link rel="apple-touch-icon" href="/icon_svg.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flasqo — API Testing Platform</title>
+    <meta name="theme-color" content="#020617" />
+
+    <title>Flasqo — AI-Powered API Testing Platform | Free Postman Alternative</title>
 
     <!-- Primary meta -->
-    <meta name="description" content="Flasqo is a comprehensive API testing platform — smoke, load, regression, contract, GraphQL, chaos and more." />
+    <meta name="description" content="Flasqo auto-generates and runs API tests with AI — functional, smoke, load, regression, contract, GraphQL, fuzz and chaos testing in one free platform. Paste a URL, get a full test suite in minutes." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://flasqo.com/" />
+    <meta name="author" content="Flasqo by EvoluneEdgeTech" />
 
     <!-- Open Graph (Facebook, WhatsApp, LinkedIn, Slack) -->
     <meta property="og:type"        content="website" />
     <meta property="og:url"         content="https://flasqo.com/" />
-    <meta property="og:title"       content="Flasqo — API Testing Platform" />
-    <meta property="og:description" content="Comprehensive API testing: smoke, load, regression, contract, GraphQL, chaos and more. Deploy with confidence." />
+    <meta property="og:title"       content="Flasqo — AI-Powered API Testing Platform" />
+    <meta property="og:description" content="AI generates your entire API test suite: functional, smoke, load, regression, contract, GraphQL, fuzz and chaos testing in one free platform." />
     <meta property="og:image"       content="https://flasqo.com/og-image.png" />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"   content="Flasqo — AI-powered API testing platform" />
     <meta property="og:site_name"   content="Flasqo" />
+    <meta property="og:locale"      content="en_US" />
 
     <!-- Twitter / X card -->
     <meta name="twitter:card"        content="summary_large_image" />
-    <meta name="twitter:title"       content="Flasqo — API Testing Platform" />
-    <meta name="twitter:description" content="Comprehensive API testing: smoke, load, regression, contract, GraphQL, chaos and more." />
+    <meta name="twitter:site"        content="@EvoluneEdgeTech" />
+    <meta name="twitter:title"       content="Flasqo — AI-Powered API Testing Platform" />
+    <meta name="twitter:description" content="AI generates your entire API test suite: functional, smoke, load, regression, contract, GraphQL, fuzz and chaos testing in one free platform." />
     <meta name="twitter:image"       content="https://flasqo.com/og-image.png" />
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://flasqo.com/#organization",
+          "name": "Flasqo",
+          "url": "https://flasqo.com/",
+          "logo": "https://flasqo.com/flasqo-logo.png",
+          "parentOrganization": { "@type": "Organization", "name": "EvoluneEdgeTech", "url": "https://www.evolune.in/" },
+          "sameAs": [
+            "https://github.com/EvoluneEdgeTech",
+            "https://x.com/EvoluneEdgeTech",
+            "https://www.linkedin.com/in/evolune-edgetech-546640389/"
+          ],
+          "contactPoint": { "@type": "ContactPoint", "email": "contact@evolune.in", "contactType": "customer support" }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://flasqo.com/#website",
+          "url": "https://flasqo.com/",
+          "name": "Flasqo",
+          "publisher": { "@id": "https://flasqo.com/#organization" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://flasqo.com/#software",
+          "name": "Flasqo",
+          "url": "https://flasqo.com/",
+          "image": "https://flasqo.com/og-image.png",
+          "applicationCategory": "DeveloperApplication",
+          "applicationSubCategory": "API Testing Tool",
+          "operatingSystem": "Web browser",
+          "description": "AI-powered API testing platform that auto-generates and runs functional, smoke, performance, regression, contract, GraphQL, fuzz and chaos tests from an API URL.",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free to use — no credit card required" },
+          "featureList": [
+            "AI test generation",
+            "API auto-discovery",
+            "Functional API testing",
+            "Smoke testing",
+            "Performance and load testing",
+            "Chaos engineering",
+            "Fuzz testing",
+            "Regression testing",
+            "Contract testing",
+            "GraphQL testing",
+            "Integration flow testing",
+            "Natural-language (vibe) testing",
+            "Visual flow builder",
+            "Production deploy gate",
+            "GitHub integration",
+            "PDF and JSON reports"
+          ],
+          "publisher": { "@id": "https://flasqo.com/#organization" }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://flasqo.com/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Flasqo?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Flasqo is a free AI-powered API testing platform. Paste your API URL and it auto-discovers endpoints, generates a full test suite — happy-path, edge-case, negative and security tests — and runs functional, smoke, performance, regression, contract, GraphQL, fuzz and chaos tests from one dashboard." }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Flasqo free to use?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Flasqo is free to use with unlimited test runs and no credit card required." }
+            },
+            {
+              "@type": "Question",
+              "name": "How is Flasqo different from Postman?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Postman is built around manually created request collections and hand-written test scripts. Flasqo generates test suites automatically with AI and bundles performance, chaos, fuzz, contract and GraphQL testing into the same platform, so you don't need separate tools like JMeter or custom scripts." }
+            },
+            {
+              "@type": "Question",
+              "name": "Do I have to write test cases manually?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No. Flasqo's AI generates 10–100 test cases per endpoint covering happy paths, edge cases, negative inputs and security checks. You can review, edit and add your own custom cases before running." }
+            },
+            {
+              "@type": "Question",
+              "name": "Can Flasqo test GraphQL APIs?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Flasqo has a dedicated GraphQL testing module that understands your schema and generates tests for queries and mutations, alongside REST testing." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does Flasqo work in CI/CD pipelines?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Smoke tests are designed for fast deployment validation, the Production Gate module blocks risky deploys, and results can be saved to GitHub repositories via the built-in integration." }
+            },
+            {
+              "@type": "Question",
+              "name": "Which authentication methods does Flasqo support?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Flasqo supports Bearer tokens, API keys and Basic authentication for testing protected APIs." }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
       *, *::before, *::after { box-sizing: border-box; }
-      body { font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif; }
-    </style>
-    <script type="module" crossorigin src="/assets/index-Dsr_sCUq.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BZV40eAE.css">
+      body { font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif; margin: 0; background: #020617; }
+      /* Static pre-render shell — replaced by the React app on mount */
+      .s-shell { color: #cbd5e1; background: #020617; min-height: 100vh; line-height: 1.6; }
+      .s-wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+      .s-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      .s-logo { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 1.15rem; text-decoration: none; }
+      .s-logo img { height: 34px; width: auto; }
+      .s-nav { display: flex; gap: 22px; flex-wrap: wrap; }
+      .s-nav a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; }
+      .s-nav a:hover { color: #fff; }
+      .s-hero { text-align: center; padding: 72px 0 48px; }
+      .s-badge { display: inline-block; border: 1px solid rgba(59,130,246,0.4); color: #7dd3fc; border-radius: 999px; padding: 6px 16px; font-size: 0.85rem; margin-bottom: 22px; }
+      .s-hero h1 { color: #fff; font-size: clamp(2rem, 5.5vw, 3.6rem); line-height: 1.12; margin: 0 0 18px; letter-spacing: -0.01em; }
+      .s-hero h1 .s-grad { background: linear-gradient(90deg, #60a5fa, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .s-hero p { max-width: 620px; margin: 0 auto 26px; color: #94a3b8; font-size: 1.05rem; }
+      .s-cta { display: inline-block; background: linear-gradient(90deg, #2563eb, #06b6d4); color: #fff; font-weight: 700; padding: 14px 34px; border-radius: 999px; text-decoration: none; font-size: 1.05rem; }
+      .s-sub { margin-top: 14px; font-size: 0.85rem; color: #64748b; }
+      section.s-sec { padding: 44px 0; border-top: 1px solid rgba(255,255,255,0.05); }
+      .s-sec h2 { color: #fff; font-size: 1.7rem; margin: 0 0 8px; }
+      .s-sec .s-lede { color: #94a3b8; margin: 0 0 28px; max-width: 720px; }
+      .s-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+      .s-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; background: rgba(15,23,42,0.6); }
+      .s-card h3 { color: #e2e8f0; font-size: 1rem; margin: 0 0 6px; }
+      .s-card p { color: #7d8aa0; font-size: 0.87rem; margin: 0; }
+      .s-tblwrap { overflow-x: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; }
+      table.s-tbl { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 560px; }
+      .s-tbl th, .s-tbl td { padding: 10px 14px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      .s-tbl th { color: #e2e8f0; background: rgba(30,41,59,0.6); }
+      .s-tbl td:first-child, .s-tbl th:first-child { text-align: left; color: #cbd5e1; }
+      .s-yes { color: #4ade80; } .s-part { color: #facc15; } .s-no { color: #64748b; }
+      .s-steps { margin: 0; padding-left: 20px; color: #94a3b8; }
+      .s-steps li { margin-bottom: 8px; }
+      .s-faq details { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; background: rgba(15,23,42,0.6); }
+      .s-faq summary { color: #e2e8f0; font-weight: 600; cursor: pointer; }
+      .s-faq p { color: #94a3b8; font-size: 0.92rem; margin: 10px 0 0; }
+      .s-footer { border-top: 1px solid rgba(255,255,255,0.07); padding: 40px 0 30px; }
+      .s-fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; margin-bottom: 26px; }
+      .s-fgrid h3 { color: #e2e8f0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px; }
+      .s-fgrid a { display: block; color: #7d8aa0; text-decoration: none; font-size: 0.88rem; margin-bottom: 8px; }
+      .s-fgrid a:hover { color: #fff; }
+      .s-copy { color: #64748b; font-size: 0.8rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
+      .s-inline-links a { color: #60a5fa; text-decoration: none; }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DkoS1GxD.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DJhpPsS7.css">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Pre-rendered content for crawlers and instant first paint. React replaces this on mount. -->
+      <div class="s-shell" style="display:none">
+        <div class="s-wrap">
+          <header class="s-header">
+            <a class="s-logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="34" height="34" /> Flasqo</a>
+            <nav class="s-nav" aria-label="Main">
+              <a href="#features">Features</a>
+              <a href="#compare">Compare</a>
+              <a href="/guides/api-testing/">Guides</a>
+              <a href="#faq">FAQ</a>
+              <a href="/">Sign in</a>
+            </nav>
+          </header>
+
+          <main>
+            <section class="s-hero">
+              <span class="s-badge">Free forever · No credit card required</span>
+              <h1>AI-Powered API Testing Platform —<br /><span class="s-grad">Test Smarter, Ship Faster</span></h1>
+              <p>Paste your API URL and Flasqo's AI auto-discovers endpoints and generates a complete test suite — functional, smoke, load, regression, contract, GraphQL, fuzz and chaos testing in one place. No manual test writing, no juggling five different tools.</p>
+              <a class="s-cta" href="/">Start Testing Free</a>
+              <div class="s-sub">Runs in your browser · Bearer, API key &amp; Basic auth supported · GitHub integration built in</div>
+            </section>
+
+            <section class="s-sec" id="features">
+              <h2>Every kind of API test, one platform</h2>
+              <p class="s-lede">Flasqo bundles thirteen testing modules that normally require separate tools — a REST client, a load tester, a chaos framework and hand-written scripts — into a single AI-driven workflow.</p>
+              <div class="s-grid">
+                <div class="s-card"><h3>AI Test Generation</h3><p>Generates happy-path, edge-case, negative and security test cases from your API structure — 10 to 100 tests per endpoint in seconds.</p></div>
+                <div class="s-card"><h3>API Auto-Discovery</h3><p>Point Flasqo at a base URL and it finds endpoints, detects authentication and maps your API surface automatically.</p></div>
+                <div class="s-card"><h3>Functional Testing</h3><p>Full CRUD validation, response checking and data assertions for REST APIs.</p></div>
+                <div class="s-card"><h3>Smoke Testing</h3><p>Fast health checks for critical endpoints — built for CI/CD deployment validation.</p></div>
+                <div class="s-card"><h3>Performance &amp; Load Testing</h3><p>Load, stress, spike and endurance testing with real-time latency and throughput metrics.</p></div>
+                <div class="s-card"><h3>Chaos Engineering</h3><p>Inject latency, simulate service failures, timeouts and rate limits to validate resilience.</p></div>
+                <div class="s-card"><h3>Fuzz Testing</h3><p>Malformed and unexpected inputs that surface crashes and validation gaps before attackers do.</p></div>
+                <div class="s-card"><h3>Regression Testing</h3><p>Catch breaking changes between releases by re-running saved suites and diffing results.</p></div>
+                <div class="s-card"><h3>Contract Testing</h3><p>Verify responses against expected schemas so consumers never break on drift.</p></div>
+                <div class="s-card"><h3>GraphQL Testing</h3><p>Schema-aware testing for queries and mutations, not just REST.</p></div>
+                <div class="s-card"><h3>Integration Flows</h3><p>Chain requests into multi-step scenarios with a visual flow builder.</p></div>
+                <div class="s-card"><h3>Vibe Testing</h3><p>Describe what to test in plain English — the AI turns it into executable tests.</p></div>
+                <div class="s-card"><h3>Production Gate</h3><p>A deploy gate that blocks releases when coverage, pass rate or latency budgets fail.</p></div>
+              </div>
+            </section>
+
+            <section class="s-sec" id="compare">
+              <h2>How Flasqo compares to Postman, Katalon and Insomnia</h2>
+              <p class="s-lede">Traditional API clients are built around manually maintained request collections. Flasqo starts from AI-generated suites and covers performance and resilience testing that those tools leave to separate products.</p>
+              <div class="s-tblwrap">
+                <table class="s-tbl">
+                  <thead>
+                    <tr><th>Capability</th><th>Flasqo</th><th>Postman</th><th>Katalon</th><th>Insomnia</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>AI test generation</td><td class="s-yes">✓</td><td class="s-part">Partial</td><td class="s-part">Partial</td><td class="s-no">—</td></tr>
+                    <tr><td>API auto-discovery</td><td class="s-yes">✓</td><td class="s-no">—</td><td class="s-no">—</td><td class="s-no">—</td></tr>
+                    <tr><td>Performance / load testing</td><td class="s-yes">✓</td><td class="s-part">Add-on</td><td class="s-yes">✓</td><td class="s-no">—</td></tr>
+                    <tr><td>Chaos &amp; fuzz testing</td><td class="s-yes">✓</td><td class="s-no">—</td><td class="s-part">Partial</td><td class="s-no">—</td></tr>
+                    <tr><td>Contract testing</td><td class="s-yes">✓</td><td class="s-part">Partial</td><td class="s-part">Partial</td><td class="s-part">Partial</td></tr>
+                    <tr><td>Natural-language tests</td><td class="s-yes">✓</td><td class="s-no">—</td><td class="s-no">—</td><td class="s-no">—</td></tr>
+                    <tr><td>Free to use</td><td class="s-yes">✓</td><td class="s-part">Limited</td><td class="s-no">—</td><td class="s-yes">✓</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="s-inline-links" style="margin-top:16px">Detailed comparisons: <a href="/compare/flasqo-vs-postman/">Flasqo vs Postman</a> · <a href="/compare/flasqo-vs-insomnia/">Flasqo vs Insomnia</a> · <a href="/compare/flasqo-vs-katalon/">Flasqo vs Katalon</a> · <a href="/compare/flasqo-vs-bruno/">Flasqo vs Bruno</a> · <a href="/compare/flasqo-vs-hoppscotch/">Flasqo vs Hoppscotch</a> · <a href="/compare/postman-alternatives/">Best Postman alternatives</a></p>
+            </section>
+
+            <section class="s-sec" id="how-it-works">
+              <h2>How it works</h2>
+              <ol class="s-steps">
+                <li><strong>Configure your API</strong> — enter the endpoint URL and sample data.</li>
+                <li><strong>Set authentication</strong> — Bearer token, API key or Basic auth if needed.</li>
+                <li><strong>Generate tests</strong> — AI creates 10–100 test cases covering happy paths, edge cases, negative inputs and security checks.</li>
+                <li><strong>Review and customise</strong> — select, edit or add your own cases.</li>
+                <li><strong>Run everything</strong> — execute the suite with live streaming results.</li>
+                <li><strong>Ship with proof</strong> — download JSON/PDF reports or push results to GitHub.</li>
+              </ol>
+            </section>
+
+            <section class="s-sec s-faq" id="faq">
+              <h2>Frequently asked questions</h2>
+              <details open>
+                <summary>What is Flasqo?</summary>
+                <p>Flasqo is a free AI-powered API testing platform. Paste your API URL and it auto-discovers endpoints, generates a full test suite — happy-path, edge-case, negative and security tests — and runs functional, smoke, performance, regression, contract, GraphQL, fuzz and chaos tests from one dashboard.</p>
+              </details>
+              <details>
+                <summary>Is Flasqo free to use?</summary>
+                <p>Yes. Flasqo is free to use with unlimited test runs and no credit card required.</p>
+              </details>
+              <details>
+                <summary>How is Flasqo different from Postman?</summary>
+                <p>Postman is built around manually created request collections and hand-written test scripts. Flasqo generates test suites automatically with AI and bundles performance, chaos, fuzz, contract and GraphQL testing into the same platform, so you don't need separate tools like JMeter or custom scripts. See the full <a href="/compare/flasqo-vs-postman/" style="color:#60a5fa">Flasqo vs Postman comparison</a>.</p>
+              </details>
+              <details>
+                <summary>Do I have to write test cases manually?</summary>
+                <p>No. Flasqo's AI generates 10–100 test cases per endpoint covering happy paths, edge cases, negative inputs and security checks. You can review, edit and add your own custom cases before running.</p>
+              </details>
+              <details>
+                <summary>Can Flasqo test GraphQL APIs?</summary>
+                <p>Yes. Flasqo has a dedicated GraphQL testing module that understands your schema and generates tests for queries and mutations, alongside REST testing.</p>
+              </details>
+              <details>
+                <summary>Does Flasqo work in CI/CD pipelines?</summary>
+                <p>Yes. Smoke tests are designed for fast deployment validation, the Production Gate module blocks risky deploys, and results can be saved to GitHub repositories via the built-in integration.</p>
+              </details>
+              <details>
+                <summary>Which authentication methods does Flasqo support?</summary>
+                <p>Flasqo supports Bearer tokens, API keys and Basic authentication for testing protected APIs.</p>
+              </details>
+            </section>
+          </main>
+
+          <footer class="s-footer">
+            <div class="s-fgrid">
+              <div>
+                <h3>Product</h3>
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it works</a>
+                <a href="#faq">FAQ</a>
+                <a href="/">Sign in</a>
+              </div>
+              <div>
+                <h3>Compare</h3>
+                <a href="/compare/flasqo-vs-postman/">Flasqo vs Postman</a>
+                <a href="/compare/flasqo-vs-insomnia/">Flasqo vs Insomnia</a>
+                <a href="/compare/flasqo-vs-katalon/">Flasqo vs Katalon</a>
+                <a href="/compare/flasqo-vs-bruno/">Flasqo vs Bruno</a>
+                <a href="/compare/flasqo-vs-hoppscotch/">Flasqo vs Hoppscotch</a>
+                <a href="/compare/postman-alternatives/">Postman alternatives</a>
+              </div>
+              <div>
+                <h3>Guides</h3>
+                <a href="/guides/api-testing/">What is API testing?</a>
+                <a href="/guides/api-load-testing/">API load testing</a>
+                <a href="/guides/api-chaos-testing/">API chaos testing</a>
+                <a href="/guides/api-contract-testing/">API contract testing</a>
+                <a href="/guides/graphql-api-testing/">GraphQL API testing</a>
+              </div>
+              <div>
+                <h3>Company</h3>
+                <a href="https://www.evolune.in/" rel="noopener">EvoluneEdgeTech</a>
+                <a href="https://github.com/EvoluneEdgeTech" rel="noopener">GitHub</a>
+                <a href="https://x.com/EvoluneEdgeTech" rel="noopener">X / Twitter</a>
+                <a href="mailto:contact@evolune.in">Contact</a>
+              </div>
+            </div>
+            <p class="s-copy">© 2026 Flasqo by EvoluneEdgeTech. All rights reserved.</p>
+          </footer>
+        </div>
+      </div>
+    </div>
+    <noscript>Flasqo's interactive testing dashboard requires JavaScript. The information above describes the platform.</noscript>
   </body>
 </html>
