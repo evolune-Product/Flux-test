@@ -533,7 +533,15 @@ def get_db():
 app = FastAPI(title="AI API Tester Backend", version="1.0.0")
 
 # Rate limiting setup
-limiter = Limiter(key_func=get_remote_address)
+def get_client_ip(request: Request) -> str:
+    """Get real client IP from X-Forwarded-For header (Nginx proxy) or fallback to remote_addr"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        # X-Forwarded-For can be comma-separated list; take first IP
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+limiter = Limiter(key_func=get_client_ip)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
