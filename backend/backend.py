@@ -982,17 +982,17 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
 
 @app.post("/auth/login", response_model=UserResponse)
 @limiter.limit(os.getenv("RATE_LIMIT_AUTH_PER_MINUTE", "5") + "/minute")
-async def login(http_request: Request, request: LoginRequest, db: Session = Depends(get_db)):
+async def login(request: Request, credentials: LoginRequest, db: Session = Depends(get_db)):
     """User login endpoint"""
-    user = db.query(UserDB).filter(UserDB.username == request.username).first()
-    
+    user = db.query(UserDB).filter(UserDB.username == credentials.username).first()
+
     if not user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    
+
     if not user.password_hash:
         raise HTTPException(status_code=401, detail="This account uses OAuth login. Please use Google or GitHub.")
-    
-    if not verify_password(request.password, user.password_hash):
+
+    if not verify_password(credentials.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     access_token = create_access_token(data={"sub": user.username})
@@ -1265,10 +1265,10 @@ async def generate_tests(request: Request, payload: GenerateTestsRequest):
         if not openai_api_key:
             generator = OpenAITestGenerator("dummy_key")
             test_cases = generator._generate_fallback_tests(
-                api_url=request.api_url,
-                sample_data=request.sample_data,
-                num=request.num_tests,
-                has_auth=request.has_auth
+                api_url=payload.api_url,
+                sample_data=payload.sample_data,
+                num=payload.num_tests,
+                has_auth=payload.has_auth
             )
 
             return {
@@ -1283,11 +1283,11 @@ async def generate_tests(request: Request, payload: GenerateTestsRequest):
             generator = OpenAITestGenerator(openai_api_key)
 
             test_cases, used_fallback = generator.generate_test_cases(
-                api_url=request.api_url,
-                sample_data=request.sample_data,
-                num_tests=request.num_tests,
-                test_types=request.test_types,
-                has_auth=request.has_auth,
+                api_url=payload.api_url,
+                sample_data=payload.sample_data,
+                num_tests=payload.num_tests,
+                test_types=payload.test_types,
+                has_auth=payload.has_auth,
                 status_container=None
             )
 
@@ -1303,10 +1303,10 @@ async def generate_tests(request: Request, payload: GenerateTestsRequest):
         except Exception as ai_error:
             generator = OpenAITestGenerator(openai_api_key)
             test_cases = generator._generate_fallback_tests(
-                api_url=request.api_url,
-                sample_data=request.sample_data,
-                num=request.num_tests,
-                has_auth=request.has_auth
+                api_url=payload.api_url,
+                sample_data=payload.sample_data,
+                num=payload.num_tests,
+                has_auth=payload.has_auth
             )
 
             return {
@@ -1453,19 +1453,19 @@ Return ONLY the JSON, no explanation."""
 
 @app.post("/run-tests")
 @limiter.limit(os.getenv("RATE_LIMIT_PER_MINUTE", "60") + "/minute")
-async def run_tests(http_request: Request, request: RunTestsRequest):
+async def run_tests(request: Request, payload: RunTestsRequest):
     """Run test cases against the API with AI-powered root cause analysis"""
     try:
         # Initialize APITester with AI analysis enabled (Hybrid Option 3)
         tester = APITester(
-            base_url=request.base_url,
-            auth_config=request.auth_config,
-            timeout=request.timeout,
+            base_url=payload.base_url,
+            auth_config=payload.auth_config,
+            timeout=payload.timeout,
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             enable_ai_analysis=True  # Auto-analyze critical failures
         )
-        
-        for idx, test_case in enumerate(request.test_cases, 1):
+
+        for idx, test_case in enumerate(payload.test_cases, 1):
             tester.test_request(
                 method=test_case.get('method', 'GET'),
                 endpoint=test_case.get('endpoint', ''),
