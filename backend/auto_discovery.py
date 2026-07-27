@@ -307,17 +307,17 @@ class OpenAPIDiscoverer(BaseDiscoverer):
                 self.endpoints = endpoints
                 return self.endpoints
 
-            # Otherwise probe common spec paths under the base URL
-            for path in self.SPEC_PATHS:
-                try:
-                    url = f"{self.base_url}{path}"
-                    endpoints = await self._fetch_and_parse_spec(client, url)
-                    if endpoints:
-                        self.endpoints = endpoints
-                        return self.endpoints
+            # Probe all spec paths in parallel for faster discovery
+            tasks = [
+                self._fetch_and_parse_spec(client, f"{self.base_url}{path}")
+                for path in self.SPEC_PATHS
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                except httpx.RequestError:
-                    continue
+            for result in results:
+                if isinstance(result, list) and result:
+                    self.endpoints = result
+                    return self.endpoints
 
         return []
 
@@ -499,33 +499,35 @@ class WellKnownDiscoverer(BaseDiscoverer):
         "/security.txt",
     ]
 
+    async def _probe_wellknown_path(self, client: httpx.AsyncClient, path: str) -> Optional[DiscoveredEndpoint]:
+        """Probe a single well-known path"""
+        try:
+            url = f"{self.base_url}{path}"
+            response = await client.get(url, headers=self._get_headers())
+            if response.status_code == 200:
+                if "robots.txt" in path:
+                    self._parse_robots_txt(response.text)
+                return DiscoveredEndpoint(
+                    path=path,
+                    method="GET",
+                    parameters=[],
+                    auth_required=False,
+                    confidence=0.6,
+                    source="wellknown",
+                    response_codes=[200]
+                )
+        except httpx.RequestError:
+            pass
+        return None
+
     async def discover(self) -> List[DiscoveredEndpoint]:
-        """Check well-known paths for API information"""
+        """Check well-known paths for API information in parallel"""
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-            for path in self.WELLKNOWN_PATHS:
-                try:
-                    url = f"{self.base_url}{path}"
-                    response = await client.get(url, headers=self._get_headers())
-
-                    if response.status_code == 200:
-                        # Parse robots.txt for API paths
-                        if "robots.txt" in path:
-                            self._parse_robots_txt(response.text)
-
-                        # Mark the well-known endpoint itself as discovered
-                        self.endpoints.append(DiscoveredEndpoint(
-                            path=path,
-                            method="GET",
-                            parameters=[],
-                            auth_required=False,
-                            confidence=0.6,
-                            source="wellknown",
-                            response_codes=[200]
-                        ))
-
-                except httpx.RequestError:
-                    continue
-
+            tasks = [self._probe_wellknown_path(client, path) for path in self.WELLKNOWN_PATHS]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, DiscoveredEndpoint):
+                    self.endpoints.append(result)
         return self.endpoints
 
     def _parse_robots_txt(self, content: str):
@@ -669,8 +671,18 @@ class SecurityScoreCalculator:
         except httpx.RequestError:
             self.checks_passed += 1  # Can't check, assume OK
 
+    async def _probe_sensitive_path(self, client: httpx.AsyncClient, path: str) -> Optional[str]:
+        """Check if a single sensitive path is exposed"""
+        try:
+            response = await client.get(f"{self.base_url}{path}")
+            if response.status_code in [200, 301, 302]:
+                return path
+        except httpx.RequestError:
+            pass
+        return None
+
     async def _check_sensitive_endpoints(self, client: httpx.AsyncClient):
-        """Check for exposed sensitive endpoints"""
+        """Check for exposed sensitive endpoints in parallel"""
         self.checks_total += 1
 
         sensitive_paths = [
@@ -678,14 +690,9 @@ class SecurityScoreCalculator:
             "/.git/config", "/wp-admin", "/actuator", "/metrics"
         ]
 
-        exposed = []
-        for path in sensitive_paths:
-            try:
-                response = await client.get(f"{self.base_url}{path}")
-                if response.status_code in [200, 301, 302]:
-                    exposed.append(path)
-            except httpx.RequestError:
-                pass
+        tasks = [self._probe_sensitive_path(client, path) for path in sensitive_paths]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        exposed = [r for r in results if isinstance(r, str)]
 
         if exposed:
             self.findings.append(SecurityFinding(
@@ -910,36 +917,30 @@ async def start_discovery(request: AutoDiscoveryRequest):
 
             if method == DiscoveryMethod.OPENAPI:
                 discoverer = OpenAPIDiscoverer(target_url, request.auth_config, request.timeout)
-                endpoints = await discoverer.discover()
-                all_endpoints.extend(endpoints)
-                progress_log.append(DiscoveryProgress(
-                    step=method.value,
-                    status="complete",
-                    message=f"OpenAPI discovery complete",
-                    detail=f"Found {len(endpoints)} endpoints"
-                ))
-
             elif method == DiscoveryMethod.CRAWLER:
                 discoverer = CrawlerDiscoverer(target_url, request.auth_config, request.timeout)
-                endpoints = await discoverer.discover()
-                all_endpoints.extend(endpoints)
-                progress_log.append(DiscoveryProgress(
-                    step=method.value,
-                    status="complete",
-                    message=f"Path crawling complete",
-                    detail=f"Found {len(endpoints)} endpoints"
-                ))
-
-            elif method == DiscoveryMethod.WELLKNOWN:
+            else:
                 discoverer = WellKnownDiscoverer(target_url, request.auth_config, request.timeout)
-                endpoints = await discoverer.discover()
-                all_endpoints.extend(endpoints)
+
+            try:
+                endpoints = await asyncio.wait_for(discoverer.discover(), timeout=25.0)
+            except asyncio.TimeoutError:
+                endpoints = []
                 progress_log.append(DiscoveryProgress(
                     step=method.value,
-                    status="complete",
-                    message=f"Well-known path discovery complete",
-                    detail=f"Found {len(endpoints)} endpoints"
+                    status="error",
+                    message=f"{method.value} discovery timed out",
+                    detail="Exceeded 25-second time limit"
                 ))
+                continue
+
+            all_endpoints.extend(endpoints)
+            progress_log.append(DiscoveryProgress(
+                step=method.value,
+                status="complete",
+                message=f"{method.value} discovery complete",
+                detail=f"Found {len(endpoints)} endpoints"
+            ))
 
         except Exception as e:
             progress_log.append(DiscoveryProgress(
@@ -965,14 +966,30 @@ async def start_discovery(request: AutoDiscoveryRequest):
         message="Analyzing security..."
     ))
 
+    calculator = SecurityScoreCalculator(target_url, request.timeout)
     try:
-        calculator = SecurityScoreCalculator(target_url, request.timeout)
-        security_score = await calculator.calculate()
+        security_score = await asyncio.wait_for(calculator.calculate(), timeout=30.0)
         progress_log.append(DiscoveryProgress(
             step="security",
             status="complete",
             message="Security analysis complete",
             detail=f"Score: {security_score.score}/100 (Grade {security_score.grade})"
+        ))
+    except asyncio.TimeoutError:
+        # Use whatever the calculator computed before timeout
+        partial_score = calculator._calculate_final_score()
+        security_score = SecurityScore(
+            score=partial_score,
+            grade=calculator._score_to_grade(partial_score),
+            findings=calculator.findings,
+            checks_passed=calculator.checks_passed,
+            checks_total=calculator.checks_total
+        )
+        progress_log.append(DiscoveryProgress(
+            step="security",
+            status="error",
+            message="Security analysis timed out (partial results shown)",
+            detail=f"Score: {partial_score}/100"
         ))
     except Exception as e:
         security_score = SecurityScore(
@@ -1079,7 +1096,13 @@ async def stream_discovery(request: AutoDiscoveryRequest):
                 else:
                     discoverer = WellKnownDiscoverer(target_url, request.auth_config, request.timeout)
 
-                endpoints = await discoverer.discover()
+                try:
+                    endpoints = await asyncio.wait_for(discoverer.discover(), timeout=25.0)
+                except asyncio.TimeoutError:
+                    endpoints = []
+                    yield f"data: {json.dumps({'type': 'progress', 'step': method.value, 'status': 'error', 'message': f'{method.value} discovery timed out'})}\n\n"
+                    continue
+
                 all_endpoints.extend(endpoints)
 
                 # Send endpoints as they're discovered
@@ -1094,11 +1117,23 @@ async def stream_discovery(request: AutoDiscoveryRequest):
         # Security analysis
         yield f"data: {json.dumps({'type': 'progress', 'step': 'security', 'status': 'running', 'message': 'Analyzing security...'})}\n\n"
 
+        calculator = SecurityScoreCalculator(target_url, request.timeout)
         try:
-            calculator = SecurityScoreCalculator(target_url, request.timeout)
-            security_score = await calculator.calculate()
+            security_score = await asyncio.wait_for(calculator.calculate(), timeout=30.0)
             yield f"data: {json.dumps({'type': 'security', 'score': security_score.dict()})}\n\n"
             yield f"data: {json.dumps({'type': 'progress', 'step': 'security', 'status': 'complete', 'message': f'Score: {security_score.score}/100'})}\n\n"
+        except asyncio.TimeoutError:
+            # Send partial results with whatever the calculator computed before timeout
+            partial_score = calculator._calculate_final_score()
+            partial_security = SecurityScore(
+                score=partial_score,
+                grade=calculator._score_to_grade(partial_score),
+                findings=calculator.findings,
+                checks_passed=calculator.checks_passed,
+                checks_total=calculator.checks_total
+            )
+            yield f"data: {json.dumps({'type': 'security', 'score': partial_security.dict()})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'step': 'security', 'status': 'error', 'message': 'Security analysis timed out (partial results shown)'})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'progress', 'step': 'security', 'status': 'error', 'message': str(e)})}\n\n"
 

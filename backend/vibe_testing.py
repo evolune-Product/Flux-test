@@ -731,18 +731,21 @@ class ScreenshotAnalyzer:
 Generate 6–10 test scenarios covering: navigation, form interactions, error states, accessibility, and edge cases.
 Return JSON only, no markdown."""
 
-        response = openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64}"}}
-                ]
-            }],
-            temperature=0.3,
-            max_tokens=2500
-        )
+        try:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64}"}}
+                    ]
+                }],
+                temperature=0.3,
+                max_tokens=2500
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"AI analysis request failed: {str(e)}")
 
         import json
         raw = response.choices[0].message.content
@@ -899,12 +902,15 @@ Return a JSON object:
 Generate 10–15 test scenarios. JSON only, no markdown."""
 
         import json
-        response = openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=3000
-        )
+        try:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=3000
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"AI analysis request failed: {str(e)}")
 
         raw = response.choices[0].message.content
         raw = re.sub(r'^```(?:json)?\s*', '', raw.strip())
@@ -1202,10 +1208,15 @@ class VisualRegressionTester:
                 "Visual capture requires Playwright. Run: "
                 "pip install playwright && python -m playwright install chromium")
         async with async_playwright() as pw:
-            browser = await pw.chromium.launch(
-                headless=True,
-                args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote']
-            )
+            try:
+                browser = await pw.chromium.launch(
+                    headless=True,
+                    args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote']
+                )
+            except Exception as e:
+                raise HTTPException(503,
+                    f"Playwright browser is not installed on the server. Run: "
+                    f"python -m playwright install chromium ({str(e)})")
             try:
                 context = await browser.new_context(
                     viewport={'width': viewport_width, 'height': viewport_height},

@@ -36,7 +36,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 # SQLAlchemy imports
 from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Text, Integer, Float, ForeignKey, text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import JSON as _SA_JSON
@@ -48,6 +48,16 @@ JSONB = _SA_JSON().with_variant(_PG_JSONB(), "postgresql")
 # Import classes from your existing v3.py
 from v3 import APITester, OpenAITestGenerator, generate_pdf_report
 
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Error monitoring (Sentry/GlitchTip)
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+
 # OpenAI for GraphQL testing
 try:
     import openai
@@ -55,6 +65,34 @@ except ImportError:
     openai = None
 
 load_dotenv()
+
+# ============================================
+# ERROR MONITORING (Sentry/GlitchTip)
+# ============================================
+
+# Initialize Sentry/GlitchTip if DSN is provided
+if os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=os.getenv("SENTRY_DSN"),
+        environment=os.getenv("ENVIRONMENT", "development"),
+        integrations=[
+            StarletteIntegration(transaction_style="url"),
+            FastApiIntegration(transaction_style="url"),
+        ],
+        # Performance monitoring - adjust based on traffic
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),  # 10% of requests
+        # Error sampling - capture all errors in production
+        sample_rate=1.0,
+        # Release tracking (optional)
+        release=os.getenv("APP_VERSION", "1.0.0"),
+        # Send PII (Personally Identifiable Information) - disabled for privacy
+        send_default_pii=False,
+        # Before send hook - filter sensitive data
+        before_send=lambda event, hint: event if os.getenv("ENVIRONMENT") == "production" else None,
+    )
+    print(f"✅ Sentry/GlitchTip initialized: {os.getenv('ENVIRONMENT')} environment")
+else:
+    print("⚠️  SENTRY_DSN not set - error monitoring disabled")
 
 # Desktop/local mode flag: no login required, SQLite storage
 FLASQO_LOCAL = os.getenv("FLASQO_LOCAL", "0") == "1"
@@ -120,6 +158,18 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 _engine_kwargs = {"connect_args": {"check_same_thread": False}} if DATABASE_URL.startswith("sqlite") else {}
+
+# Production database connection pooling configuration
+if not DATABASE_URL.startswith("sqlite"):
+    _engine_kwargs.update({
+        "pool_size": int(os.getenv("DB_POOL_SIZE", "20")),
+        "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "40")),
+        "pool_timeout": int(os.getenv("DB_POOL_TIMEOUT", "30")),
+        "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "3600")),
+        "pool_pre_ping": True,  # Verify connections before using them
+        "echo": os.getenv("DB_ECHO", "False").lower() == "true"
+    })
+
 engine = create_engine(DATABASE_URL, **_engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -482,6 +532,11 @@ def get_db():
 
 app = FastAPI(title="AI API Tester Backend", version="1.0.0")
 
+# Rate limiting setup
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # IMPORTANT: Add middlewares in reverse order (last added = first executed)
 # CORS should be added AFTER SessionMiddleware
 
@@ -491,19 +546,39 @@ allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLO
     "http://localhost:5173",
     "http://localhost:5174",
     "https://flasqo.com",
+    "https://www.flasqo.com",
+    "https://flasqo.evolune.in",
     FRONTEND_URL
 ]
 allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
 
-print("ALLOWED ORIGINS:", allowed_origins)
+# Production: Use ALLOWED_ORIGINS from .env; Development: Allow all for local testing
+_is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+_cors_origins = allowed_origins if _is_production else ["*"]
+
+print("ENVIRONMENT:", os.getenv("ENVIRONMENT", "development"))
+print("ALLOWED ORIGINS:", _cors_origins)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security headers middleware (production only)
+if os.getenv("ENABLE_SECURITY_HEADERS", "False").lower() == "true":
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if os.getenv("HTTPS_ONLY", "False").lower() == "true":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 
 # SessionMiddleware MUST be added last (so it executes first)
 _https_only = os.getenv('HTTPS_ONLY', 'False').lower() == 'true'
@@ -906,7 +981,8 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/auth/login", response_model=UserResponse)
-async def login(request: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(os.getenv("RATE_LIMIT_AUTH_PER_MINUTE", "5") + "/minute")
+async def login(http_request: Request, request: LoginRequest, db: Session = Depends(get_db)):
     """User login endpoint"""
     user = db.query(UserDB).filter(UserDB.username == request.username).first()
     
@@ -1158,6 +1234,12 @@ async def logout():
 # API TESTING ENDPOINTS (keep your existing ones)
 # ============================================
 
+@app.get("/sentry-debug")
+async def trigger_error():
+    """Debug endpoint to test Sentry/GlitchTip integration - Remove in production after testing"""
+    division_by_zero = 1 / 0
+    return {"status": "This will never be returned"}
+
 @app.get("/")
 async def root():
     if FLASQO_LOCAL:
@@ -1174,7 +1256,8 @@ async def root():
     }
 
 @app.post("/generate-tests")
-async def generate_tests(request: GenerateTestsRequest):
+@limiter.limit(os.getenv("RATE_LIMIT_PER_MINUTE", "60") + "/minute")
+async def generate_tests(request: Request, payload: GenerateTestsRequest):
     """Generate AI-powered test cases"""
     try:
         openai_api_key = os.getenv('OPENAI_API_KEY')
@@ -1369,7 +1452,8 @@ Return ONLY the JSON, no explanation."""
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/run-tests")
-async def run_tests(request: RunTestsRequest):
+@limiter.limit(os.getenv("RATE_LIMIT_PER_MINUTE", "60") + "/minute")
+async def run_tests(http_request: Request, request: RunTestsRequest):
     """Run test cases against the API with AI-powered root cause analysis"""
     try:
         # Initialize APITester with AI analysis enabled (Hybrid Option 3)
@@ -3328,6 +3412,47 @@ async def get_contract_details(
         "updated_at": contract.updated_at.isoformat()
     }
 
+@app.patch("/contract/{contract_id}")
+async def update_contract(
+    contract_id: str,
+    payload: dict,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Update an existing contract"""
+    user = db.query(UserDB).filter(UserDB.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    contract = db.query(ContractDB).filter(
+        ContractDB.contract_id == contract_id,
+        ContractDB.is_active == True
+    ).first()
+
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    if contract.created_by != user.user_id:
+        raise HTTPException(status_code=403, detail="Only the creator can edit this contract")
+
+    # Update allowed fields
+    updatable = ['contract_name', 'description', 'consumer_name', 'provider_name',
+                 'version', 'request_method', 'request_path', 'response_status',
+                 'response_body_schema']
+    for field in updatable:
+        if field in payload:
+            setattr(contract, field, payload[field])
+
+    contract.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(contract)
+
+    return {
+        "contract_id": contract.contract_id,
+        "contract_name": contract.contract_name,
+        "message": "Contract updated successfully"
+    }
+
 @app.delete("/contract/{contract_id}")
 async def delete_contract(
     contract_id: str,
@@ -3379,8 +3504,6 @@ async def verify_provider(
         raise HTTPException(status_code=403, detail="Access denied")
 
     try:
-        import requests
-
         # Build request URL
         full_url = request.provider_url.rstrip('/') + contract.request_path
 
@@ -3397,7 +3520,7 @@ async def verify_provider(
             'method': contract.request_method,
             'url': full_url,
             'headers': headers,
-            'timeout': request.timeout
+            'timeout': float(request.timeout)
         }
 
         # Add request body if specified in contract
@@ -3406,16 +3529,17 @@ async def verify_provider(
             sample_body = generate_sample_from_schema(contract.request_body_schema)
             request_kwargs['json'] = sample_body
 
-        # Execute request
+        # Execute request using async httpx (already imported) to avoid blocking the event loop
         start_time = datetime.utcnow()
-        response = requests.request(**request_kwargs)
+        async with httpx.AsyncClient(timeout=float(request.timeout), follow_redirects=True) as client:
+            response = await client.request(**request_kwargs)
         end_time = datetime.utcnow()
         response_time_ms = int((end_time - start_time).total_seconds() * 1000)
 
         # Parse response
         try:
             response_data = response.json()
-        except:
+        except Exception:
             response_data = {"raw_content": response.text}
 
         # Validation
@@ -3487,7 +3611,7 @@ async def verify_provider(
             }
         }
 
-    except requests.exceptions.RequestException as e:
+    except (httpx.RequestError, httpx.HTTPStatusError) as e:
         # Save failed verification
         verification_id = secrets.token_urlsafe(16)
         error_msg = f"Request failed: {str(e)}"

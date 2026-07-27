@@ -10,7 +10,6 @@ import {
 // Each testing app is only downloaded when the user first visits that route.
 // Startup bundle drops ~60-70%; subsequent visits are instant (cached chunk).
 const App                  = lazy(() => import("./App.jsx"));
-const Auth                 = lazy(() => import("./Auth"));
 const PerformanceTestingApp = lazy(() => import("./Performance_testing.jsx"));
 const ChaosTestingApp      = lazy(() => import("./ChaosTestingApp.jsx"));
 const SmokeTestingApp      = lazy(() => import("./SmokeTestingApp.jsx"));
@@ -29,7 +28,10 @@ const VisualBuilderApp     = lazy(() => import("./VisualBuilderApp.jsx"));
 const IntegrationTestingApp = lazy(() => import("./IntegrationTestingApp.jsx"));
 const SharedFlowApp        = lazy(() => import("./SharedFlowApp.jsx"));
 const TestingTypesLanding  = lazy(() => import("./TestingTypesLanding.jsx"));
-const LandingPage          = lazy(() => import("./LandingPage.jsx"));
+// LandingPage is eagerly imported (not lazy) — it is the first thing every
+// unauthenticated visitor sees, so lazy-loading it just adds a Suspense flash
+// on logout. Eager import keeps the post-logout render instant.
+import LandingPage from "./LandingPage.jsx";
 // PROD-GATE: import (remove this line to disable the module)
 const ProductionGateApp    = lazy(() => import("./ProductionGateApp.jsx"));
 
@@ -582,11 +584,9 @@ function AppWrapper() {
   // Google sees. The marketing page must render for every visitor.
   if (!user) {
     return (
-      <Suspense fallback={<PageSkeleton />}>
-        <AppPageShell>
-          <LandingPage onLoginSuccess={handleLogin} authError={authError} />
-        </AppPageShell>
-      </Suspense>
+      <AppPageShell>
+        <LandingPage onLoginSuccess={handleLogin} authError={authError} />
+      </AppPageShell>
     );
   }
 

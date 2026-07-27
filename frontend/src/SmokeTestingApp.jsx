@@ -24,6 +24,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
   const [logs,             setLogs]             = useState([]);
   const [showGitHub,       setShowGitHub]       = useState(false);
   const [activeTab,        setActiveTab]        = useState('results');
+  const [selectedIds,      setSelectedIds]      = useState(new Set());
   const [editingEndpoint,  setEditingEndpoint]  = useState(null);
   const [endpointForm,     setEndpointForm]     = useState({
     name: '', url: '', method: 'GET', maxTime: 2000,
@@ -42,6 +43,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
         const discoveryData = JSON.parse(discoveryDataStr);
         if (discoveryData.endpoints?.length > 0) {
           setEndpoints(discoveryData.endpoints);
+          setSelectedIds(new Set(discoveryData.endpoints.map(ep => ep.id)));
           addLog(`Loaded ${discoveryData.endpoints.length} endpoints from Auto-Discovery`, 'success');
           localStorage.removeItem('discoveryData');
           return;
@@ -52,7 +54,10 @@ const SmokeTestingApp = ({ user, onLogout }) => {
     if (savedState) {
       try {
         const state = JSON.parse(savedState);
-        if (state.endpoints?.length > 0) setEndpoints(state.endpoints);
+        if (state.endpoints?.length > 0) {
+          setEndpoints(state.endpoints);
+          setSelectedIds(new Set(state.endpoints.map(ep => ep.id)));
+        }
         if (state.results) setResults(state.results);
       } catch (e) { console.error(e); }
     }
@@ -96,7 +101,9 @@ const SmokeTestingApp = ({ user, onLogout }) => {
       setEndpoints(endpoints.map(ep => ep.id === editingEndpoint ? { ...endpointForm, id: editingEndpoint } : ep));
       addLog(`Updated: ${endpointForm.name}`, 'success');
     } else {
-      setEndpoints([...endpoints, { ...endpointForm, id: Date.now() }]);
+      const newId = Date.now();
+      setEndpoints([...endpoints, { ...endpointForm, id: newId }]);
+      setSelectedIds(prev => new Set([...prev, newId]));
       addLog(`Added: ${endpointForm.name}`, 'success');
     }
     setEndpointForm({ name: '', url: '', method: 'GET', maxTime: 2000, critical: true, headers: '', expectedStatus: 200 });
@@ -104,7 +111,11 @@ const SmokeTestingApp = ({ user, onLogout }) => {
   };
 
   const handleEditEndpoint = (endpoint) => { setEndpointForm(endpoint); setEditingEndpoint(endpoint.id); };
-  const handleDeleteEndpoint = (id) => { setEndpoints(endpoints.filter(ep => ep.id !== id)); addLog('Endpoint removed', 'info'); };
+  const handleDeleteEndpoint = (id) => {
+    setEndpoints(endpoints.filter(ep => ep.id !== id));
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    addLog('Endpoint removed', 'info');
+  };
 
   const testEndpoint = async (endpoint) => {
     const startTime = performance.now();
@@ -141,8 +152,8 @@ const SmokeTestingApp = ({ user, onLogout }) => {
   };
 
   const runSmokeTests = async () => {
-    const validEndpoints = endpoints.filter(ep => ep.url.trim() !== '');
-    if (validEndpoints.length === 0) { addLog('No valid endpoints. Add at least one URL.', 'error'); return; }
+    const validEndpoints = endpoints.filter(ep => ep.url.trim() !== '' && selectedIds.has(ep.id));
+    if (validEndpoints.length === 0) { addLog('No endpoints selected. Check at least one endpoint to run.', 'error'); return; }
     setIsRunning(true); setProgress(0); setResults(null); setLogs([]);
     addLog(`Starting Smoke Tests — ${validEndpoints.length} endpoints`, 'info');
     const startTime = performance.now();
@@ -201,6 +212,14 @@ const SmokeTestingApp = ({ user, onLogout }) => {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   const validCount = endpoints.filter(ep => ep.url.trim() !== '').length;
+  const selectedValidCount = endpoints.filter(ep => ep.url.trim() !== '' && selectedIds.has(ep.id)).length;
+  const allSelected = validCount > 0 && endpoints.filter(ep => ep.url.trim() !== '').every(ep => selectedIds.has(ep.id));
+  const toggleSelectAll = () => {
+    const validEps = endpoints.filter(ep => ep.url.trim() !== '');
+    if (allSelected) setSelectedIds(prev => { const next = new Set(prev); validEps.forEach(ep => next.delete(ep.id)); return next; });
+    else setSelectedIds(prev => new Set([...prev, ...validEps.map(ep => ep.id)]));
+  };
+  const toggleSelect = (id) => setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   const overallColor = results
     ? results.overallStatus === 'PASS' ? '#22c55e' : results.overallStatus === 'CRITICAL_FAIL' ? '#ef4444' : '#f59e0b'
     : null;
@@ -230,14 +249,14 @@ const SmokeTestingApp = ({ user, onLogout }) => {
     border: '1px solid rgba(255,255,255,0.09)',
     borderRadius: 8,
     color: '#e2e8f0',
-    padding: '8px 12px',
-    fontSize: 13,
+    padding: '9px 12px',
+    fontSize: 14,
     width: '100%',
     outline: 'none',
     fontFamily: 'monospace',
   };
 
-  const labelStyle = { display: 'block', fontSize: 11, fontWeight: 500, color: '#94a3b8', marginBottom: 6 };
+  const labelStyle = { display: 'block', fontSize: 13, fontWeight: 500, color: '#cbd5e1', marginBottom: 6 };
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
@@ -253,8 +272,8 @@ const SmokeTestingApp = ({ user, onLogout }) => {
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-300 transition-colors text-xs font-mono">
-              <ArrowLeft size={14} /> modules
+              className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm font-mono">
+              <ArrowLeft size={15} /> modules
             </button>
             <div className="w-px h-4 bg-slate-800" />
             <div className="flex items-center gap-2.5">
@@ -264,7 +283,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
               </div>
               <div>
                 <div className="text-sm font-black text-white leading-none">Smoke Testing</div>
-                <div className="text-[9px] font-mono mt-0.5 text-emerald-900">
+                <div className="text-xs font-mono mt-0.5 text-emerald-500/70">
                   {validCount > 0 ? `${validCount} endpoint${validCount > 1 ? 's' : ''} configured` : 'no endpoints configured'}
                 </div>
               </div>
@@ -277,12 +296,12 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                   style={{ background: 'linear-gradient(135deg,#16a34a,#059669)' }}>
                   {user.username?.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-xs text-slate-500">{user.username}</span>
+                <span className="text-sm text-slate-300">{user.username}</span>
               </div>
               <button onClick={onLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-red-500/70 hover:text-red-400 transition-colors font-mono"
-                style={{ border: '1px solid rgba(239,68,68,0.15)' }}>
-                <ArrowLeft size={12} /> Logout
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:text-red-300 transition-colors font-mono"
+                style={{ border: '1px solid rgba(239,68,68,0.25)' }}>
+                <ArrowLeft size={14} /> Logout
               </button>
             </div>
           )}
@@ -296,12 +315,12 @@ const SmokeTestingApp = ({ user, onLogout }) => {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-mono text-emerald-600/70 tracking-widest uppercase">Health Check Suite</span>
+            <span className="text-xs font-mono text-emerald-500 tracking-widest uppercase">Health Check Suite</span>
           </div>
           <div className="flex items-end justify-between flex-wrap gap-3">
             <div>
               <h1 className="text-2xl font-black text-white">Smoke Testing</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Quick go/no-go health checks for critical API endpoints before every deploy.</p>
+              <p className="text-base text-slate-400 mt-0.5">Quick go/no-go health checks for critical API endpoints before every deploy.</p>
             </div>
             {/* Quick stat badges */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -312,8 +331,8 @@ const SmokeTestingApp = ({ user, onLogout }) => {
               ].map(b => (
                 <div key={b.label} className="rounded-lg px-3 py-1.5 text-center"
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <div className="text-[10px] font-bold font-mono" style={{ color: b.color }}>{b.sub}</div>
-                  <div className="text-[9px] text-slate-600 mt-0.5">{b.label}</div>
+                  <div className="text-xs font-bold font-mono" style={{ color: b.color }}>{b.sub}</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">{b.label}</div>
                 </div>
               ))}
             </div>
@@ -329,19 +348,19 @@ const SmokeTestingApp = ({ user, onLogout }) => {
             {/* Presets */}
             <div style={card}>
               <div className="px-5 py-3.5 flex items-center gap-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <Globe size={14} className="text-emerald-500" />
-                <span className="text-xs font-bold text-slate-300">Quick Presets</span>
+                <Globe size={15} className="text-emerald-500" />
+                <span className="text-sm font-bold text-slate-200">Quick Presets</span>
               </div>
               <div className="p-4 grid grid-cols-2 gap-2.5">
                 <button onClick={() => loadPreset('api')}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono transition-all hover:text-emerald-300"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-mono transition-all hover:text-emerald-300"
                   style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.20)', color: '#4ade80' }}>
-                  <Server size={13} /> REST API
+                  <Server size={14} /> REST API
                 </button>
                 <button onClick={() => loadPreset('microservices')}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono transition-all hover:text-blue-300"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-mono transition-all hover:text-blue-300"
                   style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.20)', color: '#60a5fa' }}>
-                  <Database size={13} /> Microservices
+                  <Database size={14} /> Microservices
                 </button>
               </div>
             </div>
@@ -350,8 +369,8 @@ const SmokeTestingApp = ({ user, onLogout }) => {
             <div style={card}>
               <div className="px-5 py-3.5 flex items-center gap-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <span className="text-sm">✦</span>
-                <span className="text-xs font-bold text-slate-300">AI Generate from Description</span>
-                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full ml-auto"
+                <span className="text-sm font-bold text-slate-200">AI Generate from Description</span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full ml-auto"
                   style={{ background: 'rgba(168,85,247,0.12)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.25)' }}>
                   GPT-4
                 </span>
@@ -364,7 +383,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                   style={{ ...inputStyle, flex: 1 }}
                 />
                 <button onClick={handleGenerateFromNL} disabled={nlGenerating || !nlTestInput.trim()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono transition-all flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono transition-all flex-shrink-0"
                   style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.30)', color: '#c084fc', opacity: (!nlTestInput.trim() || nlGenerating) ? 0.4 : 1 }}>
                   {nlGenerating ? <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> : '✦'}
                   {nlGenerating ? 'Generating…' : 'Generate'}
@@ -376,14 +395,14 @@ const SmokeTestingApp = ({ user, onLogout }) => {
             <div style={card}>
               <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="flex items-center gap-2.5">
-                  <Plus size={14} className="text-emerald-500" />
-                  <span className="text-xs font-bold text-slate-300">
+                  <Plus size={15} className="text-emerald-500" />
+                  <span className="text-sm font-bold text-slate-200">
                     {editingEndpoint !== null ? 'Edit Endpoint' : 'Add Endpoint'}
                   </span>
                 </div>
                 {editingEndpoint !== null && (
                   <button onClick={() => { setEditingEndpoint(null); setEndpointForm({ name:'',url:'',method:'GET',maxTime:2000,critical:true,headers:'',expectedStatus:200 }); }}
-                    className="text-[10px] font-mono text-slate-600 hover:text-slate-400 transition-colors">cancel</button>
+                    className="text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors">cancel</button>
                 )}
               </div>
               <div className="p-4 space-y-3">
@@ -403,8 +422,10 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                   <div>
                     <label style={labelStyle}>Method</label>
                     <select value={endpointForm.method} onChange={e => setEndpointForm({...endpointForm, method: e.target.value})}
-                      style={{ ...inputStyle, cursor: 'pointer' }}>
-                      {['GET','POST','PUT','DELETE','HEAD'].map(m => <option key={m}>{m}</option>)}
+                      style={{ ...inputStyle, cursor: 'pointer', background: '#0f172a' }}>
+                      {['GET','POST','PUT','DELETE','HEAD'].map(m => (
+                        <option key={m} style={{ background: '#0f172a', color: '#e2e8f0' }}>{m}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -431,7 +452,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                     style={{ background: endpointForm.critical ? 'rgba(239,68,68,0.20)' : 'rgba(255,255,255,0.04)', border: `1px solid ${endpointForm.critical ? 'rgba(239,68,68,0.50)' : 'rgba(255,255,255,0.12)'}` }}>
                     {endpointForm.critical && <div className="w-2 h-2 rounded-sm bg-red-400" />}
                   </div>
-                  <span className="text-xs text-slate-500">Critical endpoint — failure blocks deployment</span>
+                  <span className="text-sm text-slate-300">Critical endpoint — failure blocks deployment</span>
                 </div>
                 <button onClick={handleSaveEndpoint}
                   className="w-full py-2.5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2"
@@ -445,38 +466,52 @@ const SmokeTestingApp = ({ user, onLogout }) => {
             <div style={card}>
               <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="flex items-center gap-2.5">
-                  <Activity size={14} className="text-emerald-500" />
-                  <span className="text-xs font-bold text-slate-300">Endpoints</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                  <Activity size={15} className="text-emerald-500" />
+                  <span className="text-sm font-bold text-slate-200">Endpoints</span>
+                  <span className="text-xs font-mono px-1.5 py-0.5 rounded"
                     style={{ background: 'rgba(34,197,94,0.10)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.20)' }}>
                     {validCount} ready
                   </span>
                 </div>
+                {validCount > 0 && (
+                  <button onClick={toggleSelectAll} className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors">
+                    <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                      style={{ background: allSelected ? 'rgba(34,197,94,0.20)' : 'rgba(255,255,255,0.04)', border: `1px solid ${allSelected ? 'rgba(34,197,94,0.50)' : 'rgba(255,255,255,0.15)'}` }}>
+                      {allSelected && <div className="w-2 h-2 rounded-sm bg-emerald-400" />}
+                    </div>
+                    {allSelected ? 'Deselect all' : `Select all`}
+                  </button>
+                )}
               </div>
               <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
                 {endpoints.map(ep => (
                   <div key={ep.id} className="flex items-start gap-3 rounded-lg px-3 py-2.5"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div>
-                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded"
+                    style={{ background: selectedIds.has(ep.id) ? 'rgba(34,197,94,0.04)' : 'rgba(255,255,255,0.02)', border: `1px solid ${selectedIds.has(ep.id) ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)'}`, transition: 'background 0.15s, border-color 0.15s' }}>
+                    <div className="flex flex-col items-center gap-2 pt-0.5">
+                      <div onClick={() => ep.url.trim() && toggleSelect(ep.id)}
+                        className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                        style={{ background: selectedIds.has(ep.id) ? 'rgba(34,197,94,0.20)' : 'rgba(255,255,255,0.04)', border: `1px solid ${selectedIds.has(ep.id) ? 'rgba(34,197,94,0.50)' : 'rgba(255,255,255,0.15)'}`, cursor: ep.url.trim() ? 'pointer' : 'not-allowed', opacity: ep.url.trim() ? 1 : 0.4 }}>
+                        {selectedIds.has(ep.id) && <div className="w-2 h-2 rounded-sm bg-emerald-400" />}
+                      </div>
+                      <span className="text-xs font-black font-mono px-1.5 py-0.5 rounded"
                         style={{ background: methodColor(ep.method) + '20', color: methodColor(ep.method) }}>
                         {ep.method}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-slate-300 truncate">{ep.name}</span>
+                        <span className="text-sm font-semibold text-slate-200 truncate">{ep.name}</span>
                         {ep.critical && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
+                          <span className="text-[11px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
                             style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}>
                             CRITICAL
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-600 truncate mt-0.5">
+                      <div className="text-xs font-mono text-slate-400 truncate mt-0.5">
                         {ep.url || <span style={{ color: '#f97316' }}>No URL set</span>}
                       </div>
-                      <div className="text-[9px] font-mono text-slate-700 mt-0.5">
+                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">
                         max {ep.maxTime}ms · expect {ep.expectedStatus}
                       </div>
                     </div>
@@ -503,22 +538,22 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                     <div className="h-full rounded-full transition-all duration-300"
                       style={{ width: `${progress}%`, background: 'linear-gradient(90deg,#22c55e,#10b981)' }} />
                   </div>
-                  <div className="text-[10px] font-mono text-slate-700 text-right mt-1">{progress.toFixed(0)}%</div>
+                  <div className="text-xs font-mono text-slate-400 text-right mt-1">{progress.toFixed(0)}%</div>
                 </div>
               )}
 
               <div className="px-4 pb-4">
                 <button onClick={runSmokeTests}
-                  disabled={isRunning || validCount === 0}
+                  disabled={isRunning || selectedValidCount === 0}
                   className="w-full py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all"
                   style={{
-                    background: (isRunning || validCount === 0) ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,#16a34a,#059669)',
-                    opacity: (isRunning || validCount === 0) ? 0.5 : 1,
-                    boxShadow: (isRunning || validCount === 0) ? 'none' : '0 4px 20px rgba(34,197,94,0.30)',
+                    background: (isRunning || selectedValidCount === 0) ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,#16a34a,#059669)',
+                    opacity: (isRunning || selectedValidCount === 0) ? 0.5 : 1,
+                    boxShadow: (isRunning || selectedValidCount === 0) ? 'none' : '0 4px 20px rgba(34,197,94,0.30)',
                   }}>
                   {isRunning
                     ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Running Tests…</>
-                    : <><Play size={15} /> Run Smoke Tests</>
+                    : <><Play size={15} /> Run {selectedValidCount} of {validCount} Smoke Test{selectedValidCount !== 1 ? 's' : ''}</>
                   }
                 </button>
               </div>
@@ -536,9 +571,9 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                   { id: 'history', label: 'History' },
                 ].map(tab => (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                    className="px-4 py-2 text-xs font-mono transition-all"
+                    className="px-4 py-2 text-sm font-mono transition-all"
                     style={{
-                      color: activeTab === tab.id ? '#4ade80' : '#334155',
+                      color: activeTab === tab.id ? '#4ade80' : '#64748b',
                       borderBottom: activeTab === tab.id ? '2px solid #22c55e' : '2px solid transparent',
                       marginBottom: -1,
                     }}>
@@ -547,9 +582,9 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                 ))}
                 {results && (
                   <button onClick={() => setShowGitHub(true)}
-                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono mb-2 transition-all hover:text-slate-200"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#64748b' }}>
-                    <Github size={12} /> GitHub
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-mono mb-2 transition-all hover:text-slate-200"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#94a3b8' }}>
+                    <Github size={13} /> GitHub
                   </button>
                 )}
               </div>
@@ -563,7 +598,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                         style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
                         <Zap size={22} style={{ color: 'rgba(34,197,94,0.30)' }} />
                       </div>
-                      <p className="text-xs font-mono text-slate-700">configure endpoints and run tests</p>
+                      <p className="text-sm font-mono text-slate-400">configure endpoints and run tests</p>
                     </div>
                   ) : (
                     <>
@@ -584,7 +619,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                               : results.overallStatus === 'CRITICAL_FAIL' ? 'Critical Failure'
                               : 'Some Tests Failed'}
                           </div>
-                          <div className="text-[10px] font-mono text-slate-600 mt-0.5">
+                          <div className="text-xs font-mono text-slate-400 mt-0.5">
                             {results.overallStatus === 'PASS' ? 'System is healthy — deploy ready'
                               : results.overallStatus === 'CRITICAL_FAIL' ? 'Critical endpoints failed — block deploy'
                               : 'Non-critical failures — review before deploy'}
@@ -592,7 +627,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                         </div>
                         <div className="ml-auto text-right">
                           <div className="text-lg font-black font-mono" style={{ color: overallColor }}>{results.passRate}%</div>
-                          <div className="text-[9px] font-mono text-slate-700">pass rate</div>
+                          <div className="text-xs font-mono text-slate-400">pass rate</div>
                         </div>
                       </div>
 
@@ -607,7 +642,7 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                           <div key={s.label} className="rounded-lg px-3 py-3"
                             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div className="text-base font-black font-mono" style={{ color: s.color }}>{s.value}</div>
-                            <div className="text-[9px] text-slate-700 mt-0.5">{s.label}</div>
+                            <div className="text-xs text-slate-400 mt-0.5">{s.label}</div>
                           </div>
                         ))}
                       </div>
@@ -624,20 +659,20 @@ const SmokeTestingApp = ({ user, onLogout }) => {
                               <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                                   style={{ background: test.passed ? '#22c55e' : test.critical ? '#ef4444' : '#f59e0b' }} />
-                                <span className="text-xs font-semibold text-slate-300 truncate">{test.name}</span>
+                                <span className="text-sm font-semibold text-slate-200 truncate">{test.name}</span>
                                 {test.critical && !test.passed && (
-                                  <span className="text-[9px] font-mono flex-shrink-0 px-1.5 rounded"
+                                  <span className="text-xs font-mono flex-shrink-0 px-1.5 rounded"
                                     style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>CRIT</span>
                                 )}
                               </div>
-                              <span className="text-[10px] font-mono flex-shrink-0" style={{ color: test.passed ? '#22c55e' : '#ef4444' }}>
+                              <span className="text-xs font-mono flex-shrink-0" style={{ color: test.passed ? '#22c55e' : '#ef4444' }}>
                                 {test.responseTime}ms
                               </span>
                             </div>
-                            <div className="text-[10px] font-mono text-slate-600 mt-1 truncate">
+                            <div className="text-xs font-mono text-slate-400 mt-1 truncate">
                               <span style={{ color: methodColor(test.method) }}>{test.method}</span> {test.url}
                             </div>
-                            <div className="text-[10px] font-mono mt-0.5" style={{ color: test.passed ? '#4ade80' : '#f87171' }}>
+                            <div className="text-xs font-mono mt-0.5" style={{ color: test.passed ? '#4ade80' : '#f87171' }}>
                               {test.message}
                             </div>
                           </div>
@@ -650,21 +685,21 @@ const SmokeTestingApp = ({ user, onLogout }) => {
 
               {/* ── Logs Tab (terminal) ── */}
               {activeTab === 'logs' && (
-                <div className="font-mono text-xs" style={{ background: 'rgba(4,7,15,0.95)' }}>
+                <div className="font-mono text-sm" style={{ background: 'rgba(4,7,15,0.95)' }}>
                   <div className="flex items-center gap-1.5 px-4 py-2.5 border-b"
                     style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.25)' }}>
                     <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
                     <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
                     <div className="w-2 h-2 rounded-full bg-[#28c840]" />
-                    <span className="ml-2 text-[9px] tracking-wider text-slate-700">smoke / test-log</span>
+                    <span className="ml-2 text-xs tracking-wider text-slate-500">smoke / test-log</span>
                   </div>
                   <div className="p-4 overflow-y-auto space-y-0.5" style={{ maxHeight: 480 }}>
                     {logs.length === 0 ? (
-                      <div className="text-slate-800 py-12 text-center">$ awaiting test run...</div>
+                      <div className="text-slate-500 py-12 text-center">$ awaiting test run...</div>
                     ) : (
                       logs.map((log, i) => (
                         <div key={i} className="leading-relaxed">
-                          <span style={{ color: '#1e293b' }}>[{log.timestamp}]</span>
+                          <span style={{ color: '#475569' }}>[{log.timestamp}]</span>
                           {' '}
                           <span style={{ color: logColor(log.type) }}>{log.message}</span>
                         </div>

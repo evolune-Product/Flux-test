@@ -4,41 +4,18 @@ import {
   Zap,
   Shield,
   Activity,
-  TrendingUp,
   Users,
   CheckCircle,
-  Star,
   Globe,
-  Code,
-  Cpu,
   Rocket,
-  BarChart3,
   Lock,
-  GitBranch,
-  Terminal,
   Sparkles,
   ArrowRight,
   Github,
   Twitter,
   Linkedin,
   Mail,
-  FileCheck,
-  AlertTriangle,
-  Clock,
-  Bug,
-  GitCompare,
-  FileText,
-  Database,
-  Target,
-  Layers,
-  Brain,
-  X,
-  MessageSquare,
-  Copy,
-  Search,
   Play,
-  Settings,
-  Eye,
 } from "lucide-react";
 import AuthModal from "./AuthModal";
 import Toast from "./Toast";
@@ -57,13 +34,16 @@ import { DIFFERENTIATORS } from "./landing/content";
 const LandingPage = ({ onLoginSuccess, authError }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState("login"); // 'login' or 'signup'
+  const [terminalKey, setTerminalKey] = useState(0);
   const [toast, setToast] = useState(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [landingUrl, setLandingUrl] = useState("");
   const [landingError, setLandingError] = useState("");
   const [landingScanning, setLandingScanning] = useState(false);
   const [landingReportUrl, setLandingReportUrl] = useState("");
+  const [landingProgress, setLandingProgress] = useState({ value: 0, phase: "" });
+  const [landingReport, setLandingReport] = useState(null);
   const landingInputRef = useRef(null);
+  const landingPollRef = useRef(null);
 
   // The landing page renders for logged-out visitors on any path, so keep the
   // homepage title/description/canonical authoritative for all of them.
@@ -71,6 +51,10 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
     setPageMeta(HOME_META);
   }, []);
 
+  useEffect(() => {
+    const id = setInterval(() => setTerminalKey(k => k + 1), 5500);
+    return () => clearInterval(id);
+  }, []);
 
   // Show error toast if OAuth failed
   useEffect(() => {
@@ -130,55 +114,58 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
   };
 
   const handleLoginSuccess = (userData) => {
-    // Close the modal
     setShowAuthModal(false);
-
-    // Show success toast
-    setToast({
-      message: `🎉 Welcome back, ${userData.username}! Redirecting to your dashboard...`,
-      type: "success",
-    });
-
-    // Add fade out effect to landing page
-    setIsTransitioning(true);
-
-    // Wait for toast to be visible, then redirect
-    setTimeout(() => {
-      onLoginSuccess(userData);
-    }, 2000);
+    onLoginSuccess(userData);
   };
 
   const handleLandingScan = async (event) => {
-    event.preventDefault();
+    if (event && event.preventDefault) event.preventDefault();
     const nextUrl = landingUrl.trim();
-    if (!nextUrl) {
-      setLandingError("Please enter a URL to scan.");
-      return;
-    }
+    if (!nextUrl) { setLandingError("Please enter a URL to scan."); return; }
 
+    if (landingPollRef.current) clearInterval(landingPollRef.current);
     setLandingError("");
     setLandingScanning(true);
     setLandingReportUrl("");
+    setLandingReport(null);
+    setLandingProgress({ value: 5, phase: "Starting scan..." });
+
+    const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/fullsend/scan`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: nextUrl }),
-        },
-      );
+      const res = await fetch(`${API}/fullsend/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: nextUrl }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "Failed to start scan"); }
+      const { scan_id, report_token } = await res.json();
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || "Failed to start scan");
-      }
+      landingPollRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`${API}/fullsend/status/${scan_id}`);
+          const status = await statusRes.json();
+          setLandingProgress({ value: status.progress || 0, phase: status.phase || "Running..." });
 
-      const data = await response.json();
-      setLandingReportUrl(
-        `${window.location.origin}/fullsend-report/${data.report_token}`,
-      );
+          if (status.status === "complete") {
+            clearInterval(landingPollRef.current);
+            const reportRes = await fetch(`${API}/fullsend/report/${report_token}`);
+            const report = await reportRes.json();
+            setLandingReport(report);
+            setLandingReportUrl(`${window.location.origin}/fullsend-report/${report_token}`);
+            setLandingProgress({ value: 100, phase: `Done in ${report.elapsed_seconds}s` });
+            setLandingScanning(false);
+          } else if (status.status === "error") {
+            clearInterval(landingPollRef.current);
+            setLandingError(status.error || "Scan failed.");
+            setLandingScanning(false);
+          }
+        } catch (pollErr) {
+          clearInterval(landingPollRef.current);
+          setLandingError(pollErr.message || "Scan failed.");
+          setLandingScanning(false);
+        }
+      }, 1500);
     } catch (err) {
       setLandingError(err.message || "Unable to start scan.");
       setLandingScanning(false);
@@ -187,7 +174,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden transition-opacity duration-500 ${isTransitioning ? "opacity-0" : "opacity-100"}`}
+      className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden"
     >
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -224,9 +211,11 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           alt="Flasqo"
           className="mix-blend-screen"
           style={{
-            height: "44px",
+            height: "56px",
             width: "auto",
             objectFit: "contain",
+            transform: "scale(1.5)",
+            transformOrigin: "center center",
           }}
         />
       </div>
@@ -636,47 +625,238 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           </div>
 
           <div
-            className="mx-auto my-10 px-4 w-full md:mt-10"
+            className="mx-auto my-10 px-4 w-full md:mt-10 max-w-4xl"
             style={{ animation: "fadeInUp 0.8s ease-out 0.7s both" }}
           >
-            <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl w-full">
-              <div className="mb-3 text-left">
-                <p className="text-center text-xl font-semibold uppercase tracking-[0.25em] text-cyan-300/80">
-                  Test Your Website for Free.
-                </p>
-                <p className="text-sm text-slate-400 mt-1 text-center">
-                  Paste any URL and run a shareable scan without signing in.
-                </p>
+            {/* Browser Window Mockup */}
+            <div
+              className="rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl"
+              style={{ background: "rgba(13,17,23,0.95)" }}
+            >
+              {/* Browser Chrome — URL bar is the real input */}
+              <div
+                className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]"
+                style={{ background: "rgba(0,0,0,0.45)" }}
+              >
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                  <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+                  <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+                </div>
+                <form
+                  onSubmit={handleLandingScan}
+                  className="flex-1 flex items-center gap-2 bg-slate-800/60 rounded-lg px-3 py-1.5 border border-white/[0.07]"
+                >
+                  <Globe size={12} className="text-slate-500 flex-shrink-0" />
+                  <input
+                    ref={landingInputRef}
+                    value={landingUrl}
+                    onChange={(e) => { setLandingUrl(e.target.value); if (landingError) setLandingError(""); }}
+                    placeholder="https://yourapp.com"
+                    className="flex-1 bg-transparent text-sm text-slate-300 placeholder-slate-600 outline-none font-mono"
+                  />
+                  {landingUrl && (
+                    <button type="button" onClick={() => setLandingUrl("")} className="text-slate-600 hover:text-slate-400 text-xs">✕</button>
+                  )}
+                </form>
+                <button
+                  onClick={handleLandingScan}
+                  disabled={landingScanning || !landingUrl.trim()}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-500 hover:to-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  {landingScanning ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Scanning...
+                    </>
+                  ) : (
+                    <><Zap size={13} /> Run Scan</>
+                  )}
+                </button>
               </div>
-              <UrlScannerInput
-                value={landingUrl}
-                onChange={(event) => {
-                  setLandingUrl(event.target.value);
-                  if (landingError) setLandingError("");
-                }}
-                onSubmit={handleLandingScan}
-                placeholder="https://yourapp.com"
-                buttonLabel="RUN FULLSEND"
-                disabled={landingScanning}
-                error={landingError}
-                onClear={() => setLandingUrl("")}
-                inputRef={landingInputRef}
-                containerClassName="mb-0"
-                buttonClassName="mt-0"
-              />
-              {landingReportUrl && (
-                <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-left">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-300">
-                    Scan launched
+
+              {/* Browser Content — full-width report panel */}
+              <div className="p-6" style={{ minHeight: "230px", background: "rgba(10,14,20,0.95)" }}>
+                {!landingScanning && !landingReport ? (
+                  /* Idle state */
+                  <div className="flex flex-col items-center justify-center h-full py-8 gap-3">
+                    <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                      <Globe size={22} className="text-blue-400/60" />
+                    </div>
+                    <p className="text-slate-500 text-sm">Paste a URL above and click <span className="text-blue-400">Run Scan</span> to analyse your site</p>
                   </div>
-                  <a
-                    href={landingReportUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block text-sm text-emerald-200 underline break-all"
-                  >
-                    {landingReportUrl}
-                  </a>
+                ) : landingScanning ? (
+                  /* Scanning — live progress */
+                  <div className="flex flex-col gap-4 py-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-white">Flasqo AI Report</span>
+                      <span className="flex items-center gap-1.5 text-[11px] text-yellow-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                        Scanning...
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+                        <span className="font-mono">{landingProgress.phase}</span>
+                        <span>{landingProgress.value}%</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-700"
+                          style={{ width: `${landingProgress.value}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {["APIs Discovered", "Tests Generated", "Security Issues"].map((l) => (
+                        <div key={l} className="text-center rounded-lg bg-slate-800/40 border border-white/[0.05] py-3">
+                          <div className="text-xl font-bold text-slate-700 animate-pulse">—</div>
+                          <div className="text-[10px] text-slate-600 mt-0.5">{l}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500 mb-1.5">Performance Score</div>
+                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full w-1/3 bg-slate-700 rounded-full animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (() => {
+                  const r = landingReport;
+                  const score = r.app_health_score ?? 0;
+                  const scoreColor = score >= 75 ? "#22c55e" : score >= 50 ? "#eab308" : "#ef4444";
+                  const secIssues = (r.security?.critical ?? 0) + (r.security?.high ?? 0) + (r.security?.medium ?? 0) + (r.security?.low ?? 0);
+                  const suites = [
+                    {
+                      label: "Smoke",
+                      icon: "🟢",
+                      passed: r.smoke?.passed ?? 0,
+                      failed: r.smoke?.failed ?? 0,
+                      total: r.smoke?.total ?? 0,
+                      detail: `${r.smoke?.passed ?? 0}/${r.smoke?.total ?? 0} routes healthy`,
+                      status: (r.smoke?.failed ?? 0) === 0 ? "pass" : "fail",
+                    },
+                    {
+                      label: "Functional",
+                      icon: "⚙️",
+                      passed: r.functional?.passed ?? 0,
+                      failed: r.functional?.failed ?? 0,
+                      total: r.functional?.total ?? 0,
+                      detail: `${r.functional?.passed ?? 0}/${r.functional?.total ?? 0} tests passed`,
+                      status: (r.functional?.failed ?? 0) === 0 ? "pass" : "warn",
+                    },
+                    {
+                      label: "Security",
+                      icon: "🔒",
+                      passed: 0,
+                      failed: secIssues,
+                      total: secIssues,
+                      detail: `${r.security?.critical ?? 0} critical · ${r.security?.high ?? 0} high · ${r.security?.medium ?? 0} medium`,
+                      status: (r.security?.critical ?? 0) > 0 ? "fail" : secIssues > 0 ? "warn" : "pass",
+                    },
+                    {
+                      label: "Performance",
+                      icon: "⚡",
+                      passed: 0,
+                      failed: 0,
+                      total: 0,
+                      detail: r.performance?.avg_ms ? `avg ${Math.round(r.performance.avg_ms)}ms · ${r.performance?.slow_routes?.length ?? 0} slow routes` : "No data",
+                      status: (r.performance?.avg_ms ?? 0) < 400 ? "pass" : (r.performance?.avg_ms ?? 0) < 1200 ? "warn" : "fail",
+                    },
+                    {
+                      label: "Visual",
+                      icon: "👁",
+                      passed: 0,
+                      failed: 0,
+                      total: 0,
+                      detail: `${r.visual?.screenshots_captured ?? 0} screenshots · ${r.visual?.issues_found ?? 0} issues`,
+                      status: (r.visual?.issues_found ?? 0) === 0 ? "pass" : "warn",
+                    },
+                  ];
+                  const statusStyle = { pass: { dot: "#22c55e", text: "text-green-400" }, warn: { dot: "#eab308", text: "text-yellow-400" }, fail: { dot: "#ef4444", text: "text-red-400" } };
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {/* Header row */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-white">Flasqo AI Report</span>
+                          <span className="text-[11px] font-bold tabular-nums px-2 py-0.5 rounded-full border" style={{ color: scoreColor, borderColor: scoreColor + "40", background: scoreColor + "12" }}>
+                            {score}/100
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
+                          ✓ {r.elapsed_seconds}s
+                        </span>
+                      </div>
+
+                      {/* Top stats */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { val: r.api_calls_found ?? 0, label: "APIs Found", color: "#3b82f6" },
+                          { val: (r.smoke?.total ?? 0) + (r.functional?.total ?? 0), label: "Tests Run", color: "#22c55e" },
+                          { val: secIssues, label: "Security Issues", color: secIssues > 0 ? "#ef4444" : "#22c55e" },
+                        ].map((s) => (
+                          <div key={s.label} className="text-center rounded-lg bg-slate-800/40 border border-white/[0.04] py-2">
+                            <div className="text-xl font-bold tabular-nums" style={{ color: s.color }}>{s.val}</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Suite table */}
+                      <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+                        <div className="grid grid-cols-3 px-3 py-1.5 bg-slate-800/60 border-b border-white/[0.04]">
+                          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Suite</span>
+                          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider text-center">Result</span>
+                          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider text-right">Detail</span>
+                        </div>
+                        {suites.map((s) => {
+                          const st = statusStyle[s.status];
+                          return (
+                            <div key={s.label} className="grid grid-cols-3 px-3 py-2 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs">{s.icon}</span>
+                                <span className="text-xs text-slate-300 font-medium">{s.label}</span>
+                              </div>
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.dot }} />
+                                <span className={`text-[10px] font-semibold ${st.text}`}>
+                                  {s.status === "pass" ? "PASS" : s.status === "warn" ? "WARN" : "FAIL"}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-500 font-mono">{s.detail}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Top priority */}
+                      {r.priority_actions?.length > 0 && (
+                        <div className="rounded-lg bg-yellow-500/5 border border-yellow-500/15 px-3 py-2">
+                          <div className="text-[10px] font-semibold text-yellow-500/70 uppercase tracking-wider mb-1">Top Priority</div>
+                          <p className="text-xs text-slate-300 leading-relaxed">{r.priority_actions[0]}</p>
+                        </div>
+                      )}
+
+                      {/* CTA */}
+                      <button
+                        onClick={() => setShowAuthModal(true)}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-semibold hover:from-blue-500 hover:to-cyan-500 transition-all"
+                      >
+                        ⬇ Download Full Report — Sign in free
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Error bar */}
+              {landingError && (
+                <div className="px-4 py-2 text-sm text-red-400 border-t border-red-500/20 bg-red-500/5">
+                  {landingError}
                 </div>
               )}
             </div>
@@ -1210,6 +1390,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               {/* ── RIGHT: pre-deploy check terminal ── */}
               <div>
                 <div
+                  key={terminalKey}
                   className="rounded-xl overflow-hidden font-mono text-[11px]"
                   style={{
                     background: "rgba(4,7,15,0.80)",
@@ -1224,52 +1405,36 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                     <span className="ml-3 text-slate-600 text-[10px] tracking-wider">
                       flasqo / pre-deploy-check
                     </span>
-                    <span className="ml-auto flex items-center gap-1.5">
+                    <span className="ml-auto flex items-center gap-1.5"
+                      style={{ opacity: 0, animation: "termFadeUp 0.4s ease forwards", animationDelay: "2.8s" }}>
                       <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                      <span className="text-[9px] text-green-400/70">
-                        ALL PASSING
-                      </span>
+                      <span className="text-[9px] text-green-400/70">ALL PASSING</span>
                     </span>
                   </div>
 
                   {/* Check rows */}
                   <div className="px-4 py-4 space-y-2.5">
                     {[
-                      {
-                        label: "functional tests",
-                        result: "24 / 24 passed",
-                        color: "#22c55e",
-                      },
-                      {
-                        label: "schema validation",
-                        result: "no drift",
-                        color: "#22c55e",
-                      },
-                      {
-                        label: "performance gates",
-                        result: "p95 < 200ms",
-                        color: "#3b82f6",
-                      },
-                      {
-                        label: "chaos simulation",
-                        result: "0 cascades",
-                        color: "#a78bfa",
-                      },
-                      {
-                        label: "auth contracts",
-                        result: "all verified",
-                        color: "#22d3ee",
-                      },
+                      { label: "functional tests",  result: "24 / 24 passed", color: "#22c55e" },
+                      { label: "schema validation",  result: "no drift",       color: "#22c55e" },
+                      { label: "performance gates",  result: "p95 < 200ms",    color: "#3b82f6" },
+                      { label: "chaos simulation",   result: "0 cascades",     color: "#a78bfa" },
+                      { label: "auth contracts",     result: "all verified",   color: "#22d3ee" },
                     ].map((row, i) => (
                       <div
                         key={i}
                         className="flex items-center justify-between"
+                        style={{ opacity: 0, animation: "termFadeUp 0.35s ease forwards", animationDelay: `${i * 0.45 + 0.2}s` }}
                       >
                         <span className="text-slate-500">
                           <span style={{ color: "#22c55e" }}>✓ </span>
                           {row.label}
                         </span>
-                        <span style={{ color: row.color }}>{row.result}</span>
+                        <span
+                          style={{ color: row.color, opacity: 0, animation: "termSlideRight 0.35s ease forwards", animationDelay: `${i * 0.45 + 0.45}s` }}
+                        >
+                          {row.result}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1280,6 +1445,9 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                     style={{
                       borderColor: "rgba(34,197,94,0.12)",
                       background: "rgba(34,197,94,0.05)",
+                      opacity: 0,
+                      animation: "termFadeUp 0.5s ease forwards",
+                      animationDelay: "3.0s",
                     }}
                   >
                     <span className="font-bold text-green-400">
@@ -1290,6 +1458,17 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
                     </span>
                   </div>
                 </div>
+
+                <style>{`
+                  @keyframes termFadeUp {
+                    from { opacity: 0; transform: translateY(6px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                  }
+                  @keyframes termSlideRight {
+                    from { opacity: 0; transform: translateX(10px); }
+                    to   { opacity: 1; transform: translateX(0); }
+                  }
+                `}</style>
 
                 {/* Stat strip */}
                 <div className="grid grid-cols-3 gap-2.5 mt-3">
@@ -1332,116 +1511,61 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       </section>
 
       {/* Footer - Creative Compact Design */}
-      <footer className="relative z-10 mt-8">
+      <footer className="relative z-10 mt-4">
         {/* Top aurora border */}
         <div className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-40" />
 
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            {/* Logo & Brand */}
-            <div className="flex items-center gap-3">
-              <div>
-                <img
-                  src="/flasqo-logo.png"
-                  alt="Flasqo"
-                  style={{
-                    height: "56px",
-                    width: "auto",
-                    objectFit: "contain",
-                    mixBlendMode: "screen",
-                    animation: "logoFloat 4s ease-in-out infinite",
-                  }}
-                />
-                <a
-                  href="https://www.evolune.in/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-blue-400 hover:text-cyan-300 transition-colors"
-                >
-                  by EvoluneEdgeTech
-                </a>
-              </div>
-            </div>
-
-            {/* Quick Links */}
-            <div className="flex items-center gap-6 text-sm text-gray-400">
+        <div className="max-w-6xl mx-auto px-6 py-5">
+          {/* Top row: logo left, social icons centered */}
+          <div className="relative flex items-center justify-center">
+            {/* Logo & Brand — pinned left */}
+            <div className="absolute left-0 flex flex-col">
+              <img
+                src="/flasqo-logo.png"
+                alt="Flasqo"
+                className="mix-blend-screen"
+                style={{ height: "68px", width: "auto", objectFit: "contain" }}
+              />
               <a
-                href="#features"
-                className="hover:text-white transition-colors"
+                href="https://www.evolune.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-blue-400 hover:text-cyan-300 transition-colors"
               >
-                Features
-              </a>
-              <a href="#why-us" className="hover:text-white transition-colors">
-                Why Flasqo
-              </a>
-              <a
-                href="#testimonials"
-                className="hover:text-white transition-colors"
-              >
-                Reviews
-              </a>
-              <a href="#faq" className="hover:text-white transition-colors">
-                FAQ
-              </a>
-              <a
-                href="mailto:contact@evolune.in"
-                className="hover:text-white transition-colors"
-              >
-                Contact
+                by EvoluneEdgeTech
               </a>
             </div>
 
-            {/* Social Icons */}
+            {/* Social Icons — truly centered */}
             <div className="flex items-center gap-2">
               {[
-                {
-                  icon: Github,
-                  href: "https://github.com/EvoluneEdgeTech",
-                  gradient: "from-gray-600 to-gray-700",
-                },
-                {
-                  icon: Twitter,
-                  href: "https://x.com/EvoluneEdgeTech",
-                  gradient: "from-blue-400 to-blue-600",
-                },
-                {
-                  icon: Linkedin,
-                  href: "https://www.linkedin.com/in/evolune-edgetech-546640389/",
-                  gradient: "from-blue-600 to-blue-800",
-                },
-                {
-                  icon: Mail,
-                  href: "mailto:contact@evolune.in",
-                  gradient: "from-blue-500 to-cyan-600",
-                },
+                { icon: Github,   href: "https://github.com/EvoluneEdgeTech",                          gradient: "from-gray-600 to-gray-700" },
+                { icon: Twitter,  href: "https://x.com/EvoluneEdgeTech",                               gradient: "from-blue-400 to-blue-600" },
+                { icon: Linkedin, href: "https://www.linkedin.com/in/evolune-edgetech-546640389/",     gradient: "from-blue-600 to-blue-800" },
+                { icon: Mail,     href: "mailto:contact@evolune.in",                                   gradient: "from-blue-500 to-cyan-600" },
               ].map((social, i) => (
                 <a
                   key={i}
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative w-9 h-9 rounded-full flex items-center justify-center overflow-hidden"
+                  className="group relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden"
                 >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${social.gradient} opacity-0 group-hover:opacity-100 transition-opacity`}
-                  />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${social.gradient} opacity-0 group-hover:opacity-100 transition-opacity`} />
                   <div className="absolute inset-0 bg-white/10 group-hover:bg-transparent transition-colors" />
-                  <social.icon
-                    size={16}
-                    className="relative z-10 text-gray-400 group-hover:text-white transition-colors"
-                  />
+                  <social.icon size={22} className="relative z-10 text-gray-400 group-hover:text-white transition-colors" />
                 </a>
               ))}
             </div>
           </div>
 
           {/* Resource links — crawlable paths into the comparison & guide pages */}
-          <div className="mt-8 pt-6 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 gap-8 text-sm">
+          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 gap-5 text-sm">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Compare
               </h3>
-              <ul className="space-y-2 text-gray-400">
+              <ul className="space-y-1.5 text-gray-400">
                 <li>
                   <a
                     href="/compare/flasqo-vs-postman/"
@@ -1493,10 +1617,10 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               </ul>
             </div>
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Guides
               </h3>
-              <ul className="space-y-2 text-gray-400">
+              <ul className="space-y-1.5 text-gray-400">
                 <li>
                   <a
                     href="/guides/api-testing/"
@@ -1540,10 +1664,10 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               </ul>
             </div>
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Product
               </h3>
-              <ul className="space-y-2 text-gray-400">
+              <ul className="space-y-1.5 text-gray-400">
                 <li>
                   <a
                     href="#features"
@@ -1580,19 +1704,13 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
           </div>
 
           {/* Copyright */}
-          <div className="mt-6 pt-4 border-t border-white/5 text-center">
+          <div className="mt-4 pt-3 border-t border-white/5 text-center">
             <p className="text-xs text-gray-500">
-              © 2026 Flasqo. All rights reserved. Built with ❤️ for developers.
+              © 2026 Flasqo. All rights reserved. Built for developers.
             </p>
           </div>
         </div>
 
-        <style>{`
-          @keyframes logoFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-          }
-        `}</style>
       </footer>
 
       {/* Toast Notification */}

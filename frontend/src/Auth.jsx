@@ -9,13 +9,10 @@ function Auth({ onLoginSuccess }) {
     email: '',
     password: '',
     username: '',
-    name: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // OAuth is now handled by AppWrapper, so we can remove this useEffect
 
   const features = [
     {
@@ -157,7 +154,6 @@ function Auth({ onLoginSuccess }) {
       email: '',
       password: '',
       username: '',
-      name: ''
     });
   };
 
