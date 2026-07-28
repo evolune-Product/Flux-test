@@ -971,7 +971,7 @@ async def start_fullsend_scan(
     return {
         "scan_id": scan_id,
         "report_token": report_token,
-        "report_url": f"/fullsend/report/{report_token}",
+        "report_url": f"/report/fullsend/{report_token}",
     }
 
 
