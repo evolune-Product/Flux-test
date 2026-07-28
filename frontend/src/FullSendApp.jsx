@@ -456,7 +456,7 @@ export default function FullSendApp({ user, onLogout }) {
   const progress = statusData?.progress ?? 0;
   const phaseStatuses = getPhaseStatuses(progress);
   const reportPageUrl = reportToken
-    ? `${window.location.origin}/fullsend-report/${reportToken}`
+    ? `${window.location.origin}/fullsend/report/${reportToken}`
     : null;
 
   const copyLink = () => {

@@ -152,7 +152,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             const reportRes = await fetch(`${API}/fullsend/report/${report_token}`);
             const report = await reportRes.json();
             setLandingReport(report);
-            setLandingReportUrl(`${window.location.origin}/fullsend-report/${report_token}`);
+            setLandingReportUrl(`${window.location.origin}/fullsend/report/${report_token}`);
             setLandingProgress({ value: 100, phase: `Done in ${report.elapsed_seconds}s` });
             setLandingScanning(false);
           } else if (status.status === "error") {

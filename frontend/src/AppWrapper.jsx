@@ -566,7 +566,7 @@ function AppWrapper() {
 
   // FullSend public report — no authentication required
   const fullSendReportMatch = window.location.pathname.match(
-    /^\/fullsend-report\/([a-zA-Z0-9_-]+)/,
+    /^\/fullsend\/report\/([a-zA-Z0-9_-]+)/,
   );
   if (fullSendReportMatch) {
     return (
