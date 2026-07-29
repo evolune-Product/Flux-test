@@ -9,12 +9,8 @@ import {
 // ── Lazy-loaded route components ────────────────────────────────────────────
 // Each testing app is only downloaded when the user first visits that route.
 // Startup bundle drops ~60-70%; subsequent visits are instant (cached chunk).
-<<<<<<< HEAD
 const App = lazy(() => import("./App.jsx"));
 const Auth = lazy(() => import("./Auth"));
-=======
-const App                  = lazy(() => import("./App.jsx"));
->>>>>>> origin/master
 const PerformanceTestingApp = lazy(() => import("./Performance_testing.jsx"));
 const ChaosTestingApp = lazy(() => import("./ChaosTestingApp.jsx"));
 const SmokeTestingApp = lazy(() => import("./SmokeTestingApp.jsx"));
@@ -31,19 +27,11 @@ const FullSendApp = lazy(() => import("./FullSendApp.jsx"));
 const FullSendReportApp = lazy(() => import("./FullSendReportApp.jsx"));
 const VisualBuilderApp = lazy(() => import("./VisualBuilderApp.jsx"));
 const IntegrationTestingApp = lazy(() => import("./IntegrationTestingApp.jsx"));
-<<<<<<< HEAD
 const SharedFlowApp = lazy(() => import("./SharedFlowApp.jsx"));
 const TestingTypesLanding = lazy(() => import("./TestingTypesLanding.jsx"));
-const LandingPage = lazy(() => import("./LandingPage.jsx"));
 const DownloadApp = lazy(() => import("./DownloadApp.jsx"));
-=======
-const SharedFlowApp        = lazy(() => import("./SharedFlowApp.jsx"));
-const TestingTypesLanding  = lazy(() => import("./TestingTypesLanding.jsx"));
-// LandingPage is eagerly imported (not lazy) — it is the first thing every
-// unauthenticated visitor sees, so lazy-loading it just adds a Suspense flash
-// on logout. Eager import keeps the post-logout render instant.
+
 import LandingPage from "./LandingPage.jsx";
->>>>>>> origin/master
 // PROD-GATE: import (remove this line to disable the module)
 const ProductionGateApp = lazy(() => import("./ProductionGateApp.jsx"));
 
@@ -305,17 +293,12 @@ function AppWrapper() {
   // Google sees. The marketing page must render for every visitor.
   if (!user) {
     return (
-<<<<<<< HEAD
-      <Suspense fallback={null}>
-        <AppPageShell>
-          <LandingPage onLoginSuccess={handleLogin} authError={authError} />
-        </AppPageShell>
-      </Suspense>
-=======
-      <AppPageShell>
-        <LandingPage onLoginSuccess={handleLogin} authError={authError} />
-      </AppPageShell>
->>>>>>> origin/master
+<AppPageShell>
+  <LandingPage
+    onLoginSuccess={handleLogin}
+    authError={authError}
+  />
+</AppPageShell>
     );
   }
 

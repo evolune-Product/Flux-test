@@ -51,14 +51,10 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
     setPageMeta(HOME_META);
   }, []);
 
-<<<<<<< HEAD
-=======
-  useEffect(() => {
-    const id = setInterval(() => setTerminalKey(k => k + 1), 5500);
-    return () => clearInterval(id);
-  }, []);
-
->>>>>>> origin/master
+useEffect(() => {
+  const id = setInterval(() => setTerminalKey((k) => k + 1), 5500);
+  return () => clearInterval(id);
+}, []);
   // Show error toast if OAuth failed
   useEffect(() => {
     if (authError) {
@@ -289,22 +285,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             </button>
           </div>
         </div>
-<<<<<<< HEAD
-=======
-        <img
-          src="/flasqo-logo.png"
-          alt="Flasqo"
-          className="mix-blend-screen"
-          style={{
-            height: "56px",
-            width: "auto",
-            objectFit: "contain",
-            transform: "scale(1.5)",
-            transformOrigin: "center center",
-          }}
-        />
-      </div>
->>>>>>> origin/master
+        
 
         <style>{`
     @keyframes logoOrbit {
@@ -631,35 +612,31 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             </span>
             <div className="h-px w-10 bg-gradient-to-l from-transparent to-cyan-500/50 rounded-full" />
           </div>
+<div
+  className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+  style={{ animation: "fadeInUp 0.8s ease-out 0.6s both" }}
+>
+  <a
+    href="/download"
+    className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-blue-500 to-cyan-500 px-6 py-3 text-sm font-semibold text-white transition hover:scale-105"
+  >
+    Download App
+    <ArrowRight size={16} />
+  </a>
 
-          <div
-<<<<<<< HEAD
-            className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
-            style={{ animation: "fadeInUp 0.8s ease-out 0.6s both" }}
-          >
-            <a
-              href="/download"
-              className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-blue-500 to-cyan-500 px-6 py-3 text-sm font-semibold text-white transition hover:scale-105"
-            >
-              Download App
-              <ArrowRight size={16} />
-            </a>
-            <button
-              onClick={() => handleGetStarted("signup")}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
-            >
-              Get Started
-              <ArrowRight size={16} />
-            </button>
-          </div>
+  <button
+    onClick={() => handleGetStarted("signup")}
+    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
+  >
+    Get Started
+    <ArrowRight size={16} />
+  </button>
+</div>
 
-          <div
-            className="mx-auto my-10 px-4 w-full md:mt-10"
-=======
-            className="mx-auto my-10 px-4 w-full md:mt-10 max-w-4xl"
->>>>>>> origin/master
-            style={{ animation: "fadeInUp 0.8s ease-out 0.7s both" }}
-          >
+<div
+  className="mx-auto my-10 px-4 w-full md:mt-10 max-w-4xl"
+  style={{ animation: "fadeInUp 0.8s ease-out 0.7s both" }}
+>
             {/* Browser Window Mockup */}
             <div
               className="rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl"
