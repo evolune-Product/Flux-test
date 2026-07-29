@@ -22,6 +22,7 @@ import {
   WifiOff,
   Zap,
 } from "lucide-react";
+import { FaApple } from 'react-icons/fa';
 
 const platformCards = [
   {
@@ -36,7 +37,7 @@ const platformCards = [
   },
   {
     title: "macOS",
-    icon: Apple,
+    icon: FaApple,
     accent: "from-violet-400/25 to-fuchsia-500/25",
     description: "Optimized for Intel and Apple Silicon with a refined feel.",
     installer: "Disk image • .dmg",
