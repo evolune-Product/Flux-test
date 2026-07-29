@@ -9,55 +9,60 @@ import {
 // ── Lazy-loaded route components ────────────────────────────────────────────
 // Each testing app is only downloaded when the user first visits that route.
 // Startup bundle drops ~60-70%; subsequent visits are instant (cached chunk).
-const App                  = lazy(() => import("./App.jsx"));
-const Auth                 = lazy(() => import("./Auth"));
+const App = lazy(() => import("./App.jsx"));
+const Auth = lazy(() => import("./Auth"));
 const PerformanceTestingApp = lazy(() => import("./Performance_testing.jsx"));
-const ChaosTestingApp      = lazy(() => import("./ChaosTestingApp.jsx"));
-const SmokeTestingApp      = lazy(() => import("./SmokeTestingApp.jsx"));
-const FuzzTestingApp       = lazy(() => import("./FuzzTestingApp.jsx"));
+const ChaosTestingApp = lazy(() => import("./ChaosTestingApp.jsx"));
+const SmokeTestingApp = lazy(() => import("./SmokeTestingApp.jsx"));
+const FuzzTestingApp = lazy(() => import("./FuzzTestingApp.jsx"));
 const RegressionTestingApp = lazy(() => import("./RegressionTestingApp.jsx"));
-const ContractTestingApp   = lazy(() => import("./ContractTestingApp.jsx"));
-const GraphQLTestingApp    = lazy(() => import("./GraphQLTestingApp.jsx"));
-const AutoDiscoveryApp     = lazy(() => import("./AutoDiscoveryApp.jsx"));
-const VibeTestingApp       = lazy(() => import("./VibeTestingApp.jsx"));
-const TestHistoryApp       = lazy(() => import("./TestHistoryApp.jsx"));
-const SharedReportApp      = lazy(() => import("./SharedReportApp.jsx"));
-const SharedDashboardApp   = lazy(() => import("./SharedDashboardApp.jsx"));
-const FullSendApp          = lazy(() => import("./FullSendApp.jsx"));
-const FullSendReportApp    = lazy(() => import("./FullSendReportApp.jsx"));
-const VisualBuilderApp     = lazy(() => import("./VisualBuilderApp.jsx"));
+const ContractTestingApp = lazy(() => import("./ContractTestingApp.jsx"));
+const GraphQLTestingApp = lazy(() => import("./GraphQLTestingApp.jsx"));
+const AutoDiscoveryApp = lazy(() => import("./AutoDiscoveryApp.jsx"));
+const VibeTestingApp = lazy(() => import("./VibeTestingApp.jsx"));
+const TestHistoryApp = lazy(() => import("./TestHistoryApp.jsx"));
+const SharedReportApp = lazy(() => import("./SharedReportApp.jsx"));
+const SharedDashboardApp = lazy(() => import("./SharedDashboardApp.jsx"));
+const FullSendApp = lazy(() => import("./FullSendApp.jsx"));
+const FullSendReportApp = lazy(() => import("./FullSendReportApp.jsx"));
+const VisualBuilderApp = lazy(() => import("./VisualBuilderApp.jsx"));
 const IntegrationTestingApp = lazy(() => import("./IntegrationTestingApp.jsx"));
-const SharedFlowApp        = lazy(() => import("./SharedFlowApp.jsx"));
-const TestingTypesLanding  = lazy(() => import("./TestingTypesLanding.jsx"));
-const LandingPage          = lazy(() => import("./LandingPage.jsx"));
+const SharedFlowApp = lazy(() => import("./SharedFlowApp.jsx"));
+const TestingTypesLanding = lazy(() => import("./TestingTypesLanding.jsx"));
+const LandingPage = lazy(() => import("./LandingPage.jsx"));
+const DownloadApp = lazy(() => import("./DownloadApp.jsx"));
 // PROD-GATE: import (remove this line to disable the module)
-const ProductionGateApp    = lazy(() => import("./ProductionGateApp.jsx"));
+const ProductionGateApp = lazy(() => import("./ProductionGateApp.jsx"));
 
 // ── Static infrastructure (tiny, always needed) ─────────────────────────────
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import { setPageMeta, NOINDEX_META } from "./seo.js";
-import { API_BASE_URL } from './lib/api.js';
+import { API_BASE_URL } from "./lib/api.js";
 
 // ── Page skeleton fallback ───────────────────────────────────────────────────
 // Shown by Suspense while a chunk is downloading (typically <200ms on first visit).
 // Intentionally minimal — no imports, no animation library needed.
 function PageSkeleton() {
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#020617",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}>
-      <div style={{
-        width: 36,
-        height: 36,
-        borderRadius: "50%",
-        border: "3px solid #1e293b",
-        borderTopColor: "#3b82f6",
-        animation: "spin 0.7s linear infinite",
-      }} />
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#020617",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+          border: "3px solid #1e293b",
+          borderTopColor: "#3b82f6",
+          animation: "spin 0.7s linear infinite",
+        }}
+      />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -83,15 +88,15 @@ function AppWrapper() {
   const [user, setUser] = useState(() => {
     // Initialise synchronously so returning users never see the landing page flash
     try {
-      const savedUser = localStorage.getItem('user');
-      const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem("user");
+      const savedToken = localStorage.getItem("token");
       if (savedUser && savedToken) return JSON.parse(savedUser);
     } catch {}
     return null;
   });
   // Only show loading screen during OAuth callback processing
-  const [loading, setLoading] = useState(() =>
-    !!(new URLSearchParams(window.location.search).get('token'))
+  const [loading, setLoading] = useState(
+    () => !!new URLSearchParams(window.location.search).get("token"),
   );
   const [authError, setAuthError] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -116,7 +121,12 @@ function AppWrapper() {
       console.error("[auth] /auth/me fetch failed:", err);
     }
     // Fallback to the params we already have
-    const userData = { user_id: userId, username, email, oauth_provider: "oauth" };
+    const userData = {
+      user_id: userId,
+      username,
+      email,
+      oauth_provider: "oauth",
+    };
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
   };
@@ -205,10 +215,17 @@ function AppWrapper() {
 
     // Clear session immediately (security — token gone before animation ends)
     [
-      "user", "token",
-      "performanceTestingState", "smokeTestingState", "chaosTestingState",
-      "fuzzTestingState", "regressionTestingState", "contractTestingState",
-      "graphqlTestingState", "autoDiscoveryState", "discoveryData",
+      "user",
+      "token",
+      "performanceTestingState",
+      "smokeTestingState",
+      "chaosTestingState",
+      "fuzzTestingState",
+      "regressionTestingState",
+      "contractTestingState",
+      "graphqlTestingState",
+      "autoDiscoveryState",
+      "discoveryData",
       "github_redirect_path",
     ].forEach((k) => localStorage.removeItem(k));
     setUser(null);
@@ -576,6 +593,17 @@ function AppWrapper() {
     );
   }
 
+  // Public download page should stay available before login as well.
+  if (window.location.pathname === "/download") {
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <AppPageShell>
+          <DownloadApp />
+        </AppPageShell>
+      </Suspense>
+    );
+  }
+
   // If not logged in, show Landing Page.
   // No MobileBlocker here: Google indexes mobile-first (Googlebot Smartphone),
   // so blocking small screens would make "Mobile Device Detected" the page
@@ -594,8 +622,8 @@ function AppWrapper() {
   // One Suspense at the Router level covers all lazy route chunks.
   return (
     <Suspense fallback={<PageSkeleton />}>
-    <Router>
-      <Routes>
+      <Router>
+        <Routes>
           <Route
             path="/"
             element={
@@ -742,6 +770,16 @@ function AppWrapper() {
               <ErrorBoundary>
                 <AppPageShell>
                   <IntegrationTestingApp user={user} onLogout={handleLogout} />
+                </AppPageShell>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/download"
+            element={
+              <ErrorBoundary>
+                <AppPageShell>
+                  <DownloadApp />
                 </AppPageShell>
               </ErrorBoundary>
             }

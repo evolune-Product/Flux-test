@@ -71,7 +71,6 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
     setPageMeta(HOME_META);
   }, []);
 
-
   // Show error toast if OAuth failed
   useEffect(() => {
     if (authError) {
@@ -197,114 +196,110 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       </div>
 
       {/* ── Dynamic Island Navigation ── */}
-      <nav
-  className="fixed top-0 left-0 right-0 z-50 w-full bg-slate-950/70 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex justify-center"
->
-  {/* Outer ambient glow — matches your custom branding atmosphere */}
-  <div
-    className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[60px] bg-blue-600/10 blur-3xl rounded-full pointer-events-none"
-  />
+      <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-slate-950/70 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex justify-center">
+        {/* Outer ambient glow — matches your custom branding atmosphere */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[60px] bg-blue-600/10 blur-3xl rounded-full pointer-events-none" />
 
-  {/* Standard full-width header block layout */}
-  <div className="w-full max-w-7xl flex items-center justify-between gap-4 relative z-10">
-    
-    {/* ── Logo & Meta Row (Permanently Configured Layout) ── */}
-    <div
-      className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer group"
-    >
-      <div className="relative">
-        <div
-          className="absolute -inset-[6px] rounded-full border border-blue-500/20"
-          style={{ animation: "logoOrbit 12s linear infinite" }}
-        >
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full" />
+        {/* Standard full-width header block layout */}
+        <div className="w-full max-w-7xl flex items-center justify-between gap-4 relative z-10">
+          {/* ── Logo & Meta Row (Permanently Configured Layout) ── */}
+          <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer group">
+            <div className="relative">
+              <div
+                className="absolute -inset-[6px] rounded-full border border-blue-500/20"
+                style={{ animation: "logoOrbit 12s linear infinite" }}
+              >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full" />
+              </div>
+              <img
+                src="/flasqo-logo.png"
+                alt="Flasqo"
+                className="mix-blend-screen"
+                style={{
+                  height: "44px",
+                  width: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+
+            <div>
+              <div
+                className="font-bold bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent leading-none"
+                style={{
+                  fontSize: "17px",
+                  backgroundSize: "200% 200%",
+                  animation: "navGradientShift 4s ease-in-out infinite",
+                }}
+              >
+                Flasqo
+              </div>
+              <div className="text-[10px] text-gray-500 flex items-center gap-1 mt-1 font-medium tracking-wide">
+                by EvoluneEdgeTech
+                <span
+                  className="inline-block w-1 h-1 bg-green-400 rounded-full flex-shrink-0"
+                  style={{ animation: "navPulse 2s ease-in-out infinite" }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Navigation Links (Always Visible on Desktop Layouts) ── */}
+          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            {[
+              { href: "#features", label: "Features" },
+              { href: "#why-us", label: "Why Us" },
+              { href: "#testimonials", label: "Testimonials" },
+              { href: "#pricing", label: "Pricing" },
+            ].map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="relative px-4 py-2 rounded-full text-slate-400 hover:text-white text-sm font-semibold whitespace-nowrap transition-all duration-200 hover:bg-white/5"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+
+          {/* ── Action Buttons Container Cluster ── */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <a
+              href="/download"
+              className="whitespace-nowrap rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+            >
+              Download App
+            </a>
+            {/* Login */}
+            <button
+              onClick={() => handleGetStarted("login")}
+              className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all duration-200"
+            >
+              Login
+            </button>
+
+            {/* Get Started */}
+            <button
+              onClick={() => handleGetStarted("signup")}
+              className="group relative whitespace-nowrap px-5 py-2 rounded-xl text-sm font-bold text-white overflow-hidden hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #0891b2)",
+                boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <span className="relative flex items-center gap-1.5">
+                Get Started
+                <ArrowRight
+                  size={14}
+                  className="group-hover:translate-x-0.5 transition-transform"
+                />
+              </span>
+            </button>
+          </div>
         </div>
-        <img
-          src="/flasqo-logo.png"
-          alt="Flasqo"
-          className="mix-blend-screen"
-          style={{
-            height: "44px",
-            width: "auto",
-            objectFit: "contain",
-          }}
-        />
-      </div>
 
-      <div>
-        <div
-          className="font-bold bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent leading-none"
-          style={{
-            fontSize: "17px",
-            backgroundSize: "200% 200%",
-            animation: "navGradientShift 4s ease-in-out infinite",
-          }}
-        >
-          Flasqo
-        </div>
-        <div
-          className="text-[10px] text-gray-500 flex items-center gap-1 mt-1 font-medium tracking-wide"
-        >
-          by EvoluneEdgeTech
-          <span
-            className="inline-block w-1 h-1 bg-green-400 rounded-full flex-shrink-0"
-            style={{ animation: "navPulse 2s ease-in-out infinite" }}
-          />
-        </div>
-      </div>
-    </div>
-
-    {/* ── Navigation Links (Always Visible on Desktop Layouts) ── */}
-    <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-      {[
-        { href: "#features", label: "Features" },
-        { href: "#why-us", label: "Why Us" },
-        { href: "#testimonials", label: "Testimonials" },
-        { href: "#pricing", label: "Pricing" },
-      ].map((item) => (
-        <a
-          key={item.href}
-          href={item.href}
-          className="relative px-4 py-2 rounded-full text-slate-400 hover:text-white text-sm font-semibold whitespace-nowrap transition-all duration-200 hover:bg-white/5"
-        >
-          {item.label}
-        </a>
-      ))}
-    </div>
-
-    {/* ── Action Buttons Container Cluster ── */}
-    <div className="flex items-center gap-3 flex-shrink-0">
-      {/* Login */}
-      <button
-        onClick={() => handleGetStarted("login")}
-        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all duration-200"
-      >
-        Login
-      </button>
-      
-      {/* Get Started */}
-      <button
-        onClick={() => handleGetStarted("signup")}
-        className="group relative whitespace-nowrap px-5 py-2 rounded-xl text-sm font-bold text-white overflow-hidden hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-        style={{
-          background: "linear-gradient(135deg, #2563eb, #0891b2)",
-          boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-        <span className="relative flex items-center gap-1.5">
-          Get Started
-          <ArrowRight
-            size={14}
-            className="group-hover:translate-x-0.5 transition-transform"
-          />
-        </span>
-      </button>
-    </div>
-
-  </div>
-
-  <style>{`
+        <style>{`
     @keyframes logoOrbit {
       from { transform: rotate(0deg);   }
       to   { transform: rotate(360deg); }
@@ -318,7 +313,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
       50%      { opacity: 0.5; transform: scale(1.3); }
     }
   `}</style>
-</nav>
+      </nav>
 
       {/* Hero Section - Creative Design */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-6 overflow-hidden">
@@ -544,16 +539,15 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             </div>
           </div>
         </div>
-        
 
         <div className="relative text-center">
           {/* 1. BRANDING HEADER ADDED HERE */}
-  <h2 
-    className="text-lg sm:text-xl font-black tracking-[0.35em] text-cyan-400 uppercase mb-4 opacity-90 origin-center"
-    style={{ animation: "fadeInUp 0.8s ease-out 0.1s both" }}
-  >
-    Flasqo
-  </h2>
+          <h2
+            className="text-lg sm:text-xl font-black tracking-[0.35em] text-cyan-400 uppercase mb-4 opacity-90 origin-center"
+            style={{ animation: "fadeInUp 0.8s ease-out 0.1s both" }}
+          >
+            Flasqo
+          </h2>
           {/* Badge with animated border */}
           <div className="relative inline-flex items-center gap-2 px-5 py-2.5 mb-8">
             <div
@@ -586,10 +580,6 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             </span>
           </div>
 
-          
-
-          
-
           {/* <p
             className="text-base text-gray-400 mb-10 max-w-xl mx-auto leading-relaxed"
             style={{ animation: "fadeInUp 0.8s ease-out 0.4s both" }}
@@ -599,7 +589,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
             environment.
           </p> */}
           {/* Main heading with animation */}
-          
+
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             {/* Screen-reader/heading context — same phrase as the visible badge above */}
             <span className="sr-only">
@@ -615,7 +605,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               className="inline-block bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-300 bg-clip-text text-transparent"
               style={{ animation: "titleSlideIn 0.8s ease-out 0.2s both" }}
             >
-                  &nbsp;Ship Faster
+              &nbsp;Ship Faster
             </span>
             {/* Animated underline */}
             <div
@@ -633,6 +623,26 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               Stop shipping guesses — deploy with certainty
             </span>
             <div className="h-px w-10 bg-gradient-to-l from-transparent to-cyan-500/50 rounded-full" />
+          </div>
+
+          <div
+            className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+            style={{ animation: "fadeInUp 0.8s ease-out 0.6s both" }}
+          >
+            <a
+              href="/download"
+              className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-blue-500 to-cyan-500 px-6 py-3 text-sm font-semibold text-white transition hover:scale-105"
+            >
+              Download App
+              <ArrowRight size={16} />
+            </a>
+            <button
+              onClick={() => handleGetStarted("signup")}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
+            >
+              Get Started
+              <ArrowRight size={16} />
+            </button>
           </div>
 
           <div
@@ -681,9 +691,6 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               )}
             </div>
           </div>
-          
-
-          
 
           {/* CTA Buttons */}
           {/* <div
