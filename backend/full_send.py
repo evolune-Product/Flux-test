@@ -1017,3 +1017,13 @@ async def get_fullsend_report(report_token: str):
         raise HTTPException(status_code=500, detail=report.get("error", "Scan failed"))
 
     return report
+
+
+@full_send_router.get("/")
+async def redirect_to_home():
+    """
+    Redirect direct access to /fullsend to homepage.
+    Testing modules require authentication and should be accessed via the app.
+    """
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/", status_code=302)
