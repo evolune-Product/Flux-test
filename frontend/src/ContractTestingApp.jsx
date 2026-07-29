@@ -7,6 +7,7 @@ import {
   Plus,
   Play,
   Trash2,
+  Pencil,
   Code,
   AlertTriangle,
   Loader,
@@ -17,8 +18,10 @@ import {
   X,
   Sparkles,
   User,
+  Github,
 } from 'lucide-react';
 import BackButton from './BackButton';
+import GitHubIntegration from './GitHubIntegration.jsx';
 import { saveTestRun } from './testHistoryUtils.js';
 import { apiFetch } from './lib/api.js';
 
@@ -33,6 +36,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('contracts');
   const [logs, setLogs] = useState([]);
+  const [showGitHub, setShowGitHub] = useState(false);
 
   // Contract form
   const [contractForm, setContractForm] = useState({
@@ -52,6 +56,9 @@ const ContractTestingApp = ({ user, onLogout }) => {
     provider_url: '',
     custom_headers: ''
   });
+
+  // Edit mode
+  const [editingContract, setEditingContract] = useState(null);
 
   // AI Assistant state
   const [aiDescription, setAiDescription] = useState('');
@@ -240,6 +247,86 @@ const ContractTestingApp = ({ user, onLogout }) => {
     }
   };
 
+  const startEditing = (contract) => {
+    setContractForm({
+      contract_name: contract.contract_name,
+      description: contract.description || '',
+      consumer_name: contract.consumer_name,
+      provider_name: contract.provider_name,
+      version: contract.version,
+      request_method: contract.request_method,
+      request_path: contract.request_path,
+      response_status: contract.response_status,
+      response_body_schema: JSON.stringify(contract.response_body_schema, null, 2),
+    });
+    setEditingContract(contract);
+    setActiveTab('create');
+  };
+
+  const cancelEditing = () => {
+    setEditingContract(null);
+    setContractForm({
+      contract_name: '', description: '', consumer_name: '', provider_name: '',
+      version: '1.0.0', request_method: 'GET', request_path: '/api/users/1',
+      response_status: 200,
+      response_body_schema: '{\n  "type": "object",\n  "properties": {\n    "id": {"type": "integer"},\n    "name": {"type": "string"},\n    "email": {"type": "string"}\n  },\n  "required": ["id", "name", "email"]\n}',
+    });
+    setActiveTab('contracts');
+  };
+
+  const updateContract = async () => {
+    if (!contractForm.contract_name || !contractForm.consumer_name || !contractForm.provider_name) {
+      addLog('Please fill in all required fields', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    addLog('Updating contract...', 'info');
+
+    try {
+      let responseBodySchema;
+      try {
+        responseBodySchema = JSON.parse(contractForm.response_body_schema);
+      } catch (e) {
+        addLog('Invalid JSON Schema format', 'error');
+        setIsLoading(false);
+        return;
+      }
+
+      const payload = {
+        contract_name: contractForm.contract_name,
+        description: contractForm.description || null,
+        consumer_name: contractForm.consumer_name,
+        provider_name: contractForm.provider_name,
+        version: contractForm.version,
+        request_method: contractForm.request_method,
+        request_path: contractForm.request_path,
+        response_status: parseInt(contractForm.response_status),
+        response_body_schema: responseBodySchema,
+      };
+
+      const response = await apiFetch(`/contract/${editingContract.contract_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        addLog(`Contract updated successfully!`, 'success');
+        await fetchContracts();
+        setEditingContract(null);
+        setActiveTab('contracts');
+      } else {
+        const error = await response.json();
+        addLog(`Failed to update: ${error.detail}`, 'error');
+      }
+    } catch (error) {
+      addLog(`Error: ${error.message}`, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const verifyProvider = async () => {
     if (!providerForm.provider_url) {
       addLog('Please enter provider URL', 'error');
@@ -323,6 +410,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
     setSelectedContract(contract);
     setVerificationResult(null);
     setProviderForm({ provider_url: '', custom_headers: '' });
+    setEditingContract(null);
     await fetchVerificationHistory(contract.contract_id);
   };
 
@@ -580,6 +668,19 @@ const ContractTestingApp = ({ user, onLogout }) => {
                             </button>
                           )}
                           <button
+                            onClick={(e) => { e.stopPropagation(); startEditing(contract); }}
+                            style={{
+                              width: 26, height: 26, borderRadius: 6,
+                              background: 'rgba(167,139,250,0.12)',
+                              border: '1px solid rgba(167,139,250,0.25)',
+                              cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                            title="Edit Contract"
+                          >
+                            <Pencil size={12} color="#a78bfa" />
+                          </button>
+                          <button
                             onClick={(e) => { e.stopPropagation(); deleteContract(contract.contract_id); }}
                             style={{
                               width: 26, height: 26, borderRadius: 6,
@@ -609,7 +710,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
             }}>
               {[
                 { key: 'contracts', label: 'Details',  icon: Code,     accent: VIOLET },
-                { key: 'create',    label: 'Create',   icon: Plus,     accent: '#60a5fa' },
+                { key: 'create',    label: editingContract ? 'Edit' : 'Create', icon: editingContract ? Pencil : Plus, accent: editingContract ? '#a78bfa' : '#60a5fa' },
                 { key: 'verify',    label: 'Verify',   icon: Play,     accent: '#34d399' },
                 { key: 'results',   label: 'Results',  icon: BarChart3,accent: '#fbbf24' },
                 { key: 'history',   label: `History${verificationHistory ? ` (${verificationHistory.verifications.length})` : ''}`, icon: History, accent: '#fb923c' },
@@ -639,19 +740,33 @@ const ContractTestingApp = ({ user, onLogout }) => {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
                         <div style={{ fontWeight: 700, fontSize: 17, color: '#fff' }}>Contract Details</div>
-                        <button
-                          onClick={() => setActiveTab('verify')}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 7,
-                            padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13,
-                            border: 'none', cursor: 'pointer',
-                            background: 'linear-gradient(135deg,#059669,#047857)',
-                            color: '#fff',
-                            boxShadow: '0 0 14px rgba(5,150,105,0.25)',
-                          }}
-                        >
-                          <Play size={13} /> Verify Provider
-                        </button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            onClick={() => startEditing(selectedContract)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 7,
+                              padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13,
+                              border: '1px solid rgba(167,139,250,0.30)',
+                              background: 'rgba(167,139,250,0.10)', color: '#a78bfa',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Pencil size={13} /> Edit
+                          </button>
+                          <button
+                            onClick={() => setActiveTab('verify')}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 7,
+                              padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13,
+                              border: 'none', cursor: 'pointer',
+                              background: 'linear-gradient(135deg,#059669,#047857)',
+                              color: '#fff',
+                              boxShadow: '0 0 14px rgba(5,150,105,0.25)',
+                            }}
+                          >
+                            <Play size={13} /> Verify Provider
+                          </button>
+                        </div>
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
@@ -738,15 +853,33 @@ const ContractTestingApp = ({ user, onLogout }) => {
                 </div>
               )}
 
-              {/* ─ Create Tab ─ */}
+              {/* ─ Create / Edit Tab ─ */}
               {activeTab === 'create' && (
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Plus size={18} /> Create New Contract
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {editingContract ? <Pencil size={18} /> : <Plus size={18} />}
+                      {editingContract ? `Editing: ${editingContract.contract_name}` : 'Create New Contract'}
+                    </div>
+                    {editingContract && (
+                      <button
+                        onClick={cancelEditing}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.55)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <X size={13} /> Cancel
+                      </button>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {/* AI assistant */}
+                    {/* AI assistant — only shown in create mode */}
+                    {!editingContract && (<>
                     <div style={{
                       padding: '18px 20px', borderRadius: 12,
                       background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(109,40,217,0.12))',
@@ -804,6 +937,7 @@ const ContractTestingApp = ({ user, onLogout }) => {
                     </div>
 
                     <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>— or create manually —</div>
+                    </>)}
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       <div>
@@ -883,22 +1017,28 @@ const ContractTestingApp = ({ user, onLogout }) => {
                     </div>
 
                     <button
-                      onClick={createContract}
+                      onClick={editingContract ? updateContract : createContract}
                       disabled={isLoading}
                       style={{
                         width: '100%', padding: '13px 0',
                         borderRadius: 10, fontWeight: 700, fontSize: 14,
                         border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
-                        background: isLoading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                        background: isLoading
+                          ? 'rgba(255,255,255,0.06)'
+                          : editingContract
+                            ? 'linear-gradient(135deg,#0891b2,#0e7490)'
+                            : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
                         color: isLoading ? 'rgba(255,255,255,0.30)' : '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        boxShadow: isLoading ? 'none' : '0 0 20px rgba(124,58,237,0.30)',
+                        boxShadow: isLoading ? 'none' : editingContract ? '0 0 20px rgba(8,145,178,0.30)' : '0 0 20px rgba(124,58,237,0.30)',
                         transition: 'all 0.2s',
                       }}
                     >
                       {isLoading
-                        ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Creating…</>
-                        : 'Create Contract'
+                        ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> {editingContract ? 'Saving…' : 'Creating…'}</>
+                        : editingContract
+                          ? <><Check size={15} /> Save Changes</>
+                          : 'Create Contract'
                       }
                     </button>
                   </div>
@@ -1003,7 +1143,20 @@ const ContractTestingApp = ({ user, onLogout }) => {
               {/* ─ Results Tab ─ */}
               {activeTab === 'results' && verificationResult && (
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 20 }}>Verification Results</div>
+                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    Verification Results
+                    <button
+                      onClick={() => setShowGitHub(true)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+                        color: 'rgba(255,255,255,0.75)', cursor: 'pointer',
+                      }}
+                    >
+                      <Github size={14} /> Save to GitHub
+                    </button>
+                  </div>
 
                   {/* Status banner */}
                   <div style={{
@@ -1169,6 +1322,33 @@ const ContractTestingApp = ({ user, onLogout }) => {
       </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
+      {showGitHub && verificationResult && (
+        <GitHubIntegration
+          user={user}
+          testResults={{
+            summary: {
+              total: 1,
+              passed: verificationResult.passed ? 1 : 0,
+              failed: verificationResult.passed ? 0 : 1,
+              pass_rate: verificationResult.passed ? 100 : 0,
+            },
+            results: [{
+              test: `Contract Verification - ${selectedContract?.contract_name || 'contract'}`,
+              status: verificationResult.passed ? 'PASS' : 'FAIL',
+              details: verificationResult.passed
+                ? 'Provider meets all contract requirements'
+                : `${verificationResult.validation_errors?.length || 0} validation error(s)`,
+              status_code_match: verificationResult.status_code_match,
+              schema_match: verificationResult.schema_match,
+              response_time_ms: verificationResult.response_time_ms,
+              validation_errors: verificationResult.validation_errors || [],
+            }],
+          }}
+          apiUrl={selectedContract ? `${selectedContract.request_method} ${selectedContract.request_path}` : 'Contract Test'}
+          onClose={() => setShowGitHub(false)}
+        />
+      )}
     </div>
   );
 };

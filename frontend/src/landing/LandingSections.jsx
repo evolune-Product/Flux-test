@@ -192,18 +192,18 @@ export const FlasqoTrafficVisualizer = () => {
             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-            <span className="ml-3 text-[10px] text-gray-600 tracking-wider">
+            <span className="ml-3 text-[12px] text-gray-600 tracking-wider">
               ~/dev • curl
             </span>
             <div className="ml-auto flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-              <span className="text-[9px] text-orange-400/70 font-mono">
+              <span className="text-[11px] text-orange-400/70 font-mono">
                 OUTBOUND
               </span>
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-hidden px-4 py-3 text-[11px]">
+          <div className="flex-1 min-h-0 overflow-hidden px-4 py-3 text-[13px]">
             {currentReq ? (
               <div
                 key={currentReq.uid}
@@ -220,7 +220,7 @@ export const FlasqoTrafficVisualizer = () => {
                 </div>
                 <div className="flex items-center gap-2 mb-2 pl-2">
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border font-mono ${METHOD_STYLES[currentReq.method]?.badge}`}
+                    className={`px-1.5 py-0.5 rounded text-[12px] font-bold border font-mono ${METHOD_STYLES[currentReq.method]?.badge}`}
                   >
                     {currentReq.method}
                   </span>
@@ -228,14 +228,14 @@ export const FlasqoTrafficVisualizer = () => {
                     {currentReq.path}
                   </span>
                 </div>
-                <div className="pl-2 text-gray-700 font-mono text-[10px] mb-0.5">
+                <div className="pl-2 text-gray-700 font-mono text-[12px] mb-0.5">
                   -H{" "}
                   <span className="text-green-400/60">
                     'Content-Type: application/json'
                   </span>{" "}
                   \
                 </div>
-                <div className="pl-2 text-gray-700 font-mono text-[10px] mb-2">
+                <div className="pl-2 text-gray-700 font-mono text-[12px] mb-2">
                   -H{" "}
                   <span className="text-green-400/60">
                     'Authorization: Bearer{" "}
@@ -244,7 +244,7 @@ export const FlasqoTrafficVisualizer = () => {
                   \
                 </div>
                 {getBody(currentReq.method) ? (
-                  <div className="pl-2 font-mono text-[10px]">
+                  <div className="pl-2 font-mono text-[12px]">
                     <span className="text-gray-700">-d </span>
                     <span className="text-gray-600">{"{"}</span>
                     {getBody(currentReq.method)
@@ -257,11 +257,11 @@ export const FlasqoTrafficVisualizer = () => {
                     <span className="text-gray-600">{"}"}</span>
                   </div>
                 ) : (
-                  <div className="pl-2 text-gray-700 font-mono text-[10px]">
+                  <div className="pl-2 text-gray-700 font-mono text-[12px]">
                     --no-body
                   </div>
                 )}
-                <div className="mt-3 flex items-center gap-1.5 text-[10px] font-mono">
+                <div className="mt-3 flex items-center gap-1.5 text-[12px] font-mono">
                   <span
                     className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${phase === "sending" ? "bg-yellow-400 animate-pulse" : "bg-blue-500"}`}
                   />
@@ -279,7 +279,7 @@ export const FlasqoTrafficVisualizer = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-gray-700 pt-2 font-mono text-[11px]">
+              <div className="flex items-center gap-2 text-gray-700 pt-2 font-mono text-[13px]">
                 <span className="inline-block w-[7px] h-[13px] bg-gray-700 animate-pulse rounded-sm" />
                 <span>Waiting for outbound calls...</span>
               </div>
@@ -288,10 +288,10 @@ export const FlasqoTrafficVisualizer = () => {
 
           <div className="flex-shrink-0 px-3.5 py-1.5 border-t border-slate-800/60 flex items-center gap-2 bg-black/20">
             <Code size={9} className="text-gray-700" />
-            <span className="text-[9px] text-gray-700 font-mono">
+            <span className="text-[11px] text-gray-700 font-mono">
               dev environment
             </span>
-            <span className="ml-auto text-[9px] text-gray-700 font-mono tabular-nums">
+            <span className="ml-auto text-[11px] text-gray-700 font-mono tabular-nums">
               {processed} fired
             </span>
           </div>
@@ -343,14 +343,14 @@ export const FlasqoTrafficVisualizer = () => {
             }}
           />
           <div className="flex flex-col items-center gap-1 flex-shrink-0">
-            <div className="relative">
-              <div className="absolute inset-0 bg-blue-500/25 rounded-xl blur-lg" />
-              <div className="relative w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <Shield size={18} className="text-white" />
-              </div>
-            </div>
+            <img
+              src="/flasqo-logo.png"
+              alt="Flasqo"
+              className="mix-blend-screen"
+              style={{ height: "60px", width: "auto", objectFit: "contain" }}
+            />
             <span className="text-[12px] font-bold text-white">Flasqo</span>
-            <span className="text-[8px] text-blue-400/55 font-mono tracking-[0.2em]">
+            <span className="text-[10px] text-blue-400/55 font-mono tracking-[0.2em]">
               MIDDLEWARE
             </span>
           </div>
@@ -364,16 +364,16 @@ export const FlasqoTrafficVisualizer = () => {
                   animation: "ftv-slideIn 0.18s ease-out",
                 }}
               >
-                <div className="text-[11px] font-bold font-mono">
+                <div className="text-[13px] font-bold font-mono">
                   {currentReq.method}
                 </div>
-                <div className="text-[9px] text-gray-400 font-mono truncate">
+                <div className="text-[11px] text-gray-400 font-mono truncate">
                   {currentReq.path}
                 </div>
               </div>
             ) : (
               <div className="w-full rounded-lg px-2 py-2 text-center border border-slate-800/50 bg-black/20">
-                <div className="text-[10px] text-gray-700 font-mono">Idle</div>
+                <div className="text-[12px] text-gray-700 font-mono">Idle</div>
               </div>
             )}
           </div>
@@ -386,12 +386,12 @@ export const FlasqoTrafficVisualizer = () => {
                     className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors duration-150 ${done ? "bg-green-400" : "bg-slate-700"}`}
                   />
                   <span
-                    className={`text-[9px] font-mono transition-colors duration-150 ${done ? "text-green-400" : "text-gray-700"}`}
+                    className={`text-[11px] font-mono transition-colors duration-150 ${done ? "text-green-400" : "text-gray-700"}`}
                   >
                     {step}
                   </span>
                   {done && (
-                    <span className="ml-auto text-[8px] text-green-500/60 font-mono">
+                    <span className="ml-auto text-[10px] text-green-500/60 font-mono">
                       ✓
                     </span>
                   )}
@@ -404,7 +404,7 @@ export const FlasqoTrafficVisualizer = () => {
               <div className="text-[14px] font-bold text-white tabular-nums">
                 {processed}
               </div>
-              <div className="text-[8px] text-gray-700 uppercase tracking-wider font-mono">
+              <div className="text-[10px] text-gray-700 uppercase tracking-wider font-mono">
                 Seen
               </div>
             </div>
@@ -412,7 +412,7 @@ export const FlasqoTrafficVisualizer = () => {
               <div className="text-[14px] font-bold text-green-400 tabular-nums">
                 {passCount}
               </div>
-              <div className="text-[8px] text-gray-700 uppercase tracking-wider font-mono">
+              <div className="text-[10px] text-gray-700 uppercase tracking-wider font-mono">
                 Pass
               </div>
             </div>
@@ -458,7 +458,7 @@ export const FlasqoTrafficVisualizer = () => {
             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-            <span className="ml-3 text-[10px] text-gray-600 tracking-wider">
+            <span className="ml-3 text-[12px] text-gray-600 tracking-wider">
               flasqo/test-suite
             </span>
             <div className="ml-auto flex items-center gap-1.5">
@@ -466,19 +466,19 @@ export const FlasqoTrafficVisualizer = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
               </span>
-              <span className="text-[9px] text-green-400/70 font-mono">
+              <span className="text-[11px] text-green-400/70 font-mono">
                 RUNNING
               </span>
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-hidden px-4 py-3 text-[11px]">
+          <div className="flex-1 min-h-0 overflow-hidden px-4 py-3 text-[13px]">
             {currentReq && (phase === "intercepting" || phase === "result") ? (
               <div
                 key={currentReq.uid + "-result"}
                 style={{ animation: "ftv-slideIn 0.22s ease-out" }}
               >
-                <div className="flex items-center gap-2 mb-2.5 font-mono text-[10px]">
+                <div className="flex items-center gap-2 mb-2.5 font-mono text-[12px]">
                   <span
                     className={`font-bold ${phase === "result" ? (currentReq.passed ? "text-green-400" : "text-red-400") : "text-yellow-400"}`}
                   >
@@ -499,7 +499,7 @@ export const FlasqoTrafficVisualizer = () => {
                     return (
                       <div
                         key={i}
-                        className="flex items-center gap-2 font-mono text-[10px]"
+                        className="flex items-center gap-2 font-mono text-[12px]"
                         style={{
                           opacity: revealed ? 1 : 0,
                           transition: "opacity 0.18s ease",
@@ -518,7 +518,7 @@ export const FlasqoTrafficVisualizer = () => {
                           {a.label}
                         </span>
                         {i === 0 && (
-                          <span className="ml-auto text-gray-700 text-[9px]">
+                          <span className="ml-auto text-gray-700 text-[11px]">
                             {currentReq.ms}ms
                           </span>
                         )}
@@ -528,7 +528,7 @@ export const FlasqoTrafficVisualizer = () => {
                 </div>
                 {phase === "result" && (
                   <div
-                    className={`font-mono text-[10px] font-bold pt-2 border-t border-slate-800/50 ${currentReq.passed ? "text-green-400" : "text-red-400"}`}
+                    className={`font-mono text-[12px] font-bold pt-2 border-t border-slate-800/50 ${currentReq.passed ? "text-green-400" : "text-red-400"}`}
                     style={{ animation: "ftv-slideIn 0.14s ease-out" }}
                   >
                     {assertions.filter((a) => a.pass).length} passed
@@ -537,7 +537,7 @@ export const FlasqoTrafficVisualizer = () => {
                         , {assertions.filter((a) => !a.pass).length} failed
                       </span>
                     )}
-                    <span className="text-gray-700 font-normal ml-2 text-[9px]">
+                    <span className="text-gray-700 font-normal ml-2 text-[11px]">
                       {currentReq.ms}ms
                     </span>
                   </div>
@@ -548,7 +548,7 @@ export const FlasqoTrafficVisualizer = () => {
                 {liveLog.map((log, i) => (
                   <div
                     key={log.uid}
-                    className="flex items-center gap-2 text-[10px] py-1 border-b border-slate-800/25 last:border-0 font-mono"
+                    className="flex items-center gap-2 text-[12px] py-1 border-b border-slate-800/25 last:border-0 font-mono"
                     style={{
                       opacity: i === 0 ? 1 : Math.max(0.25, 1 - i * 0.18),
                       ...(i === 0
@@ -562,7 +562,7 @@ export const FlasqoTrafficVisualizer = () => {
                       {log.passed ? "✓" : "✗"}
                     </span>
                     <span
-                      className={`text-[9px] font-bold border px-1 py-0.5 rounded flex-shrink-0 ${METHOD_STYLES[log.method]?.badge}`}
+                      className={`text-[11px] font-bold border px-1 py-0.5 rounded flex-shrink-0 ${METHOD_STYLES[log.method]?.badge}`}
                     >
                       {log.method}
                     </span>
@@ -581,7 +581,7 @@ export const FlasqoTrafficVisualizer = () => {
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-gray-700 pt-2 font-mono text-[11px]">
+              <div className="flex items-center gap-2 text-gray-700 pt-2 font-mono text-[13px]">
                 <span className="inline-block w-[7px] h-[13px] bg-gray-700 animate-pulse rounded-sm" />
                 <span>Awaiting first intercept...</span>
               </div>
@@ -590,10 +590,10 @@ export const FlasqoTrafficVisualizer = () => {
 
           <div className="flex-shrink-0 px-3.5 py-1.5 border-t border-slate-800/60 flex items-center gap-2 bg-black/20">
             <CheckCircle size={9} className="text-gray-700" />
-            <span className="text-[9px] text-gray-700 font-mono">
+            <span className="text-[11px] text-gray-700 font-mono">
               validated by flasqo
             </span>
-            <span className="ml-auto font-mono text-[9px]">
+            <span className="ml-auto font-mono text-[11px]">
               <span className="text-green-500/70">{passCount}↑</span>{" "}
               <span className="text-red-500/70">{failCount}↓</span>
             </span>
@@ -650,7 +650,7 @@ export const FlasqoTrafficVisualizer = () => {
               >
                 {value}
               </div>
-              <div className="text-[10px] text-gray-600 uppercase tracking-wider">
+              <div className="text-[12px] text-gray-600 uppercase tracking-wider">
                 {label}
               </div>
             </div>
@@ -683,19 +683,19 @@ export const MatrixCell = ({ v }) => {
     return <span className="text-slate-700 text-base font-mono">—</span>;
   if (v === "partial")
     return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500/75 border border-amber-500/20 whitespace-nowrap">
+      <span className="px-2 py-0.5 rounded text-[12px] font-mono font-bold bg-amber-500/10 text-amber-500/75 border border-amber-500/20 whitespace-nowrap">
         Partial
       </span>
     );
   if (v === "paid")
     return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-700/40 text-gray-500 border border-slate-600/30 whitespace-nowrap">
+      <span className="px-2 py-0.5 rounded text-[12px] font-mono font-bold bg-slate-700/40 text-gray-500 border border-slate-600/30 whitespace-nowrap">
         Paid
       </span>
     );
   if (v === "addon")
     return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-700/40 text-gray-500 border border-slate-600/30 whitespace-nowrap">
+      <span className="px-2 py-0.5 rounded text-[12px] font-mono font-bold bg-slate-700/40 text-gray-500 border border-slate-600/30 whitespace-nowrap">
         Add-on
       </span>
     );
@@ -768,7 +768,7 @@ export const ComparisonMatrix = () => {
           ].map((c, i) => (
             <span
               key={c.label}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-mono font-semibold"
               style={{
                 color: c.color,
                 background: c.bg,
@@ -783,7 +783,7 @@ export const ComparisonMatrix = () => {
               <span className="opacity-60">{c.count}</span>
             </span>
           ))}
-          <span className="text-[11px] text-slate-600 font-mono ml-1">
+          <span className="text-[13px] text-slate-600 font-mono ml-1">
             ← click to switch
           </span>
         </div>
@@ -836,7 +836,7 @@ export const ComparisonMatrix = () => {
                     <button
                       key={g.tab}
                       onClick={() => switchTab(i)}
-                      className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer"
+                      className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-mono font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer"
                       style={{
                         color: isActive ? c.text : c.dimText,
                         background: isActive ? c.activeBg : c.bg,
@@ -853,7 +853,7 @@ export const ComparisonMatrix = () => {
                       />
                       {g.tab}
                       <span
-                        className="text-[9px] px-1 py-px rounded font-mono leading-none"
+                        className="text-[11px] px-1 py-px rounded font-mono leading-none"
                         style={{
                           background: isActive ? `${c.dot}25` : `${c.dot}12`,
                           color: isActive ? c.text : c.dimText,
@@ -864,7 +864,7 @@ export const ComparisonMatrix = () => {
                     </button>
                   );
                 })}
-                <span className="ml-1 text-[9px] text-slate-700 font-mono hidden sm:flex items-center gap-1">
+                <span className="ml-1 text-[11px] text-slate-700 font-mono hidden sm:flex items-center gap-1">
                   <span
                     style={{
                       animation: "matrixArrowBounce 1.4s ease-in-out infinite",
@@ -897,7 +897,7 @@ export const ComparisonMatrix = () => {
             }}
           >
             <Shield size={13} className="text-blue-400" />
-            <span className="text-[10px] font-bold text-white font-mono tracking-widest">
+            <span className="text-[12px] font-bold text-white font-mono tracking-widest">
               FLASQO
             </span>
           </div>
@@ -906,7 +906,7 @@ export const ComparisonMatrix = () => {
               key={name}
               className="flex items-center justify-center py-3.5 border-l border-slate-800/40"
             >
-              <span className="text-[10px] font-mono font-semibold text-slate-600 uppercase tracking-widest">
+              <span className="text-[12px] font-mono font-semibold text-slate-600 uppercase tracking-widest">
                 {name}
               </span>
             </div>
@@ -999,32 +999,32 @@ export const ReviewCard = ({ r }) => (
             />
           ))}
         </div>
-        <p className="text-gray-400 text-[11px] leading-relaxed mb-3 line-clamp-3">
+        <p className="text-gray-400 text-[13px] leading-relaxed mb-3 line-clamp-3">
           &ldquo;{r.text}&rdquo;
         </p>
         <div className="flex items-center gap-2 pt-2.5 border-t border-slate-800/50">
           <div
-            className={`w-7 h-7 rounded-full bg-gradient-to-br ${r.grad} flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0`}
+            className={`w-7 h-7 rounded-full bg-gradient-to-br ${r.grad} flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0`}
           >
             {r.init}
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-white leading-tight">
+            <div className="text-[13px] font-semibold text-white leading-tight">
               {r.name}
             </div>
-            <div className="text-[9px] text-gray-600">{r.role}</div>
+            <div className="text-[11px] text-gray-600">{r.role}</div>
           </div>
         </div>
       </>
     ) : (
       <>
         <div
-          className="text-[10px] font-bold font-mono mb-2.5 tracking-wide"
+          className="text-[12px] font-bold font-mono mb-2.5 tracking-wide"
           style={{ color: r.accent }}
         >
           {r.title}
         </div>
-        <p className="text-gray-400 text-[11px] leading-relaxed line-clamp-4">
+        <p className="text-gray-400 text-[13px] leading-relaxed line-clamp-4">
           &ldquo;{r.text}&rdquo;
         </p>
       </>
@@ -1034,12 +1034,6 @@ export const ReviewCard = ({ r }) => (
 
 export const ReviewsMarquee = () => {
   const row1 = [...REVIEW_CARDS, ...REVIEW_CARDS];
-  const row2 = [
-    ...REVIEW_CARDS.slice(3),
-    ...REVIEW_CARDS.slice(0, 3),
-    ...REVIEW_CARDS.slice(3),
-    ...REVIEW_CARDS.slice(0, 3),
-  ];
 
   return (
     <section id="testimonials" className="relative z-10 py-12">
@@ -1069,7 +1063,7 @@ export const ReviewsMarquee = () => {
             "linear-gradient(90deg,transparent 0%,black 8%,black 92%,transparent 100%)",
         }}
       >
-        <div className="mrq-track overflow-hidden mb-3">
+        <div className="mrq-track overflow-hidden">
           <div
             className="mrq-inner flex"
             style={{
@@ -1082,24 +1076,10 @@ export const ReviewsMarquee = () => {
             ))}
           </div>
         </div>
-        <div className="mrq-track overflow-hidden">
-          <div
-            className="mrq-inner flex"
-            style={{
-              animation: "mrq-right 30s linear infinite",
-              width: "max-content",
-            }}
-          >
-            {row2.map((r, i) => (
-              <ReviewCard key={`r2-${i}`} r={r} />
-            ))}
-          </div>
-        </div>
       </div>
 
       <style>{`
-        @keyframes mrq-left  { from{transform:translateX(0)}    to{transform:translateX(-50%)} }
-        @keyframes mrq-right { from{transform:translateX(-50%)} to{transform:translateX(0)}    }
+        @keyframes mrq-left { from{transform:translateX(0)} to{transform:translateX(-50%)} }
         .mrq-track:hover .mrq-inner { animation-play-state: paused; }
       `}</style>
     </section>
@@ -1193,7 +1173,7 @@ export const PipelineDiagram = () => (
                       }}
                     >
                       <span
-                        className="text-[11px] font-mono font-bold leading-tight"
+                        className="text-[13px] font-mono font-bold leading-tight"
                         style={{ color: mod.c }}
                       >
                         {mod.name}
@@ -1334,9 +1314,9 @@ export const TypewriterSnippet = ({ text, delay = 0 }) => {
 };
 
 export const FaqSection = () => (
-  <section id="faq" className="relative z-10 max-w-3xl mx-auto px-6 py-12">
-    <div className="text-center mb-8">
-      <h2 className="text-3xl md:text-4xl font-bold mb-2 leading-tight">
+  <section id="faq" className="relative z-10 max-w-5xl mx-auto px-6 py-8">
+    <div className="text-center mb-5">
+      <h2 className="text-3xl md:text-4xl font-bold mb-1 leading-tight">
         <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
           Frequently Asked{" "}
         </span>
@@ -1348,15 +1328,15 @@ export const FaqSection = () => (
         Everything developers ask before their first test run
       </p>
     </div>
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
       {FAQ_ITEMS.map((item) => (
         <details
           key={item.q}
-          className="group rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm px-5 py-4 open:border-blue-500/40 transition-colors"
+          className="group rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm px-4 py-3 open:border-blue-500/40 transition-colors"
         >
           <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-slate-200 font-semibold text-sm">
             {item.q}
-            <span className="text-blue-400 group-open:rotate-45 transition-transform text-lg leading-none">
+            <span className="flex-shrink-0 text-blue-400 group-open:rotate-45 transition-transform text-lg leading-none">
               +
             </span>
           </summary>

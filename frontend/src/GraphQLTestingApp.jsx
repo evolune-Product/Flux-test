@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List, LogOut, RefreshCw } from 'lucide-react';
+import { FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Zap, Code, Database, TrendingUp, ChevronDown, ChevronRight, Search, Plus, List, LogOut, RefreshCw, Github } from 'lucide-react';
 import BackButton from './BackButton';
+import GitHubIntegration from './GitHubIntegration.jsx';
 import { saveTestRun } from './testHistoryUtils.js';
 import RecentRuns from './RecentRuns.jsx';
 import { apiFetch } from './lib/api.js';
@@ -38,6 +39,7 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
   const [queryExplanation, setQueryExplanation] = useState('');
   const [expandedSections, setExpandedSections] = useState({ queries: true, mutations: true, types: false });
   const [schemaSearch, setSchemaSearch] = useState('');
+  const [showGitHub, setShowGitHub] = useState(false);
 
   const addTestFromSchemaExplorer = (operation, opType) => {
     const resolveType = (t) => (typeof t === 'string' ? t : t?.name || 'String');
@@ -1342,6 +1344,13 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
                   <FileText size={15} /> Download PDF
                 </button>
                 <button
+                  onClick={() => setShowGitHub(true)}
+                  style={{ ...btnSecondary, flex: 1, border: '1px solid rgba(255,255,255,0.14)' }}
+                  className="gql-btn-secondary"
+                >
+                  <Github size={15} /> Save to GitHub
+                </button>
+                <button
                   onClick={() => { setStep(1); setGeneratedTests([]); setTestResults(null); setSchema(null); }}
                   style={{ ...btnSecondary, flex: 1 }}
                   className="gql-btn-secondary"
@@ -1408,6 +1417,15 @@ const GraphQLTestingApp = ({ user, onLogout }) => {
           </div>
         )}
       </div>
+
+      {showGitHub && testResults && (
+        <GitHubIntegration
+          user={user}
+          testResults={testResults}
+          apiUrl={graphqlEndpoint || 'GraphQL Test'}
+          onClose={() => setShowGitHub(false)}
+        />
+      )}
     </div>
   );
 };

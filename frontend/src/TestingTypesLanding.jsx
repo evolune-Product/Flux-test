@@ -5,89 +5,8 @@ import LaunchButton from "./components/LaunchButton.jsx";
 import {
   Globe, FileCheck, Zap, Activity, AlertTriangle, Bug, GitCompare,
   FileText, Database, Search, Sparkles, Link2, Workflow,
-  Shield, TrendingUp, User, LogOut, ArrowRight,
+  Shield, User, LogOut, ArrowRight,
 } from "lucide-react";
-
-
-// ── Pipeline: data & pure micro-components (module-scoped for stable refs) ───
-
-// ── iOS SF-Symbol-style filled icon set ──────────────────────────────────────
-const I = (d, d2) => (s) => (
-  <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-    <path d={d}/>{d2 && <path d={d2}/>}
-  </svg>
-);
-const PipelineIcons = {
-  1:  I("M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"),                                                                                 // send / paper plane
-  2:  I("M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"), // search
-  3:  I("M7 2v11h3v9l7-12h-4l4-8z"),                                                                                               // bolt / flash
-  4:  I("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"), // check_circle
-  5:  I("M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"),                                                                  // bar_chart
-  6:  I("M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM12 17.3c-.72 0-1.3-.58-1.3-1.3s.58-1.3 1.3-1.3 1.3.58 1.3 1.3-.58 1.3-1.3 1.3zm1-4.3h-2V7h2v6z"), // error octagon
-  7:  I("M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"), // gps_fixed / target
-  8:  I("M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8H12z"), // history
-  9:  I("M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"), // description / doc
-  10: I("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8 17.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM9.5 8c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5S9.5 9.38 9.5 8zm6.5 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"), // hub / nodes
-  11: I("M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"), // share / integration
-  12: I("M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"), // auto_awesome / sparkles
-  13: I("M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z"), // account_tree / org-chart
-};
-
-const PIPELINE_NODES = [
-  { num: 1,  x: 6,  y: 18, name: "FullSend",    glow: "#a855f7", grad: "from-violet-500 to-fuchsia-600",  route: "/fullsend",       badge: "NEW" },
-  { num: 2,  x: 25, y: 18, name: "Auto-Disc",   glow: "#10b981", grad: "from-emerald-500 to-teal-600",    route: "/auto-discovery" },
-  { num: 3,  x: 45, y: 18, name: "Smoke",        glow: "#22c55e", grad: "from-green-500 to-emerald-600",   route: "/smoke" },
-  { num: 4,  x: 65, y: 18, name: "Functional",  glow: "#3b82f6", grad: "from-blue-500 to-blue-700",       route: "/functional" },
-  { num: 5,  x: 84, y: 18, name: "Performance", glow: "#8b5cf6", grad: "from-purple-500 to-purple-700",   route: "/performance" },
-  { num: 6,  x: 84, y: 50, name: "Chaos",       glow: "#f97316", grad: "from-orange-500 to-red-600",      route: "/chaos" },
-  { num: 7,  x: 65, y: 50, name: "Fuzz",        glow: "#ef4444", grad: "from-red-500 to-rose-700",        route: "/fuzz" },
-  { num: 8,  x: 45, y: 50, name: "Regression",  glow: "#06b6d4", grad: "from-cyan-500 to-cyan-700",       route: "/regression" },
-  { num: 9,  x: 25, y: 50, name: "Contract",    glow: "#6366f1", grad: "from-violet-500 to-indigo-600",   route: "/contract" },
-  { num: 10, x: 6,  y: 50, name: "GraphQL",     glow: "#818cf8", grad: "from-indigo-500 to-blue-600",     route: "/graphql" },
-  { num: 11, x: 6,  y: 82, name: "Integration", glow: "#14b8a6", grad: "from-teal-500 to-cyan-600",       route: "/integration",  badge: "NEW" },
-  { num: 12, x: 25, y: 82, name: "Vibe",        glow: "#d946ef", grad: "from-fuchsia-500 to-violet-600",  route: "/vibe-testing" },
-  { num: 13, x: 45, y: 82, name: "Flow",        glow: "#f59e0b", grad: "from-amber-500 to-orange-500",    route: "/flow-builder", badge: "NEW" },
-];
-
-const PipelineEdge = ({ from, to, idx }) => (
-  <path
-    d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
-    fill="none" stroke="rgba(139,92,246,0.28)" strokeWidth="0.9"
-    strokeDasharray="2.5 2" vectorEffect="non-scaling-stroke"
-    style={{ animation: `dashFlow 2s linear ${idx * 0.14}s infinite` }}
-  />
-);
-
-const PipelineNode = ({ node, onClick }) => {
-  const { num, x, y, name, glow, grad, badge } = node;
-  return (
-    <div
-      className="absolute group cursor-pointer select-none"
-      style={{ left: `${x}%`, top: `${y}%`, transform: "translate(-50%,-50%)" }}
-      onClick={onClick}
-    >
-      <div className="flex flex-col items-center gap-1 transition-transform duration-150 group-hover:-translate-y-1">
-        <div className="relative">
-          <div
-            className="absolute -top-1.5 -left-1.5 w-[14px] h-[14px] rounded-full text-[8px] font-black text-white flex items-center justify-center z-10"
-            style={{ background: `linear-gradient(135deg,${glow},${glow}aa)`, boxShadow: `0 0 5px ${glow}55` }}
-          >{num}</div>
-          {badge && (
-            <div
-              className="absolute -top-1.5 -right-2 text-[7px] font-black px-1 py-px rounded-full text-white z-10 whitespace-nowrap"
-              style={{ background: "linear-gradient(135deg,#7c3aed,#db2777)" }}
-            >{badge}</div>
-          )}
-          <div
-            className={`w-9 h-9 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center transition-all duration-150 group-hover:scale-110`}
-            style={{ boxShadow: `0 3px 10px ${glow}30` }}
-          >{PipelineIcons[num]?.(15)}</div>
-        </div>
-        <span className="text-[9px] font-semibold text-slate-500 group-hover:text-slate-200 transition-colors leading-none">{name}</span>
-      </div>
-    </div>
-  );
-};
 
 function TestingTypesLanding({ user, onLogout }) {
   const navigate = useNavigate();
@@ -1048,81 +967,6 @@ function TestingTypesLanding({ user, onLogout }) {
           </div>
 
         </div>
-        {/* Recommended Testing Pipeline */}
-        <div
-          className="relative rounded-2xl mb-10"
-          style={{
-            background: "rgba(5,8,18,0.85)",
-            border: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          {/* Dot grid bg */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, rgba(139,92,246,0.3) 1px, transparent 1px)",
-              backgroundSize: "24px 24px",
-              opacity: 0.08,
-            }}
-          />
-          {/* Ambient glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-20 bg-purple-500/10 blur-3xl pointer-events-none" />
-
-          <div className="relative px-6 py-7">
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <TrendingUp size={16} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white leading-tight">
-                    Recommended Pipeline
-                  </h3>
-                  <p className="text-[11px] text-slate-600 font-mono">
-                    deploy-ready coverage · 13 stages
-                  </p>
-                </div>
-              </div>
-              <div
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-[10px]"
-                style={{
-                  background: "rgba(34,197,94,0.08)",
-                  border: "1px solid rgba(34,197,94,0.18)",
-                }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-green-400/80">
-                  sequential · all 13 modules
-                </span>
-              </div>
-            </div>
-
-            {/* Graph Pipeline */}
-            <div className="relative" style={{ height: 215 }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-                {PIPELINE_NODES.slice(0, -1).map((n, i) => (
-                  <PipelineEdge key={i} from={n} to={PIPELINE_NODES[i + 1]} idx={i} />
-                ))}
-              </svg>
-              {PIPELINE_NODES.map((node) => (
-                <PipelineNode key={node.num} node={node} onClick={() => handleNavigate(node.route)} />
-              ))}
-            </div>
-            <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-              <p className="text-[10px] font-mono text-slate-700">click any stage to launch · run in sequence for full coverage</p>
-              <div
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg font-mono text-[10px] cursor-pointer group transition-all"
-                style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.20)" }}
-                onClick={() => handleNavigate("/fullsend")}
-              >
-                <span className="text-blue-400/70 group-hover:text-blue-300 transition-colors">Start from Stage 1</span>
-                <ArrowRight size={10} className="text-blue-400/70 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* CSS Animations */}
         <style>{`
@@ -1245,7 +1089,7 @@ function TestingTypesLanding({ user, onLogout }) {
                 src="/flasqo-logo.png"
                 alt="Flasqo"
                 style={{
-                  height: "52px",
+                  height: "80px",
                   width: "auto",
                   objectFit: "contain",
                   mixBlendMode: "screen",
@@ -1256,14 +1100,14 @@ function TestingTypesLanding({ user, onLogout }) {
                 href="https://www.evolune.in/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-purple-400/80 hover:text-purple-300 transition-colors tracking-wide"
+                className="text-sm text-purple-400/80 hover:text-purple-300 transition-colors tracking-wide"
               >
                 by EvoluneEdgeTech
               </a>
             </div>
 
             {/* Tagline */}
-            <p className="text-gray-500 text-xs tracking-wide">
+            <p className="text-gray-500 text-sm tracking-wide">
               Professional API Testing Platform • Comprehensive testing for
               modern APIs
             </p>

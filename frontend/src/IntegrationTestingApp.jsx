@@ -21,8 +21,10 @@ import {
   X,
   List,
   LogOut,
+  Github,
 } from 'lucide-react';
 import BackButton from './BackButton';
+import GitHubIntegration from './GitHubIntegration.jsx';
 import { apiFetch } from './lib/api.js';
 
 const ROSE = '#fb7185';
@@ -54,7 +56,7 @@ function ServiceBadge({ label, color }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '2px 8px', borderRadius: 6,
-      fontSize: 11, fontWeight: 600,
+      fontSize: 13, fontWeight: 600,
       background: color.bg,
       border: `1px solid ${color.border}`,
       color: color.text,
@@ -80,6 +82,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
   const [expandedResults, setExpandedResults] = useState({});
   const [saveConflict, setSaveConflict] = useState(null);
   const [showScenariosPanel, setShowScenariosPanel] = useState(false);
+  const [showGitHub, setShowGitHub] = useState(false);
 
   // Service form
   const [showServiceForm, setShowServiceForm] = useState(false);
@@ -354,13 +357,13 @@ export default function IntegrationTestingApp({ user, onLogout }) {
     borderRadius: 8,
     padding: '8px 12px',
     color: '#fff',
-    fontSize: 13,
+    fontSize: 15,
     outline: 'none',
     boxSizing: 'border-box',
   };
 
   const smallLabel = {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 600,
     letterSpacing: '0.07em',
     textTransform: 'uppercase',
@@ -373,7 +376,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
     background: 'linear-gradient(135deg,#be123c,#9f1239)',
     border: 'none', borderRadius: 10,
     padding: '12px 20px',
-    color: '#fff', fontWeight: 700, fontSize: 14,
+    color: '#fff', fontWeight: 700, fontSize: 16,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: '100%',
@@ -429,8 +432,8 @@ export default function IntegrationTestingApp({ user, onLogout }) {
               <Link2 size={16} color="#fff" />
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>Integration Testing</div>
-              <div style={{ fontSize: 11, color: 'rgba(251,113,133,0.7)' }}>Multi-service scenario validation</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>Integration Testing</div>
+              <div style={{ fontSize: 13, color: 'rgba(251,113,133,0.7)' }}>Multi-service scenario validation</div>
             </div>
           </div>
 
@@ -447,11 +450,11 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   width: 24, height: 24, borderRadius: '50%',
                   background: 'linear-gradient(135deg,#be123c,#9f1239)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, color: '#fff',
+                  fontSize: 12, fontWeight: 700, color: '#fff',
                 }}>
                   {user.username?.charAt(0).toUpperCase()}
                 </div>
-                <span style={{ fontSize: 12, color: '#fff' }}>{user.username}</span>
+                <span style={{ fontSize: 14, color: '#fff' }}>{user.username}</span>
               </div>
               <button
                 onClick={onLogout}
@@ -461,7 +464,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   background: 'rgba(220,38,38,0.15)',
                   border: '1px solid rgba(220,38,38,0.28)',
                   borderRadius: 7, color: '#f87171',
-                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  fontSize: 14, fontWeight: 600, cursor: 'pointer',
                 }}
               >
                 <LogOut size={12} /> Logout
@@ -498,8 +501,8 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   <FolderOpen size={20} color="#fff" />
                 </div>
                 <div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>Saved Scenarios</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>Saved Scenarios</div>
+                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
                     {savedScenarios.length} scenario{savedScenarios.length !== 1 ? 's' : ''} saved
                   </div>
                 </div>
@@ -520,8 +523,8 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             {savedScenarios.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '64px 0' }}>
                 <FolderOpen size={48} color="rgba(255,255,255,0.15)" style={{ margin: '0 auto 16px' }} />
-                <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)' }}>No scenarios saved yet.</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', marginTop: 4 }}>Build a flow in the editor and save it.</div>
+                <div style={{ fontSize: 17, color: 'rgba(255,255,255,0.4)' }}>No scenarios saved yet.</div>
+                <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.25)', marginTop: 4 }}>Build a flow in the editor and save it.</div>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 16 }}>
@@ -536,14 +539,14 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   className="int-card-hover"
                   >
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
-                      {s.description && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.description}</div>}
+                      <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                      {s.description && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.description}</div>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
                         <Server size={12} color={ROSE} /> {(s.services || []).length} service{(s.services || []).length !== 1 ? 's' : ''}
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
                         <List size={12} color="#60a5fa" /> {(s.steps || []).length} step{(s.steps || []).length !== 1 ? 's' : ''}
                       </span>
                     </div>
@@ -552,7 +555,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                         const c = SERVICE_COLORS[idx % SERVICE_COLORS.length];
                         return (
                           <span key={svc.id} style={{
-                            fontSize: 10, padding: '2px 8px', borderRadius: 99,
+                            fontSize: 12, padding: '2px 8px', borderRadius: 99,
                             background: c.bg, border: `1px solid ${c.border}`, color: c.text,
                           }}>
                             {svc.name}
@@ -561,7 +564,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                       })}
                       {(s.services || []).length > 3 && (
                         <span style={{
-                          fontSize: 10, padding: '2px 8px', borderRadius: 99,
+                          fontSize: 12, padding: '2px 8px', borderRadius: 99,
                           background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.4)',
                         }}>
                           +{s.services.length - 3} more
@@ -572,7 +575,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                       <button
                         onClick={() => { handleLoadScenario(s); setShowScenariosPanel(false); }}
                         style={{
-                          flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                          flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 14, fontWeight: 600,
                           background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.30)', color: '#93c5fd',
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         }}
@@ -614,14 +617,14 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Server size={14} color={ROSE} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Service Registry</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>({services.length})</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Service Registry</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>({services.length})</span>
               </div>
               <button
                 onClick={() => { setShowServiceForm(true); setEditingServiceId(null); setServiceForm({ name: '', base_url: '', auth_type: 'none', token: '', api_key: '', header_name: 'X-API-Key', username: '', password: '' }); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6,
+                  padding: '4px 10px', fontSize: 13, fontWeight: 600, borderRadius: 6,
                   background: ROSE_DIM, border: `1px solid ${ROSE_BORDER}`, color: ROSE, cursor: 'pointer',
                 }}
               >
@@ -630,7 +633,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             </div>
 
             {services.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 14, color: 'rgba(255,255,255,0.25)' }}>
                 No services registered. Add one to start.
               </div>
             )}
@@ -647,9 +650,9 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{svc.name}</span>
+                        <span style={{ fontSize: 15, fontWeight: 600, color: c.text }}>{svc.name}</span>
                       </div>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', display: 'block', marginLeft: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.base_url}</span>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', display: 'block', marginLeft: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.base_url}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 8 }}>
                       <button onClick={() => handleEditService(svc)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
@@ -668,7 +671,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             {showServiceForm && (
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{editingServiceId ? 'Edit Service' : 'New Service'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{editingServiceId ? 'Edit Service' : 'New Service'}</span>
                   <button onClick={() => setShowServiceForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
                     <X size={13} />
                   </button>
@@ -711,7 +714,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                 <button
                   onClick={handleSaveService}
                   style={{
-                    padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    padding: '8px 0', borderRadius: 8, fontSize: 15, fontWeight: 700,
                     background: 'linear-gradient(135deg,#be123c,#9f1239)', border: 'none',
                     color: '#fff', cursor: 'pointer',
                   }}
@@ -727,14 +730,14 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Layers size={14} color="#60a5fa" />
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Scenario Steps</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>({steps.length})</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Scenario Steps</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>({steps.length})</span>
               </div>
               <button
                 onClick={() => { setShowStepForm(true); setEditingStepId(null); setStepForm({ name: '', service_id: services[0]?.id || '', method: 'GET', endpoint: '', body: '', expected_status: 200, extractionName: '', extractionPath: '' }); setExtractions([]); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6,
+                  padding: '4px 10px', fontSize: 13, fontWeight: 600, borderRadius: 6,
                   background: 'rgba(96,165,250,0.14)', border: '1px solid rgba(96,165,250,0.30)', color: '#93c5fd', cursor: 'pointer',
                 }}
               >
@@ -743,7 +746,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             </div>
 
             {steps.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 14, color: 'rgba(255,255,255,0.25)' }}>
                 No steps defined. Add a step to build your scenario.
               </div>
             )}
@@ -758,13 +761,13 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                     padding: '8px 12px', borderRadius: 8,
                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
                   }}>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', width: 18, flexShrink: 0 }}>{idx + 1}.</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', width: 18, flexShrink: 0 }}>{idx + 1}.</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{step.name}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{step.name}</span>
                         {svc && <ServiceBadge label={svc.name} color={c} />}
                       </div>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
                         <span style={{ color: methodColor[step.method] || '#fff' }}>{step.method}</span>
                         {' '}{step.endpoint || '/'}
                       </span>
@@ -786,7 +789,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             {showStepForm && (
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{editingStepId ? 'Edit Step' : 'New Step'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{editingStepId ? 'Edit Step' : 'New Step'}</span>
                   <button onClick={() => setShowStepForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
                     <X size={13} />
                   </button>
@@ -817,14 +820,14 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>Expected status</label>
+                  <label style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>Expected status</label>
                   <input
                     type="number" style={{ ...inputStyle, width: 80 }} className="int-input"
                     value={stepForm.expected_status} onChange={e => setStepForm(p => ({ ...p, expected_status: e.target.value }))}
                   />
                 </div>
                 <textarea
-                  style={{ ...inputStyle, height: 72, fontFamily: 'monospace', fontSize: 11, resize: 'vertical' }}
+                  style={{ ...inputStyle, height: 72, fontFamily: 'monospace', fontSize: 13, resize: 'vertical' }}
                   className="int-input"
                   rows={3}
                   placeholder='Request body (JSON, optional). Use {{varName}} for variables.'
@@ -834,10 +837,10 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                 {/* Available vars hint */}
                 {availableVars.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Available vars:</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Available vars:</span>
                     {availableVars.map(v => (
                       <span key={v} style={{
-                        fontSize: 10, fontFamily: 'monospace', padding: '1px 6px',
+                        fontSize: 12, fontFamily: 'monospace', padding: '1px 6px',
                         background: 'rgba(253,230,138,0.10)', border: '1px solid rgba(253,230,138,0.20)',
                         borderRadius: 4, color: '#fde68a',
                       }}>{`{{${v}}}`}</span>
@@ -847,10 +850,10 @@ export default function IntegrationTestingApp({ user, onLogout }) {
 
                 {/* Extractions */}
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6 }}>Variable Extractions (JSONPath)</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6 }}>Variable Extractions (JSONPath)</span>
                   {extractions.map((e, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#fde68a', flex: 1 }}>{e.name} ← {e.jsonpath}</span>
+                      <span style={{ fontSize: 13, fontFamily: 'monospace', color: '#fde68a', flex: 1 }}>{e.name} ← {e.jsonpath}</span>
                       <button onClick={() => setExtractions(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', display: 'flex' }}>
                         <X size={11} />
                       </button>
@@ -858,12 +861,12 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   ))}
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input
-                      style={{ ...inputStyle, flex: 1, fontSize: 11, padding: '6px 10px' }} className="int-input"
+                      style={{ ...inputStyle, flex: 1, fontSize: 13, padding: '6px 10px' }} className="int-input"
                       placeholder="Var name (e.g. token)"
                       value={stepForm.extractionName} onChange={e => setStepForm(p => ({ ...p, extractionName: e.target.value }))}
                     />
                     <input
-                      style={{ ...inputStyle, flex: 1, fontSize: 11, padding: '6px 10px' }} className="int-input"
+                      style={{ ...inputStyle, flex: 1, fontSize: 13, padding: '6px 10px' }} className="int-input"
                       placeholder="JSONPath (e.g. $.token)"
                       value={stepForm.extractionPath} onChange={e => setStepForm(p => ({ ...p, extractionPath: e.target.value }))}
                     />
@@ -872,7 +875,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                       style={{
                         padding: '6px 10px', borderRadius: 6,
                         background: 'rgba(253,230,138,0.12)', border: '1px solid rgba(253,230,138,0.25)',
-                        color: '#fde68a', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        color: '#fde68a', fontSize: 15, fontWeight: 700, cursor: 'pointer',
                       }}
                     >+</button>
                   </div>
@@ -881,7 +884,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                 <button
                   onClick={handleSaveStep}
                   style={{
-                    padding: '9px 0', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    padding: '9px 0', borderRadius: 8, fontSize: 15, fontWeight: 700,
                     background: 'linear-gradient(135deg,#1d4ed8,#1e40af)', border: 'none',
                     color: '#fff', cursor: 'pointer',
                   }}
@@ -897,14 +900,14 @@ export default function IntegrationTestingApp({ user, onLogout }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Save size={14} color="#34d399" />
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Scenario Management</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Scenario Management</span>
               </div>
               {savedScenarios.length > 0 && (
                 <button
                   onClick={() => setShowScenariosPanel(true)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: 11, color: '#93c5fd', background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 13, color: '#93c5fd', background: 'none', border: 'none', cursor: 'pointer',
                   }}
                 >
                   <List size={12} /> View All ({savedScenarios.length})
@@ -924,7 +927,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '8px 12px', borderRadius: 8,
                   background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.28)',
-                  color: '#6ee7b7', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                  color: '#6ee7b7', fontSize: 14, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                 }}
               >
                 <Save size={12} /> Save
@@ -937,14 +940,14 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                 marginBottom: 12, padding: 12, borderRadius: 10,
                 background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)',
               }}>
-                <p style={{ fontSize: 12, color: '#fde68a', marginBottom: 10 }}>
+                <p style={{ fontSize: 14, color: '#fde68a', marginBottom: 10 }}>
                   <span style={{ fontWeight: 700 }}>"{saveConflict.name}"</span> already exists. What do you want to do?
                 </p>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     onClick={() => handleSaveScenario(saveConflict.id)}
                     style={{
-                      flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                      flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 13, fontWeight: 700,
                       background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.30)',
                       color: '#fde68a', cursor: 'pointer',
                     }}
@@ -954,7 +957,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   <button
                     onClick={() => { setSaveConflict(null); setScenarioName(scenarioName + ' (copy)'); }}
                     style={{
-                      flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                      flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 13, fontWeight: 700,
                       background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
                       color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
                     }}
@@ -964,7 +967,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   <button
                     onClick={() => setSaveConflict(null)}
                     style={{
-                      padding: '6px 10px', borderRadius: 6, fontSize: 11,
+                      padding: '6px 10px', borderRadius: 6, fontSize: 13,
                       background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
                       color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
                     }}
@@ -977,19 +980,19 @@ export default function IntegrationTestingApp({ user, onLogout }) {
 
             {savedScenarios.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Saved scenarios</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Saved scenarios</span>
                 {savedScenarios.map(s => (
                   <div key={s.id} className="int-row-hover" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '7px 10px', borderRadius: 8,
                     background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
                   }}>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, flexShrink: 0 }}>
                       <button
                         onClick={() => handleLoadScenario(s)}
                         style={{
-                          padding: '3px 8px', borderRadius: 5, fontSize: 11,
+                          padding: '3px 8px', borderRadius: 5, fontSize: 13,
                           background: 'rgba(59,130,246,0.14)', border: '1px solid rgba(59,130,246,0.28)',
                           color: '#93c5fd', cursor: 'pointer',
                         }}
@@ -1038,7 +1041,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                 onClick={() => setActiveTab(tab)}
                 style={{
                   flex: 1, padding: '9px 0', borderRadius: 8,
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 15, fontWeight: 600,
                   background: activeTab === tab ? 'linear-gradient(135deg,#be123c,#9f1239)' : 'transparent',
                   border: activeTab === tab ? 'none' : 'none',
                   color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.45)',
@@ -1051,6 +1054,19 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                 {tab === 'results' ? 'Results' : 'Logs'}
               </button>
             ))}
+            {results && (
+              <button
+                onClick={() => setShowGitHub(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                  padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)',
+                  color: 'rgba(255,255,255,0.65)', cursor: 'pointer',
+                }}
+              >
+                <Github size={14} /> Save to GitHub
+              </button>
+            )}
           </div>
 
           {/* ── Results Tab */}
@@ -1063,7 +1079,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   textAlign: 'center', padding: '80px 20px',
                 }}>
                   <Link2 size={40} color="rgba(255,255,255,0.12)" style={{ margin: '0 auto 12px' }} />
-                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>Configure your services and steps, then click Run.</div>
+                  <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.35)' }}>Configure your services and steps, then click Run.</div>
                 </div>
               )}
 
@@ -1074,7 +1090,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   textAlign: 'center', padding: '80px 20px',
                 }}>
                   <div style={{ width: 40, height: 40, border: `3px solid ${ROSE_DIM}`, borderTopColor: ROSE, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>Executing integration scenario...</div>
+                  <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)' }}>Executing integration scenario...</div>
                 </div>
               )}
 
@@ -1083,9 +1099,9 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                   {/* Overall summary */}
                   <div style={card}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Overall Summary</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Overall Summary</span>
                       <span style={{
-                        fontSize: 14, fontWeight: 800,
+                        fontSize: 16, fontWeight: 800,
                         color: results.summary.failed > 0 ? '#f87171' : '#34d399',
                       }}>
                         {results.summary.pass_rate}% pass rate
@@ -1098,8 +1114,8 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                         { val: results.summary.failed, label: 'Failed', color: '#f87171'  },
                       ].map(({ val, label, color }) => (
                         <div key={label} style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 24, fontWeight: 800, color }}>{val}</div>
-                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{label}</div>
+                          <div style={{ fontSize: 26, fontWeight: 800, color }}>{val}</div>
+                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{label}</div>
                         </div>
                       ))}
                     </div>
@@ -1129,11 +1145,11 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                               <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.dot }} />
-                              <span style={{ fontSize: 12, fontWeight: 700, color: c.text }}>{svcSum.name}</span>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{svcSum.name}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-                              <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{svcSum.passed}</span>
-                              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>/ {svcSum.total} passed</span>
+                              <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{svcSum.passed}</span>
+                              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>/ {svcSum.total} passed</span>
                             </div>
                             <div style={{ height: 4, background: 'rgba(255,255,255,0.10)', borderRadius: 99, overflow: 'hidden' }}>
                               <div style={{
@@ -1166,18 +1182,18 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                             className="int-row-hover"
                             onClick={() => setExpandedResults(prev => ({ ...prev, [r.step_id]: !prev[r.step_id] }))}
                           >
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', width: 18, flexShrink: 0 }}>{idx + 1}</span>
+                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', width: 18, flexShrink: 0 }}>{idx + 1}</span>
                             {r.status === 'PASS'
                               ? <CheckCircle size={15} color="#34d399" style={{ flexShrink: 0 }} />
                               : <XCircle size={15} color="#f87171" style={{ flexShrink: 0 }} />
                             }
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 2 }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{r.step_name}</span>
+                                <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{r.step_name}</span>
                                 <ServiceBadge label={r.service_name} color={c} />
                                 {hasExtracted && (
                                   <span style={{
-                                    fontSize: 10, padding: '1px 6px', borderRadius: 4,
+                                    fontSize: 12, padding: '1px 6px', borderRadius: 4,
                                     background: 'rgba(253,230,138,0.10)', border: '1px solid rgba(253,230,138,0.20)',
                                     color: '#fde68a', display: 'inline-flex', alignItems: 'center', gap: 3,
                                   }}>
@@ -1185,10 +1201,10 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                                   </span>
                                 )}
                               </div>
-                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>{r.details}</span>
+                              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)' }}>{r.details}</span>
                             </div>
                             <span style={{
-                              fontSize: 11, fontWeight: 800,
+                              fontSize: 13, fontWeight: 800,
                               padding: '3px 8px', borderRadius: 6, flexShrink: 0,
                               background: r.status === 'PASS' ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)',
                               color: r.status === 'PASS' ? '#34d399' : '#f87171',
@@ -1212,11 +1228,11 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                                 <div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
                                     <Variable size={11} color="#fde68a" />
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fde68a' }}>Extracted Variables</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fde68a' }}>Extracted Variables</span>
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {Object.entries(r.extracted_vars).map(([k, v]) => (
-                                      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'monospace', fontSize: 12 }}>
+                                      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'monospace', fontSize: 14 }}>
                                         <span style={{ color: '#fde68a' }}>{k}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.35)' }}>=</span>
                                         <span style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{String(v)}</span>
@@ -1229,10 +1245,10 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                                 <div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
                                     <AlertCircle size={11} color="#fb923c" />
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fb923c' }}>AI Analysis</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fb923c' }}>AI Analysis</span>
                                   </div>
                                   <p style={{
-                                    fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, margin: 0,
+                                    fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, margin: 0,
                                     background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.15)',
                                     borderRadius: 8, padding: '10px 12px',
                                   }}>{r.ai_analysis}</p>
@@ -1268,10 +1284,10 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f57' }} />
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#febc2e' }} />
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#28c840' }} />
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 8, fontFamily: 'monospace' }}>integration-runner.log</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginLeft: 8, fontFamily: 'monospace' }}>integration-runner.log</span>
               </div>
 
-              <div style={{ padding: 16, fontFamily: 'monospace', fontSize: 11, minHeight: 400, maxHeight: '70vh', overflowY: 'auto' }}>
+              <div style={{ padding: 16, fontFamily: 'monospace', fontSize: 13, minHeight: 400, maxHeight: '70vh', overflowY: 'auto' }}>
                 {logs.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)' }}>
                     Logs will appear here when you run a scenario.
@@ -1285,7 +1301,7 @@ export default function IntegrationTestingApp({ user, onLogout }) {
                       <span style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{log.ts}</span>
                       {svcColor && svcName && (
                         <span style={{
-                          fontSize: 10, padding: '0px 5px', borderRadius: 3, flexShrink: 0,
+                          fontSize: 12, padding: '0px 5px', borderRadius: 3, flexShrink: 0,
                           background: svcColor.bg, color: svcColor.text,
                         }}>{svcName}</span>
                       )}
@@ -1298,6 +1314,15 @@ export default function IntegrationTestingApp({ user, onLogout }) {
           )}
         </div>
       </div>
+
+      {showGitHub && results && (
+        <GitHubIntegration
+          user={user}
+          testResults={results}
+          apiUrl={scenarioName?.trim() || `${services.length} service(s) · ${steps.length} step(s)`}
+          onClose={() => setShowGitHub(false)}
+        />
+      )}
     </div>
   );
 }

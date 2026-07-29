@@ -149,7 +149,7 @@ function AutoDiscoveryApp({ user, onLogout }) {
     return config;
   };
 
-  // Start discovery
+  // Start discovery using SSE streaming for real-time progress updates
   const startDiscovery = async () => {
     if (!targetUrl.trim()) {
       setError('Please enter a URL');
@@ -165,8 +165,11 @@ function AutoDiscoveryApp({ user, onLogout }) {
     setTestResults(null);
     setSelectedTests(new Set());
 
+    abortControllerRef.current = new AbortController();
+    const collectedEndpoints = [];
+
     try {
-      const response = await fetch(`${API_BASE_URL}/discovery/start`, {
+      const response = await fetch(`${API_BASE_URL}/discovery/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +180,8 @@ function AutoDiscoveryApp({ user, onLogout }) {
           discovery_methods: ['all'],
           auth_config: buildAuthConfig(),
           test_types: ['smoke', 'security', 'functional']
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -185,19 +189,69 @@ function AutoDiscoveryApp({ user, onLogout }) {
         throw new Error(errorData.detail || 'Discovery failed');
       }
 
-      const data = await response.json();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let completed = false;
 
-      setDiscoveredEndpoints(data.endpoints || []);
-      setSecurityScore(data.security_score);
-      setGeneratedTests(data.generated_tests || []);
-      setLiveProgress(data.progress_log || []);
-      setMetadata(data.metadata);
-      setDiscoveryState('complete');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      // Auto-select all tests
-      setSelectedTests(new Set(data.generated_tests?.map(t => t.id) || []));
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            switch (event.type) {
+              case 'endpoint':
+                collectedEndpoints.push(event.endpoint);
+                setDiscoveredEndpoints([...collectedEndpoints]);
+                break;
+              case 'security':
+                setSecurityScore(event.score);
+                break;
+              case 'tests':
+                setGeneratedTests(event.tests || []);
+                setSelectedTests(new Set((event.tests || []).map(t => t.id)));
+                break;
+              case 'progress':
+                setLiveProgress(prev => {
+                  const filtered = prev.filter(p => p.step !== event.step);
+                  return [...filtered, { step: event.step, status: event.status, message: event.message, detail: event.detail }];
+                });
+                break;
+              case 'complete':
+                completed = true;
+                setMetadata({
+                  methods_used: ['openapi', 'crawler', 'wellknown'],
+                  endpoint_sources: {
+                    openapi: collectedEndpoints.filter(e => e.source === 'openapi').length,
+                    crawler: collectedEndpoints.filter(e => e.source === 'crawler').length,
+                    wellknown: collectedEndpoints.filter(e => e.source === 'wellknown').length,
+                  },
+                  test_categories: {}
+                });
+                setDiscoveryState('complete');
+                break;
+              default:
+                break;
+            }
+          } catch (e) {
+            // Ignore SSE parse errors
+          }
+        }
+      }
+
+      if (!completed) {
+        setDiscoveryState('complete');
+      }
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setError(err.message);
       setDiscoveryState('error');
     }

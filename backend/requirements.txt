@@ -25,3 +25,6 @@ beautifulsoup4
 lxml
 pyyaml
 playwright
+slowapi
+gunicorn
+sentry-sdk[fastapi]

@@ -193,7 +193,8 @@ async def _crawl_page(browser, url: str, base_url: str, semaphore: asyncio.Semap
             result["api_calls"] = api_calls[:20]
 
         except Exception as exc:
-            result["error"] = str(exc)
+            result["error"] = "Failed to crawl page"
+            print(f"[Crawl Error] {type(exc).__name__}")
 
         finally:
             await page.close()
@@ -315,7 +316,8 @@ async def crawl_application(url: str, scan_id: str, max_pages: int = 12) -> Dict
                         }
                     )
             except Exception as e:
-                pages.append({"url": url, "error": str(e), "status_code": 0})
+                pages.append({"url": url, "error": "Request failed", "status_code": 0})
+                print(f"[Page Error] {url}: {type(e).__name__}")
         return {"pages": pages, "routes": [url], "api_calls": []}
 
     # Run Playwright in a dedicated thread with a ProactorEventLoop.
@@ -491,7 +493,7 @@ async def run_ai_functional_tests(crawl_data: Dict) -> Dict:
                     }
                 except Exception as exc:
                     ms = round((time.perf_counter() - t0) * 1000)
-                    return {**tc, "actual_status": 0, "response_ms": ms, "passed": False, "note": str(exc)[:120]}
+                    return {**tc, "actual_status": 0, "response_ms": ms, "passed": False, "note": "Request failed"}
 
             tasks = [_exec(tc) for tc in test_cases[:12]]
             results = list(await asyncio.gather(*tasks))
@@ -815,10 +817,13 @@ async def synthesize_report(
             positive_findings = parsed.get("positive_findings", [])
             priority_actions = parsed.get("priority_actions", [])
         except Exception as e:
-            ai_insights = f"AI synthesis unavailable: {e}"
+            # Never expose raw error messages - they may contain API keys or sensitive data
+            ai_insights = "AI synthesis unavailable. Please check your OpenAI API configuration."
             ai_issues = []
             positive_findings = []
             priority_actions = []
+            # Log the actual error securely (not shown to users)
+            print(f"[FullSend AI Error] {type(e).__name__}: {str(e)[:100]}")
     else:
         ai_insights = "AI synthesis disabled (no OpenAI key configured)."
         positive_findings = []
@@ -932,8 +937,9 @@ async def run_full_scan(scan_id: str, raw_url: str, report_token: str):
 
     except Exception as exc:
         scan_store[scan_id]["status"] = "error"
-        scan_store[scan_id]["error"] = str(exc)
+        scan_store[scan_id]["error"] = "Scan failed. Please try again."
         scan_store[scan_id]["phase"] = "Scan failed"
+        print(f"[FullSend Scan Error] {scan_id}: {type(exc).__name__}: {str(exc)[:200]}")
         # Save a minimal error report so the token still resolves
         _save_report(report_token, {
             "report_token": report_token,
@@ -971,7 +977,7 @@ async def start_fullsend_scan(
     return {
         "scan_id": scan_id,
         "report_token": report_token,
-        "report_url": f"/fullsend/report/{report_token}",
+        "report_url": f"/report/fullsend/{report_token}",
     }
 
 

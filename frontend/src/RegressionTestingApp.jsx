@@ -18,8 +18,10 @@ import {
   Minus,
   User,
   Zap,
+  Github,
 } from 'lucide-react';
 import BackButton from './BackButton';
+import GitHubIntegration from './GitHubIntegration.jsx';
 import { saveTestRun } from './testHistoryUtils.js';
 import { apiFetch, API_BASE_URL } from './lib/api.js';
 
@@ -35,6 +37,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
   const [isCreatingBaseline, setIsCreatingBaseline] = useState(false);
   const [activeTab, setActiveTab] = useState('baselines'); // 'baselines', 'create', 'results', 'history'
   const [logs, setLogs] = useState([]);
+  const [showGitHub, setShowGitHub] = useState(false);
 
   // Form state for creating baseline
   const [baselineForm, setBaselineForm] = useState({
@@ -353,9 +356,9 @@ const RegressionTestingApp = ({ user, onLogout }) => {
   };
   const labelStyle = {
     display: 'block',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
-    color: 'rgba(255,255,255,0.45)',
+    color: 'rgba(255,255,255,0.60)',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
     marginBottom: 6,
@@ -407,10 +410,10 @@ const RegressionTestingApp = ({ user, onLogout }) => {
               <GitCompare size={17} color="#fff" />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.01em' }}>
                 Regression Testing
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -1 }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: -1 }}>
                 Baseline comparison &amp; change detection
               </div>
             </div>
@@ -422,9 +425,9 @@ const RegressionTestingApp = ({ user, onLogout }) => {
             padding: '5px 12px',
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)',
+            borderRadius: 8, fontSize: 15, color: 'rgba(255,255,255,0.85)',
           }}>
-            <User size={13} /> {user.username}
+            <User size={15} /> {user.username}
           </div>
         )}
       </div>
@@ -444,7 +447,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', margin: 0, marginBottom: 8 }}>
             Regression Testing &amp; Baseline Comparison
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 14, margin: 0 }}>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, margin: 0 }}>
             Capture API baselines and automatically detect regressions over time.
           </p>
 
@@ -460,7 +463,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                 border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 10, fontSize: 13,
               }}>
-                <span style={{ color: 'rgba(255,255,255,0.40)' }}>{s.label}: </span>
+                <span style={{ color: 'rgba(255,255,255,0.55)' }}>{s.label}: </span>
                 <span style={{ color: s.color, fontWeight: 700 }}>{s.value}</span>
               </div>
             ))}
@@ -508,8 +511,8 @@ const RegressionTestingApp = ({ user, onLogout }) => {
               {baselines.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)' }}>
                   <GitCompare size={36} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.2 }} />
-                  <p style={{ margin: 0, fontSize: 12 }}>No baselines yet</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>
+                  <p style={{ margin: 0, fontSize: 13 }}>No baselines yet</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
                     Create a baseline to start
                   </p>
                 </div>
@@ -534,16 +537,16 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                             <span style={{
-                              padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 700,
+                              padding: '1px 6px', borderRadius: 4, fontSize: 11, fontWeight: 700,
                               color: methodColor(baseline.http_method),
                               background: 'rgba(0,0,0,0.30)',
                               fontFamily: '"JetBrains Mono","Fira Code",monospace',
                             }}>{baseline.http_method}</span>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {baseline.api_url.length > 28 ? baseline.api_url.substring(0, 28) + '…' : baseline.api_url}
                             </span>
                           </div>
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>
                             {new Date(baseline.created_at).toLocaleDateString()}
                           </div>
                         </div>
@@ -659,7 +662,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                             background: 'rgba(255,255,255,0.02)',
                             border: '1px solid rgba(255,255,255,0.06)',
                           }}>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.label}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.label}</div>
                             <div style={{
                               fontSize: 14, fontWeight: 600,
                               color: f.color || '#e2e8f0',
@@ -672,7 +675,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                           background: 'rgba(255,255,255,0.02)',
                           border: '1px solid rgba(255,255,255,0.06)',
                         }}>
-                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>API URL</div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>API URL</div>
                           <div style={{
                             fontSize: 13, color: CYAN,
                             fontFamily: '"JetBrains Mono","Fira Code",monospace',
@@ -697,14 +700,14 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                             {['#ff5f57','#febc2e','#28c840'].map(c => (
                               <div key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c, opacity: 0.80 }} />
                             ))}
-                            <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                            <span style={{ marginLeft: 6, fontSize: 11, color: 'rgba(255,255,255,0.40)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
                               regression.log
                             </span>
                           </div>
-                          <div style={{ padding: 12, maxHeight: 160, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 11 }}>
+                          <div style={{ padding: 12, maxHeight: 160, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
                             {logs.map((log, i) => (
                               <div key={i} style={{ display: 'flex', gap: 8, lineHeight: 1.5, marginBottom: 2 }}>
-                                <span style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{log.timestamp}</span>
+                                <span style={{ color: 'rgba(255,255,255,0.40)', flexShrink: 0 }}>{log.timestamp}</span>
                                 <span style={logColor(log.type)}>{log.message}</span>
                               </div>
                             ))}
@@ -716,7 +719,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                     <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.20)' }}>
                       <GitCompare size={52} style={{ margin: '0 auto 14px', display: 'block', opacity: 0.15 }} />
                       <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>Select a baseline from the list</p>
-                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.20)' }}>
+                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.38)' }}>
                         Or create a new baseline to get started
                       </p>
                     </div>
@@ -769,7 +772,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>— or fill manually —</div>
+                    <div style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.40)' }}>— or fill manually —</div>
 
                     <div>
                       <label style={labelStyle}>Baseline Name *</label>
@@ -868,7 +871,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                       padding: '14px 16px', borderRadius: 10,
                       background: CYAN_DIM,
                       border: `1px solid rgba(34,211,238,0.20)`,
-                      fontSize: 12, color: 'rgba(34,211,238,0.80)', lineHeight: 1.7,
+                      fontSize: 13, color: 'rgba(34,211,238,0.85)', lineHeight: 1.7,
                     }}>
                       <div style={{ fontWeight: 700, marginBottom: 6, color: CYAN }}>What happens when you create a baseline?</div>
                       <ul style={{ margin: 0, paddingLeft: 16 }}>
@@ -908,15 +911,30 @@ const RegressionTestingApp = ({ user, onLogout }) => {
               {/* ─ Results Tab ─ */}
               {activeTab === 'results' && (
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <BarChart3 size={18} /> Test Results
+                  <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 22, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <BarChart3 size={18} /> Test Results
+                    </span>
+                    {testResults && (
+                      <button
+                        onClick={() => setShowGitHub(true)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+                          color: 'rgba(255,255,255,0.75)', cursor: 'pointer',
+                        }}
+                      >
+                        <Github size={14} /> Save to GitHub
+                      </button>
+                    )}
                   </div>
 
                   {!testResults ? (
                     <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.20)' }}>
                       <BarChart3 size={52} style={{ margin: '0 auto 14px', display: 'block', opacity: 0.15 }} />
                       <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>No results yet</p>
-                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.20)' }}>Run a regression test to see results</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.38)' }}>Run a regression test to see results</p>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -933,7 +951,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                         <div style={{ fontWeight: 800, fontSize: 18, color: testResults.passed ? '#34d399' : '#f87171', marginBottom: 4 }}>
                           {testResults.passed ? 'No Regressions Detected!' : 'Regressions Detected!'}
                         </div>
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.60)' }}>
                           {testResults.passed
                             ? 'API response matches baseline perfectly'
                             : `${testResults.differences.length} difference(s) found`
@@ -953,7 +971,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                             background: 'rgba(255,255,255,0.02)',
                             border: '1px solid rgba(255,255,255,0.06)',
                           }}>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
                             <div style={{ fontSize: 20, fontWeight: 800, color: s.color, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>{s.value}</div>
                           </div>
                         ))}
@@ -976,7 +994,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                                     <div style={{ fontWeight: 700, color: '#f87171', fontSize: 13 }}>
                                       {diff.type.replace('_', ' ').toUpperCase()}
                                     </div>
-                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{diff.message}</div>
+                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>{diff.message}</div>
                                   </div>
                                 </div>
 
@@ -986,9 +1004,9 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                                       <div key={idx} style={{
                                         padding: '8px 10px', borderRadius: 7,
                                         background: 'rgba(0,0,0,0.25)',
-                                        fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 11,
+                                        fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12,
                                       }}>
-                                        <div style={{ color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Path: {change.path}</div>
+                                        <div style={{ color: 'rgba(255,255,255,0.50)', marginBottom: 4 }}>Path: {change.path}</div>
                                         <div style={{ display: 'flex', gap: 16 }}>
                                           <div style={{ flex: 1 }}>
                                             <span style={{ color: '#f87171', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1004,7 +1022,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                                       </div>
                                     ))}
                                     {diff.changes.length > 10 && (
-                                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', textAlign: 'center' }}>
+                                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
                                         … and {diff.changes.length - 10} more changes
                                       </div>
                                     )}
@@ -1049,12 +1067,12 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                             background: 'rgba(255,255,255,0.02)',
                             border: '1px solid rgba(255,255,255,0.06)',
                           }}>
-                            <div style={{ fontSize: 11, color: p.color, fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.label}</div>
+                            <div style={{ fontSize: 12, color: p.color, fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.label}</div>
                             <pre style={{
                               margin: 0, padding: '10px 12px',
                               background: '#050810', borderRadius: 7,
-                              fontSize: 10, overflowX: 'auto', maxHeight: 200,
-                              color: 'rgba(255,255,255,0.55)',
+                              fontSize: 11, overflowX: 'auto', maxHeight: 200,
+                              color: 'rgba(255,255,255,0.65)',
                               fontFamily: '"JetBrains Mono","Fira Code",monospace',
                             }}>
                               {JSON.stringify(p.body, null, 2)}
@@ -1078,7 +1096,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                     <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.20)' }}>
                       <History size={52} style={{ margin: '0 auto 14px', display: 'block', opacity: 0.15 }} />
                       <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>No history available</p>
-                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.20)' }}>Select a baseline and run tests to build history</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.38)' }}>Select a baseline and run tests to build history</p>
                     </div>
                   ) : (
                     <div>
@@ -1095,7 +1113,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                             background: 'rgba(255,255,255,0.02)',
                             border: '1px solid rgba(255,255,255,0.06)',
                           }}>
-                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
                             <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>{s.value}</div>
                           </div>
                         ))}
@@ -1119,7 +1137,7 @@ const RegressionTestingApp = ({ user, onLogout }) => {
                                 <div style={{ fontWeight: 600, fontSize: 13, color: result.passed ? '#34d399' : '#f87171' }}>
                                   {result.passed ? 'Passed' : 'Failed'}
                                 </div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
                                   {new Date(result.created_at).toLocaleString()}
                                 </div>
                               </div>
@@ -1148,6 +1166,33 @@ const RegressionTestingApp = ({ user, onLogout }) => {
       </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
+      {showGitHub && testResults && (
+        <GitHubIntegration
+          user={user}
+          testResults={{
+            summary: {
+              total: testResults.summary.total_checks,
+              passed: testResults.summary.total_checks - testResults.summary.failed_checks,
+              failed: testResults.summary.failed_checks,
+              pass_rate: testResults.summary.total_checks
+                ? Math.round(((testResults.summary.total_checks - testResults.summary.failed_checks) / testResults.summary.total_checks) * 100)
+                : 100,
+            },
+            results: [{
+              test: `Regression Check - ${selectedBaseline?.baseline_name || 'baseline'}`,
+              status: testResults.passed ? 'PASS' : 'FAIL',
+              details: testResults.passed
+                ? 'API response matches baseline perfectly'
+                : `${testResults.differences?.length || 0} difference(s) found`,
+              response_time_ms: testResults.test_response?.response_time_ms,
+              differences: testResults.differences || [],
+            }],
+          }}
+          apiUrl={selectedBaseline?.api_url || selectedBaseline?.baseline_name || 'Regression Test'}
+          onClose={() => setShowGitHub(false)}
+        />
+      )}
     </div>
   );
 };

@@ -371,10 +371,10 @@ const PerformanceTestingApp = () => {
               <Zap size={17} color="#fff" />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.01em' }}>
                 Performance Testing
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -1 }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>
                 Load, stress &amp; endurance analysis
               </div>
             </div>
@@ -383,12 +383,12 @@ const PerformanceTestingApp = () => {
         {user?.username && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 7,
-            padding: '5px 12px',
+            padding: '5px 14px',
             background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 8, fontSize: 15, color: 'rgba(255,255,255,0.85)',
           }}>
-            <User size={13} /> {user.username}
+            <User size={15} /> {user.username}
           </div>
         )}
       </div>

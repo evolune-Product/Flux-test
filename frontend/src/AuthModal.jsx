@@ -9,7 +9,6 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
     email: '',
     password: '',
     username: '',
-    name: ''
   });
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(null); // 'google' or 'github'
@@ -19,8 +18,6 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
   useEffect(() => {
     setIsLogin(initialMode === 'login');
   }, [initialMode]);
-
-  // OAuth is now handled by AppWrapper, so we can remove the OAuth callback useEffect
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -124,7 +121,6 @@ function AuthModal({ mode: initialMode, onClose, onLoginSuccess, onSwitchMode })
       email: '',
       password: '',
       username: '',
-      name: ''
     });
   };
 

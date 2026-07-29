@@ -97,10 +97,10 @@ const Card = ({ children, className = '', style = {} }) => (
 
 const Input = ({ label, ...props }) => (
   <div>
-    {label && <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>}
+    {label && <label className="block text-sm font-medium text-slate-400 mb-1.5">{label}</label>}
     <input
       {...props}
-      className="w-full px-3 py-2 rounded-lg text-sm text-slate-200 placeholder-slate-600 outline-none focus:ring-1 font-mono"
+      className="w-full px-3 py-2 rounded-lg text-base text-slate-200 placeholder-slate-600 outline-none focus:ring-1 font-mono"
       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', focusRingColor: '#3b82f6' }}
     />
   </div>
@@ -108,10 +108,10 @@ const Input = ({ label, ...props }) => (
 
 const Select = ({ label, children, ...props }) => (
   <div>
-    {label && <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>}
+    {label && <label className="block text-sm font-medium text-slate-400 mb-1.5">{label}</label>}
     <select
       {...props}
-      className="w-full px-3 py-2 rounded-lg text-sm text-slate-200 outline-none"
+      className="w-full px-3 py-2 rounded-lg text-base text-slate-200 outline-none"
       style={{ background: 'rgba(20,24,40,0.95)', border: '1px solid rgba(255,255,255,0.09)' }}
     >
       {children}
@@ -397,7 +397,7 @@ export default function ProductionGateApp({ user, onLogout }) {
               <FileText size={15} className="text-slate-500" />
               <span className="text-sm font-semibold text-slate-300">Saved Profiles</span>
               {savedProfiles.length > 0 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono"
+                <span className="text-xs px-2 py-0.5 rounded-full font-mono"
                   style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.25)' }}>
                   {savedProfiles.length}
                 </span>
@@ -408,17 +408,17 @@ export default function ProductionGateApp({ user, onLogout }) {
           {profilesOpen && (
             <div className="px-5 pb-4 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               {savedProfiles.length === 0 ? (
-                <p className="text-xs text-slate-600 py-2 font-mono">no saved profiles — save one below</p>
+                <p className="text-sm text-slate-600 py-2 font-mono">no saved profiles — save one below</p>
               ) : savedProfiles.map(p => (
                 <div key={p.profileId} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2"
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-300 truncate">{p.name}</div>
-                    <div className="text-[10px] font-mono text-slate-600 truncate">{p.baseUrl}</div>
+                    <div className="text-sm font-semibold text-slate-300 truncate">{p.name}</div>
+                    <div className="text-xs font-mono text-slate-600 truncate">{p.baseUrl}</div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button onClick={() => loadProfile(p)}
-                      className="text-[10px] px-2.5 py-1 rounded font-mono text-blue-400 hover:text-blue-300 transition-colors"
+                      className="text-sm px-2.5 py-1 rounded font-mono text-blue-400 hover:text-blue-300 transition-colors"
                       style={{ background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.20)' }}>
                       Load
                     </button>
@@ -456,11 +456,11 @@ export default function ProductionGateApp({ user, onLogout }) {
 
             {/* Auth */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-2">Authentication</label>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Authentication</label>
               <div className="flex gap-1.5 flex-wrap mb-3">
                 {['none', 'bearer', 'api_key', 'basic'].map(t => (
                   <button key={t} onClick={() => setProfile(p => ({ ...p, authType: t }))}
-                    className="px-3 py-1 rounded text-xs font-mono transition-all"
+                    className="px-3 py-1 rounded text-sm font-mono transition-all"
                     style={{
                       background: profile.authType === t ? 'rgba(59,130,246,0.20)' : 'rgba(255,255,255,0.04)',
                       border: `1px solid ${profile.authType === t ? 'rgba(59,130,246,0.50)' : 'rgba(255,255,255,0.08)'}`,
@@ -494,11 +494,11 @@ export default function ProductionGateApp({ user, onLogout }) {
 
             {/* Custom Headers */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Custom Headers (JSON)</label>
+              <label className="block text-sm font-medium text-slate-400 mb-1.5">Custom Headers (JSON)</label>
               <textarea rows={2} value={profile.customHeaders}
                 onChange={e => setProfile(p => ({ ...p, customHeaders: e.target.value }))}
                 placeholder='{"X-Environment": "production", "X-App-Version": "2.1.0"}'
-                className="w-full px-3 py-2 rounded-lg text-xs text-slate-300 placeholder-slate-700 outline-none font-mono resize-none"
+                className="w-full px-3 py-2 rounded-lg text-sm text-slate-300 placeholder-slate-700 outline-none font-mono resize-none"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}
               />
             </div>
@@ -506,7 +506,7 @@ export default function ProductionGateApp({ user, onLogout }) {
             {/* Load Config */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                <label className="block text-sm font-medium text-slate-400 mb-1.5">
                   Concurrent Users
                   <span className="ml-1.5 text-blue-400 font-mono">{profile.concurrentUsers}</span>
                 </label>
@@ -515,7 +515,7 @@ export default function ProductionGateApp({ user, onLogout }) {
                   className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                   style={{ background: `linear-gradient(to right, #3b82f6 ${(profile.concurrentUsers - 5) / 45 * 100}%, rgba(255,255,255,0.1) 0%)` }}
                 />
-                <div className="flex justify-between text-[9px] font-mono text-slate-700 mt-1">
+                <div className="flex justify-between text-sm font-mono text-slate-700 mt-1">
                   <span>5</span><span>50</span>
                 </div>
               </div>
@@ -533,38 +533,38 @@ export default function ProductionGateApp({ user, onLogout }) {
             <div className="flex items-center gap-2.5 mb-3">
               <ArrowRight size={14} className="text-slate-500" />
               <span className="text-sm font-semibold text-slate-200">Endpoint Paths</span>
-              <span className="text-[10px] text-slate-600 font-mono">(optional — improves accuracy)</span>
+              <span className="text-xs text-slate-600 font-mono">(optional — improves accuracy)</span>
             </div>
             {/* Add endpoint row */}
             <div className="flex gap-2 mb-3">
               <select value={newEndpointMethod} onChange={e => setNewEndpointMethod(e.target.value)}
-                className="px-2 py-1.5 rounded text-xs font-mono text-slate-300 outline-none flex-shrink-0"
+                className="px-2 py-1.5 rounded text-sm font-mono text-slate-300 outline-none flex-shrink-0"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', minWidth: 80 }}>
                 {['GET','POST','PUT','PATCH','DELETE'].map(m => <option key={m}>{m}</option>)}
               </select>
               <input value={newEndpointPath} onChange={e => setNewEndpointPath(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addEndpoint()}
                 placeholder="/api/users"
-                className="flex-1 px-3 py-1.5 rounded text-xs font-mono text-slate-300 placeholder-slate-700 outline-none"
+                className="flex-1 px-3 py-1.5 rounded text-sm font-mono text-slate-300 placeholder-slate-700 outline-none"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}
               />
               <button onClick={addEndpoint}
-                className="flex-shrink-0 px-3 py-1.5 rounded flex items-center gap-1 text-xs font-mono text-emerald-400 transition-colors hover:text-emerald-300"
+                className="flex-shrink-0 px-3 py-1.5 rounded flex items-center gap-1 text-sm font-mono text-emerald-400 transition-colors hover:text-emerald-300"
                 style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
                 <Plus size={12} /> Add
               </button>
             </div>
             {/* Endpoint list */}
             {profile.endpoints.length === 0 ? (
-              <p className="text-[11px] font-mono text-slate-700">no endpoints added — base URL will be probed</p>
+              <p className="text-sm font-mono text-slate-700">no endpoints added — base URL will be probed</p>
             ) : (
               <div className="space-y-1.5">
                 {profile.endpoints.map((ep, i) => (
                   <div key={i} className="flex items-center gap-2 rounded px-3 py-1.5"
                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded flex-shrink-0"
+                    <span className="text-xs font-black font-mono px-1.5 py-0.5 rounded flex-shrink-0"
                       style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd' }}>{ep.method}</span>
-                    <span className="text-xs font-mono text-slate-400 flex-1 truncate">{ep.path}</span>
+                    <span className="text-sm font-mono text-slate-400 flex-1 truncate">{ep.path}</span>
                     <button onClick={() => removeEndpoint(i)} className="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
                       <X size={12} />
                     </button>
@@ -625,17 +625,17 @@ export default function ProductionGateApp({ user, onLogout }) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="text-xs font-bold" style={{ color: on ? '#e2e8f0' : '#475569' }}>
+                          <span className="text-sm font-bold" style={{ color: on ? '#e2e8f0' : '#475569' }}>
                             {suite.name}
                           </span>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {suite.alwaysOn && (
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                              <span className="text-xs font-mono px-1.5 py-0.5 rounded"
                                 style={{ background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.25)' }}>
                                 required
                               </span>
                             )}
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                            <span className="text-xs font-mono px-1.5 py-0.5 rounded"
                               style={{ background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.07)' }}>
                               {Math.round(suite.weight * 100)}%
                             </span>
@@ -645,7 +645,7 @@ export default function ProductionGateApp({ user, onLogout }) {
                             </div>
                           </div>
                         </div>
-                        <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: on ? '#64748b' : '#1e293b' }}>
+                        <p className="text-sm mt-0.5 leading-relaxed" style={{ color: on ? '#64748b' : '#1e293b' }}>
                           {suite.desc}
                         </p>
                       </div>
@@ -657,8 +657,8 @@ export default function ProductionGateApp({ user, onLogout }) {
 
             {/* Weight total */}
             <div className="mt-4 pt-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className="text-[10px] font-mono text-slate-700">weighted coverage</span>
-              <span className="text-xs font-mono font-bold text-blue-400">
+              <span className="text-sm font-mono text-slate-700">weighted coverage</span>
+              <span className="text-sm font-mono font-bold text-blue-400">
                 {Math.round(selectedSuites.reduce((acc, id) => acc + (SUITES.find(s=>s.id===id)?.weight||0), 0) * 100)}%
               </span>
             </div>
@@ -679,12 +679,12 @@ export default function ProductionGateApp({ user, onLogout }) {
               <span className="text-sm font-bold text-slate-200">Suite Progress</span>
               <div className="flex items-center gap-2">
                 <button onClick={() => { stopRef.current = true; }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono text-red-400 transition-all hover:text-red-300"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-mono text-red-400 transition-all hover:text-red-300"
                   style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
                   <Square size={10} /> Stop
                 </button>
                 <button onClick={loadNewSuite}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono text-emerald-400 transition-all hover:text-emerald-300"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-mono text-emerald-400 transition-all hover:text-emerald-300"
                   style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
                   <Plus size={10} /> New Suite
                 </button>
@@ -712,16 +712,16 @@ export default function ProductionGateApp({ user, onLogout }) {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold" style={{ color: active ? '#e2e8f0' : done ? '#94a3b8' : '#334155' }}>
+                          <span className="text-sm font-semibold" style={{ color: active ? '#e2e8f0' : done ? '#94a3b8' : '#334155' }}>
                             {suite?.name}
                           </span>
                           {done && result && (
-                            <span className="text-[10px] font-mono font-bold" style={{ color: scoreColor(result.score) }}>
+                            <span className="text-sm font-mono font-bold" style={{ color: scoreColor(result.score) }}>
                               {result.score}/100
                             </span>
                           )}
-                          {active && <span className="text-[10px] font-mono text-blue-400 animate-pulse">running...</span>}
-                          {waiting && <span className="text-[10px] font-mono text-slate-700">waiting</span>}
+                          {active && <span className="text-sm font-mono text-blue-400 animate-pulse">running...</span>}
+                          {waiting && <span className="text-sm font-mono text-slate-700">waiting</span>}
                         </div>
                       </div>
                     </div>
@@ -748,14 +748,14 @@ export default function ProductionGateApp({ user, onLogout }) {
         {Object.keys(suiteResults).length > 0 && (
           <Card>
             <div className="px-5 py-4">
-              <span className="text-xs font-semibold text-slate-400">Live Results</span>
+              <span className="text-sm font-semibold text-slate-400">Live Results</span>
               <div className="mt-3 space-y-1.5">
                 {Object.entries(suiteResults).map(([id, r]) => (
                   <div key={id} className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">{SUITES.find(s=>s.id===id)?.name}</span>
+                    <span className="text-sm text-slate-500">{SUITES.find(s=>s.id===id)?.name}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono" style={{ color: scoreColor(r.score) }}>{r.score}/100</span>
-                      <span className="text-[10px] font-bold font-mono" style={{ color: statusColor(r.status) }}>{r.status}</span>
+                      <span className="text-sm font-mono" style={{ color: scoreColor(r.score) }}>{r.score}/100</span>
+                      <span className="text-sm font-bold font-mono" style={{ color: statusColor(r.status) }}>{r.status}</span>
                     </div>
                   </div>
                 ))}
@@ -767,15 +767,15 @@ export default function ProductionGateApp({ user, onLogout }) {
 
       {/* Live Log terminal */}
       <div className="xl:col-span-3">
-        <div className="rounded-xl overflow-hidden font-mono text-xs h-full" style={{ background: 'rgba(4,7,15,0.97)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="rounded-xl overflow-hidden font-mono text-sm h-full" style={{ background: 'rgba(4,7,15,0.97)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-1.5 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.3)' }}>
             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-            <span className="ml-2 text-[9px] tracking-wider text-slate-600">flasqo / prod-gate / live-log</span>
+            <span className="ml-2 text-xs tracking-wider text-slate-600">flasqo / prod-gate / live-log</span>
             <div className="ml-auto flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-[9px] text-green-400/70">running</span>
+              <span className="text-xs text-green-400/70">running</span>
             </div>
           </div>
           <div className="p-4 overflow-y-auto" style={{ height: 420 }}>
@@ -866,7 +866,7 @@ export default function ProductionGateApp({ user, onLogout }) {
                     <div key={stat.label} className="rounded-lg px-3 py-2.5 text-center"
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       <div className="text-lg font-black font-mono" style={{ color: stat.color }}>{stat.value}</div>
-                      <div className="text-[10px] text-slate-600 mt-0.5">{stat.label}</div>
+                      <div className="text-sm text-slate-600 mt-0.5">{stat.label}</div>
                     </div>
                   ))}
                 </div>
@@ -875,12 +875,12 @@ export default function ProductionGateApp({ user, onLogout }) {
               {/* Actions */}
               <div className="flex sm:flex-col gap-2 flex-shrink-0">
                 <button onClick={() => { setPhase('config'); }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono text-slate-400 transition-all hover:text-slate-200"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-mono text-slate-400 transition-all hover:text-slate-200"
                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
                   <RefreshCw size={12} /> Re-run
                 </button>
                 <button onClick={loadNewSuite}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono text-emerald-400 transition-all hover:text-emerald-300"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-mono text-emerald-400 transition-all hover:text-emerald-300"
                   style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
                   <Plus size={12} /> New Suite
                 </button>
@@ -889,7 +889,7 @@ export default function ProductionGateApp({ user, onLogout }) {
                   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `prod-gate-${Date.now()}.json` });
                   a.click();
                 }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono text-blue-400 transition-all hover:text-blue-300"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-mono text-blue-400 transition-all hover:text-blue-300"
                   style={{ background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.25)' }}>
                   <Download size={12} /> Export
                 </button>
@@ -915,9 +915,9 @@ export default function ProductionGateApp({ user, onLogout }) {
                     <SIcon size={15} style={{ color: suite?.color }} />
                   </div>
                   <div className="text-lg font-black font-mono" style={{ color: scoreColor(r.score) }}>{r.score}</div>
-                  <div className="text-[9px] font-mono mt-0.5" style={{ color: statusColor(r.status) }}>{r.status}</div>
-                  <div className="text-[9px] text-slate-700 mt-1 truncate">{suite?.name}</div>
-                  {r.summary && <div className="text-[9px] text-slate-700 mt-1 leading-tight truncate">{r.summary}</div>}
+                  <div className="text-sm font-mono mt-0.5" style={{ color: statusColor(r.status) }}>{r.status}</div>
+                  <div className="text-sm text-slate-700 mt-1 truncate">{suite?.name}</div>
+                  {r.summary && <div className="text-sm text-slate-700 mt-1 leading-tight truncate">{r.summary}</div>}
                 </div>
               </div>
             );
@@ -931,7 +931,7 @@ export default function ProductionGateApp({ user, onLogout }) {
               <div className="flex items-center gap-2.5 mb-4">
                 <AlertTriangle size={15} className="text-yellow-500" />
                 <span className="text-sm font-bold text-slate-200">Findings</span>
-                <span className="text-[10px] font-mono text-slate-600">{findings.length} total</span>
+                <span className="text-xs font-mono text-slate-600">{findings.length} total</span>
               </div>
               <div className="space-y-2">
                 {[...criticals, ...warnings].map((f, i) => (
@@ -940,14 +940,14 @@ export default function ProductionGateApp({ user, onLogout }) {
                       background: f.severity === 'CRITICAL' ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
                       border: `1px solid ${f.severity === 'CRITICAL' ? 'rgba(239,68,68,0.20)' : 'rgba(245,158,11,0.20)'}`,
                     }}>
-                    <span className="text-[9px] font-black font-mono px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
+                    <span className="text-xs font-black font-mono px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
                       style={{
                         background: f.severity === 'CRITICAL' ? 'rgba(239,68,68,0.20)' : 'rgba(245,158,11,0.20)',
                         color: f.severity === 'CRITICAL' ? '#f87171' : '#fbbf24',
                       }}>
                       {f.severity}
                     </span>
-                    <span className="text-xs text-slate-400">{f.message}</span>
+                    <span className="text-sm text-slate-400">{f.message}</span>
                   </div>
                 ))}
               </div>
@@ -971,16 +971,16 @@ export default function ProductionGateApp({ user, onLogout }) {
                       <SIcon size={13} style={{ color: suite?.color }} />
                     </div>
                     <span className="text-sm font-bold text-slate-300">{suite?.name}</span>
-                    <span className="ml-auto text-xs font-mono font-bold" style={{ color: scoreColor(r.score) }}>{r.score}/100</span>
+                    <span className="ml-auto text-sm font-mono font-bold" style={{ color: scoreColor(r.score) }}>{r.score}/100</span>
                   </div>
                   <div className="space-y-1.5">
                     {r.tests.map((t, ti) => (
                       <div key={ti} className="flex items-center gap-3 rounded px-3 py-1.5"
                         style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
                         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusColor(t.status) }} />
-                        <span className="text-xs text-slate-400 flex-1 truncate">{t.name}</span>
-                        {t.latency > 0 && <span className="text-[10px] font-mono text-slate-700">{t.latency}ms</span>}
-                        <span className="text-[10px] font-mono font-bold flex-shrink-0" style={{ color: statusColor(t.status) }}>{t.status}</span>
+                        <span className="text-sm text-slate-400 flex-1 truncate">{t.name}</span>
+                        {t.latency > 0 && <span className="text-xs font-mono text-slate-700">{t.latency}ms</span>}
+                        <span className="text-xs font-mono font-bold flex-shrink-0" style={{ color: statusColor(t.status) }}>{t.status}</span>
                       </div>
                     ))}
                   </div>
@@ -1000,14 +1000,14 @@ export default function ProductionGateApp({ user, onLogout }) {
         <div className="flex items-center gap-2.5 mb-4">
           <History size={15} className="text-slate-500" />
           <span className="text-sm font-bold text-slate-200">Gate Run History</span>
-          <span className="text-[10px] font-mono text-slate-600">last 20 runs</span>
+          <span className="text-xs font-mono text-slate-600">last 20 runs</span>
         </div>
         {histLoading ? (
-          <div className="flex items-center gap-2 py-4 text-slate-600 text-xs font-mono">
+          <div className="flex items-center gap-2 py-4 text-slate-600 text-sm font-mono">
             <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Loading...
           </div>
         ) : history.length === 0 ? (
-          <p className="text-xs font-mono text-slate-700 py-4">no gate runs yet — run your first gate above</p>
+          <p className="text-sm font-mono text-slate-700 py-4">no gate runs yet — run your first gate above</p>
         ) : (
           <div className="space-y-2">
             {history.map(s => {
@@ -1020,14 +1020,14 @@ export default function ProductionGateApp({ user, onLogout }) {
                     {s.score}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-mono text-slate-400 truncate">{s.profileName || s.baseUrl}</div>
-                    <div className="text-[10px] font-mono text-slate-700 truncate">{s.baseUrl}</div>
+                    <div className="text-sm font-mono text-slate-400 truncate">{s.profileName || s.baseUrl}</div>
+                    <div className="text-xs font-mono text-slate-700 truncate">{s.baseUrl}</div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: dec }} />
-                    <span className="text-[10px] font-mono font-bold hidden sm:block" style={{ color: dec }}>{s.gateDecision}</span>
+                    <span className="text-sm font-mono font-bold hidden sm:block" style={{ color: dec }}>{s.gateDecision}</span>
                   </div>
-                  <div className="text-[10px] font-mono text-slate-700 flex-shrink-0">
+                  <div className="text-sm font-mono text-slate-700 flex-shrink-0">
                     {new Date(s.executedAt).toLocaleDateString()}
                   </div>
                 </div>
@@ -1053,7 +1053,7 @@ export default function ProductionGateApp({ user, onLogout }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button onClick={() => { if (window.opener) window.close(); else window.location.href = '/'; }}
-                className="flex items-center gap-1.5 text-slate-600 hover:text-slate-300 transition-colors text-xs font-mono">
+                className="flex items-center gap-1.5 text-slate-600 hover:text-slate-300 transition-colors text-sm font-mono">
                 <ArrowLeft size={14} /> {window.opener ? 'close tab' : 'home'}
               </button>
               <div className="w-px h-4 bg-slate-800" />
@@ -1064,8 +1064,8 @@ export default function ProductionGateApp({ user, onLogout }) {
                   <Shield size={16} className="text-white" />
                 </div>
                 <div>
-                  <div className="text-sm font-black text-white leading-none">Production Gate</div>
-                  <div className="text-[9px] font-mono mt-0.5" style={{ color: '#1e3a5f' }}>
+                  <div className="text-base font-black text-white leading-none">Production Gate</div>
+                  <div className="text-sm font-mono mt-0.5" style={{ color: '#1e3a5f' }}>
                     {profile.baseUrl || 'no environment configured'}
                   </div>
                 </div>
@@ -1080,10 +1080,10 @@ export default function ProductionGateApp({ user, onLogout }) {
                     style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)' }}>
                     {user.username?.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-xs text-slate-500">{user.username}</span>
+                  <span className="text-sm text-slate-500">{user.username}</span>
                 </div>
                 <button onClick={onLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-red-500/70 hover:text-red-400 transition-colors font-mono"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-500/70 hover:text-red-400 transition-colors font-mono"
                   style={{ border: '1px solid rgba(239,68,68,0.15)' }}>
                   <LogOut size={12} /> Logout
                 </button>
@@ -1099,10 +1099,10 @@ export default function ProductionGateApp({ user, onLogout }) {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-[10px] font-mono text-blue-400/70 tracking-widest uppercase">Production Simulation</span>
+              <span className="text-xs font-mono text-blue-400/70 tracking-widest uppercase">Production Simulation</span>
             </div>
-            <h1 className="text-2xl font-black text-white">Production Gate</h1>
-            <p className="text-sm text-slate-500 mt-1">Test your APIs exactly as they'd behave in production — before you deploy.</p>
+            <h1 className="text-3xl font-black text-white">Production Gate</h1>
+            <p className="text-base text-slate-500 mt-1">Test your APIs exactly as they'd behave in production — before you deploy.</p>
           </div>
 
           {/* Phase indicator */}
@@ -1114,7 +1114,7 @@ export default function ProductionGateApp({ user, onLogout }) {
             ].map((p, i) => (
               <React.Fragment key={p.id}>
                 {i > 0 && <div className="w-5 h-px" style={{ background: phase === p.id || (phase === 'report' && i < 2) ? '#3b82f6' : 'rgba(255,255,255,0.08)' }} />}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono transition-all"
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-mono transition-all"
                   style={{
                     background: phase === p.id ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
                     border: `1px solid ${phase === p.id ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.07)'}`,
@@ -1138,7 +1138,7 @@ export default function ProductionGateApp({ user, onLogout }) {
               const TIcon = tab.icon;
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-mono transition-all"
                   style={{
                     background: activeTab === tab.id ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
                     border: `1px solid ${activeTab === tab.id ? 'rgba(59,130,246,0.30)' : 'rgba(255,255,255,0.07)'}`,
@@ -1163,8 +1163,8 @@ export default function ProductionGateApp({ user, onLogout }) {
       {/* Footer */}
       <div className="max-w-7xl mx-auto px-6 py-6 mt-4">
         <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          <p className="text-[10px] font-mono text-slate-800">Flasqo Production Gate · by EvoluneEdgeTech</p>
-          <p className="text-[10px] font-mono text-slate-800">
+          <p className="text-xs font-mono text-slate-800">Flasqo Production Gate · by EvoluneEdgeTech</p>
+          <p className="text-xs font-mono text-slate-800">
             {profile.baseUrl ? `target: ${profile.baseUrl}` : 'no target configured'}
           </p>
         </div>

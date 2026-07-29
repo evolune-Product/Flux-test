@@ -30,6 +30,7 @@ const FuzzTestingApp = ({ user, onLogout }) => {
   const [apiUrl, setApiUrl] = useState('');
   const [sampleData, setSampleData] = useState('{\n  "field": "value"\n}');
   const [numTests, setNumTests] = useState(50);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState(null);
@@ -83,7 +84,7 @@ const FuzzTestingApp = ({ user, onLogout }) => {
     try {
       const parsedData = JSON.parse(sampleData);
       addLog('Starting fuzz test generation...', 'info');
-      setIsRunning(true);
+      setIsGenerating(true);
       setProgress(20);
 
       const response = await fetch(`${API_BASE_URL}/generate-tests`, {
@@ -110,15 +111,15 @@ const FuzzTestingApp = ({ user, onLogout }) => {
 
       setGeneratedTests(data.test_cases);
       setProgress(100);
-      setActiveTab('tests');
       setTimeout(() => {
-        setIsRunning(false);
+        setIsGenerating(false);
         setProgress(0);
+        setActiveTab('tests');
       }, 500);
 
     } catch (error) {
       addLog(`Error generating tests: ${error.message}`, 'error');
-      setIsRunning(false);
+      setIsGenerating(false);
       setProgress(0);
     }
   };
@@ -165,11 +166,10 @@ const FuzzTestingApp = ({ user, onLogout }) => {
       });
       addLog(`Completed: ${data.summary.passed}/${data.summary.total} tests passed`, data.summary.passed === data.summary.total ? 'success' : 'warning');
       setProgress(100);
-      setActiveTab('results');
-
       setTimeout(() => {
         setIsRunning(false);
         setProgress(0);
+        setActiveTab('results');
       }, 500);
 
     } catch (error) {
@@ -273,10 +273,10 @@ const FuzzTestingApp = ({ user, onLogout }) => {
               <Target size={17} color="#fff" />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.01em' }}>
                 Fuzz Testing
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -1 }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>
                 Input fuzzing &amp; vulnerability detection
               </div>
             </div>
@@ -288,9 +288,9 @@ const FuzzTestingApp = ({ user, onLogout }) => {
             padding: '5px 12px',
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)',
+            borderRadius: 8, fontSize: 15, color: 'rgba(255,255,255,0.85)',
           }}>
-            <User size={13} /> {user.username}
+            <User size={15} /> {user.username}
           </div>
         )}
       </div>
@@ -351,11 +351,10 @@ const FuzzTestingApp = ({ user, onLogout }) => {
             borderBottom: '1px solid rgba(255,255,255,0.07)',
           }}>
             {[
-              { key: 'config',  label: 'Configuration',                  icon: Server,   accent: PURPLE },
-              { key: 'tests',   label: `Generated (${generatedTests.length})`, icon: Code,  accent: '#fbbf24' },
-              { key: 'results', label: 'Results',                         icon: FileText, accent: '#34d399' },
-              { key: 'logs',    label: `Logs (${logs.length})`,           icon: Activity, accent: '#60a5fa' },
-              { key: 'history', label: 'History',                         icon: Clock,    accent: '#fb923c' },
+              { key: 'config',  label: 'Configuration',                        icon: Server,   accent: PURPLE },
+              { key: 'tests',   label: `Generated (${generatedTests.length})`, icon: Code,     accent: '#fbbf24' },
+              { key: 'results', label: `Results (${logs.length})`,             icon: Activity, accent: '#34d399' },
+              { key: 'history', label: 'History',                              icon: Clock,    accent: '#fb923c' },
             ].map(t => {
               const Icon = t.icon;
               return (
@@ -426,61 +425,37 @@ const FuzzTestingApp = ({ user, onLogout }) => {
                       </div>
                     </div>
 
-                    {/* Buttons */}
+                    {/* Generate button only */}
                     <button
                       onClick={handleGenerateFuzzTests}
-                      disabled={isRunning}
+                      disabled={isGenerating || isRunning}
                       style={{
                         width: '100%', padding: '13px 0',
                         borderRadius: 10, fontWeight: 700, fontSize: 14,
-                        border: 'none', cursor: isRunning ? 'not-allowed' : 'pointer',
-                        background: isRunning ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
-                        color: isRunning ? 'rgba(255,255,255,0.30)' : '#fff',
+                        border: 'none', cursor: isGenerating || isRunning ? 'not-allowed' : 'pointer',
+                        background: isGenerating || isRunning ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                        color: isGenerating || isRunning ? 'rgba(255,255,255,0.30)' : '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        boxShadow: isRunning ? 'none' : '0 0 20px rgba(124,58,237,0.35)',
+                        boxShadow: isGenerating || isRunning ? 'none' : '0 0 20px rgba(124,58,237,0.35)',
                         transition: 'all 0.2s',
                       }}
                     >
-                      {isRunning ? (
+                      {isGenerating ? (
                         <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generating…</>
                       ) : (
                         <><Target size={16} /> Generate Fuzz Tests</>
                       )}
                     </button>
 
-                    <button
-                      onClick={handleRunFuzzTests}
-                      disabled={isRunning || generatedTests.length === 0}
-                      style={{
-                        width: '100%', padding: '13px 0',
-                        borderRadius: 10, fontWeight: 700, fontSize: 14,
-                        border: 'none',
-                        cursor: isRunning || generatedTests.length === 0 ? 'not-allowed' : 'pointer',
-                        background: isRunning || generatedTests.length === 0
-                          ? 'rgba(255,255,255,0.06)'
-                          : 'linear-gradient(135deg,#059669,#047857)',
-                        color: isRunning || generatedTests.length === 0 ? 'rgba(255,255,255,0.30)' : '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        boxShadow: isRunning || generatedTests.length === 0 ? 'none' : '0 0 20px rgba(5,150,105,0.30)',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {isRunning ? (
-                        <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Running…</>
-                      ) : (
-                        <><Play size={16} /> Run Fuzz Tests</>
-                      )}
-                    </button>
-
-                    {isRunning && (
+                    {isGenerating && (
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
-                          <span>Processing…</span><span>{progress}%</span>
+                          <span>Generating tests…</span><span>{progress}%</span>
                         </div>
                         <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
                           <div style={{
                             height: '100%', borderRadius: 4,
-                            background: 'linear-gradient(90deg,#7c3aed,#059669)',
+                            background: 'linear-gradient(90deg,#7c3aed,#6d28d9)',
                             width: `${progress}%`, transition: 'width 0.5s ease',
                           }} />
                         </div>
@@ -520,7 +495,43 @@ const FuzzTestingApp = ({ user, onLogout }) => {
                       background: PURPLE_DIM, color: PURPLE, fontSize: 12, fontWeight: 700,
                     }}>{generatedTests.length}</span>
                   </div>
+                  {generatedTests.length > 0 && (
+                    <button
+                      onClick={handleRunFuzzTests}
+                      disabled={isRunning || isGenerating}
+                      style={{
+                        padding: '10px 22px',
+                        borderRadius: 10, fontWeight: 700, fontSize: 14,
+                        border: 'none',
+                        cursor: isRunning || isGenerating ? 'not-allowed' : 'pointer',
+                        background: isRunning || isGenerating ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#059669,#047857)',
+                        color: isRunning || isGenerating ? 'rgba(255,255,255,0.30)' : '#fff',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        boxShadow: isRunning || isGenerating ? 'none' : '0 0 20px rgba(5,150,105,0.30)',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {isRunning
+                        ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Running…</>
+                        : <><Play size={15} /> Run Fuzz Tests</>
+                      }
+                    </button>
+                  )}
                 </div>
+                {isRunning && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
+                      <span>Running tests…</span><span>{progress}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: 4,
+                        background: 'linear-gradient(90deg,#059669,#047857)',
+                        width: `${progress}%`, transition: 'width 0.5s ease',
+                      }} />
+                    </div>
+                  </div>
+                )}
 
                 {generatedTests.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.20)' }}>
@@ -588,85 +599,147 @@ const FuzzTestingApp = ({ user, onLogout }) => {
 
             {/* ── Results Tab ── */}
             {activeTab === 'results' && (
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', marginBottom: 18 }}>
-                  Test Results
-                </div>
-
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {!results ? (
                   <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.20)' }}>
-                    <FileText size={44} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.2 }} />
-                    <p style={{ margin: 0, fontSize: 14 }}>No results yet. Run fuzz tests to see results.</p>
+                    <Bug size={44} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.15 }} />
+                    <p style={{ margin: 0, fontSize: 14 }}>No results yet. Go to Generated tab and click Run Fuzz Tests.</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 560, overflowY: 'auto' }}>
-                    {results.results.map((result, index) => {
-                      const pass = result.status === 'PASS';
-                      return (
-                        <div key={index} style={{
-                          padding: '12px 16px', borderRadius: 10,
-                          background: pass ? 'rgba(52,211,153,0.07)' : 'rgba(248,113,113,0.07)',
-                          border: `1px solid ${pass ? 'rgba(52,211,153,0.20)' : 'rgba(248,113,113,0.20)'}`,
-                          display: 'flex', alignItems: 'flex-start', gap: 10,
+                  <>
+                    {/* ── Summary banner ── */}
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12,
+                    }}>
+                      {[
+                        { label: 'Total Tests',  value: results.summary.total,                                   color: '#e2e8f0', bg: 'rgba(255,255,255,0.04)' },
+                        { label: 'Passed',        value: results.summary.passed,                                  color: '#34d399', bg: 'rgba(52,211,153,0.08)'  },
+                        { label: 'Failed',        value: results.summary.failed,                                  color: '#f87171', bg: 'rgba(248,113,113,0.08)' },
+                        { label: 'Pass Rate',     value: `${results.summary.pass_rate?.toFixed(1) ?? 0}%`,       color: PURPLE,    bg: PURPLE_DIM               },
+                      ].map(s => (
+                        <div key={s.label} style={{
+                          padding: '16px 20px', borderRadius: 12,
+                          background: s.bg,
+                          border: `1px solid ${s.color}30`,
                         }}>
-                          {pass
-                            ? <CheckCircle size={16} color="#34d399" style={{ flexShrink: 0, marginTop: 1 }} />
-                            : <XCircle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
-                          }
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0' }}>{result.test}</div>
-                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>{result.details}</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                            {s.value}
                           </div>
-                          <span style={{
-                            padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                            background: pass ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.15)',
-                            color: pass ? '#34d399' : '#f87171',
-                          }}>
-                            {result.status}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Logs Tab ── */}
-            {activeTab === 'logs' && (
-              <div style={{
-                background: '#050810',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 12, overflow: 'hidden',
-              }}>
-                <div style={{
-                  padding: '9px 14px',
-                  background: 'rgba(255,255,255,0.03)',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  display: 'flex', alignItems: 'center', gap: 7,
-                }}>
-                  {['#ff5f57','#febc2e','#28c840'].map(c => (
-                    <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
-                  ))}
-                  <span style={{ marginLeft: 8, fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
-                    fuzz.log — {logs.length} entries
-                  </span>
-                </div>
-                <div style={{ padding: 14, maxHeight: 500, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
-                  {logs.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.20)', padding: '40px 0' }}>
-                      No log entries yet
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      {logs.map((log, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 10, lineHeight: 1.5 }}>
-                          <span style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{log.timestamp}</span>
-                          <span style={logColor(log.type)}>{log.message}</span>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{s.label}</div>
                         </div>
                       ))}
                     </div>
-                  )}
+
+                    {/* ── Overall verdict ── */}
+                    {(() => {
+                      const pass = results.summary.failed === 0;
+                      return (
+                        <div style={{
+                          padding: '14px 20px', borderRadius: 12,
+                          background: pass ? 'rgba(52,211,153,0.07)' : 'rgba(248,113,113,0.07)',
+                          border: `1px solid ${pass ? 'rgba(52,211,153,0.25)' : 'rgba(248,113,113,0.25)'}`,
+                          display: 'flex', alignItems: 'center', gap: 12,
+                        }}>
+                          {pass
+                            ? <CheckCircle size={22} color="#34d399" style={{ flexShrink: 0 }} />
+                            : <AlertTriangle size={22} color="#f87171" style={{ flexShrink: 0 }} />
+                          }
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: pass ? '#34d399' : '#f87171' }}>
+                              {pass ? 'API is robust — no fuzz failures detected' : `${results.summary.failed} test${results.summary.failed > 1 ? 's' : ''} failed — review the payloads below`}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', marginTop: 3 }}>
+                              {pass
+                                ? 'All injected payloads were handled correctly.'
+                                : 'Failed tests indicate the API may be vulnerable to those specific inputs.'}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* ── Individual test results ── */}
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                        Test Breakdown — {results.results.length} tests
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 380, overflowY: 'auto' }}>
+                        {results.results.map((result, index) => {
+                          const pass = result.status === 'PASS';
+                          return (
+                            <div key={index} style={{
+                              padding: '12px 16px', borderRadius: 10,
+                              background: pass ? 'rgba(52,211,153,0.05)' : 'rgba(248,113,113,0.05)',
+                              border: `1px solid ${pass ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.18)'}`,
+                              display: 'flex', alignItems: 'flex-start', gap: 12,
+                            }}>
+                              <div style={{ flexShrink: 0, marginTop: 2 }}>
+                                {pass
+                                  ? <CheckCircle size={15} color="#34d399" />
+                                  : <XCircle size={15} color="#f87171" />
+                                }
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', marginBottom: 2 }}>
+                                  {result.test}
+                                </div>
+                                {result.details && (
+                                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', lineHeight: 1.5 }}>
+                                    {result.details}
+                                  </div>
+                                )}
+                              </div>
+                              <span style={{
+                                padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, flexShrink: 0,
+                                background: pass ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.15)',
+                                color: pass ? '#34d399' : '#f87171',
+                                fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                              }}>
+                                {result.status}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ── Logs terminal (always visible) ── */}
+                <div style={{
+                  background: '#050810',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 12, overflow: 'hidden',
+                }}>
+                  <div style={{
+                    padding: '9px 14px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex', alignItems: 'center', gap: 7,
+                  }}>
+                    {['#ff5f57','#febc2e','#28c840'].map(c => (
+                      <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.85 }} />
+                    ))}
+                    <span style={{ marginLeft: 8, fontSize: 12, color: 'rgba(255,255,255,0.30)', fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                      fuzz.log — {logs.length} entries
+                    </span>
+                  </div>
+                  <div style={{ padding: 14, maxHeight: 220, overflowY: 'auto', fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 12 }}>
+                    {logs.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.20)', padding: '20px 0', fontSize: 13 }}>
+                        $ awaiting test run…
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {logs.map((log, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 10, lineHeight: 1.6 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }}>{log.timestamp}</span>
+                            <span style={logColor(log.type)}>{log.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
