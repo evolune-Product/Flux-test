@@ -1263,6 +1263,27 @@ async def root():
         "oauth": "Google & GitHub enabled"
     }
 
+# Redirect testing module paths to homepage (prevents JSON errors when accessed directly)
+@app.get("/functional")
+@app.get("/smoke")
+@app.get("/performance")
+@app.get("/chaos")
+@app.get("/security")
+@app.get("/fuzzing")
+@app.get("/graphql")
+@app.get("/contract")
+@app.get("/regression")
+@app.get("/integration")
+@app.get("/auto-discovery")
+@app.get("/ci-trigger")
+@app.get("/webhook-trigger")
+@app.get("/production-gate")
+@app.get("/testing-types")
+async def redirect_testing_modules():
+    """Redirect direct access to testing modules to homepage"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/", status_code=302)
+
 @app.post("/generate-tests")
 @limiter.limit(os.getenv("RATE_LIMIT_PER_MINUTE", "60") + "/minute")
 async def generate_tests(request: Request, payload: GenerateTestsRequest):
