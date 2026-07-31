@@ -231,6 +231,132 @@
     @media (max-width: 360px) {
       .cards { grid-template-columns: 1fr; }
     }
+
+    /* ── Countdown Timer ── */
+    .countdown-container {
+      margin: 32px 0 28px;
+      padding: 24px 28px;
+      border-radius: 18px;
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(37, 99, 235, 0.06) 100%);
+      backdrop-filter: blur(16px);
+      max-width: 700px;
+    }
+
+    .countdown-label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: rgba(196, 181, 253, 0.8);
+      margin-bottom: 16px;
+    }
+
+    .countdown-timer {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .countdown-unit {
+      position: relative;
+      min-width: 90px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(8px);
+      transition: transform 0.3s, border-color 0.3s, background 0.3s;
+    }
+
+    .countdown-unit:hover {
+      transform: translateY(-3px);
+      border-color: rgba(124, 58, 237, 0.5);
+      background: rgba(124, 58, 237, 0.1);
+    }
+
+    .countdown-value {
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .countdown-text {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 6px;
+    }
+
+    .countdown-date {
+      margin-top: 14px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .countdown-date span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .live-indicator {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 18px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .live-indicator.active {
+      display: flex;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .live-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: #22c55e;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    @media (max-width: 520px) {
+      .countdown-unit {
+        min-width: 70px;
+        padding: 12px 14px;
+      }
+      .countdown-value { font-size: 28px; }
+      .countdown-text { font-size: 10px; }
+    }
   </style>
 </head>
 <body>
@@ -264,6 +390,40 @@
       Generate, run, and analyze 14+ types of API tests in seconds —
       built for developers who ship fast.
     </p>
+
+    <!-- Countdown Timer -->
+    <div class="countdown-container" id="countdown-container">
+      <div class="countdown-label">🚀 Official Launch In</div>
+      <div class="countdown-timer">
+        <div class="countdown-unit">
+          <div class="countdown-value" id="days">00</div>
+          <div class="countdown-text">Days</div>
+        </div>
+        <div class="countdown-unit">
+          <div class="countdown-value" id="hours">00</div>
+          <div class="countdown-text">Hours</div>
+        </div>
+        <div class="countdown-unit">
+          <div class="countdown-value" id="minutes">00</div>
+          <div class="countdown-text">Minutes</div>
+        </div>
+        <div class="countdown-unit">
+          <div class="countdown-value" id="seconds">00</div>
+          <div class="countdown-text">Seconds</div>
+        </div>
+      </div>
+      <div class="countdown-date">
+        <span>📅 Monday, August 3rd, 2026</span>
+        <span>🕐 12:02 PM IST</span>
+      </div>
+    </div>
+
+    <!-- Live Indicator (shown when launched) -->
+    <div class="live-indicator" id="live-indicator">
+      <div class="pulse-dot"></div>
+      <div class="live-text">🚀 Flasqo is Now Live!</div>
+      <div class="pulse-dot"></div>
+    </div>
 
     <!-- Feature chips -->
     <div class="chips">
@@ -306,6 +466,41 @@
     </footer>
 
   </main>
+
+  <script>
+    // Launch: Monday, August 3rd, 2026, 12:02 PM IST
+    const launchDate = new Date('2026-08-03T12:02:00+05:30'); // IST timezone
+
+    function updateCountdown() {
+      const now = new Date();
+      const difference = launchDate - now;
+
+      // If launch time has passed
+      if (difference <= 0) {
+        document.getElementById('countdown-container').style.display = 'none';
+        document.getElementById('live-indicator').classList.add('active');
+        return;
+      }
+
+      // Calculate time units
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+
+      // Update DOM
+      document.getElementById('days').textContent = String(days).padStart(2, '0');
+      document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+      document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+      document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+    }
+
+    // Initial update
+    updateCountdown();
+
+    // Update every second
+    setInterval(updateCountdown, 1000);
+  </script>
 
 </body>
 </html>
