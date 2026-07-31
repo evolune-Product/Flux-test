@@ -123,6 +123,64 @@ function AppWrapper() {
     setUser(userData);
   };
 
+  /**
+   * Execute pending actions after successful login
+   */
+  const executePendingAction = async () => {
+    try {
+      const pendingActionStr = localStorage.getItem('pending_action');
+      if (!pendingActionStr) return false;
+
+      const pendingAction = JSON.parse(pendingActionStr);
+      console.log('[pending_action] Found:', pendingAction);
+
+      // Expire after 24 hours
+      const EXPIRY_MS = 24 * 60 * 60 * 1000;
+      const age = Date.now() - pendingAction.timestamp;
+      if (age > EXPIRY_MS) {
+        console.log('[pending_action] Expired');
+        localStorage.removeItem('pending_action');
+        return false;
+      }
+
+      // Handle fullsend download
+      if (pendingAction.type === 'fullsend_download') {
+        localStorage.removeItem('pending_action'); // Clear immediately
+
+        const reportUrl = `${API_BASE_URL}/fullsend/report/${pendingAction.report_token}`;
+
+        console.log('[pending_action] Downloading:', reportUrl);
+
+        // Trigger blob download
+        const response = await fetch(reportUrl);
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `flasqo-fullsend-${pendingAction.report_token}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        console.log('[pending_action] Download triggered');
+        return true;
+      }
+
+      // Unknown type
+      console.warn('[pending_action] Unknown type:', pendingAction.type);
+      localStorage.removeItem('pending_action');
+      return false;
+
+    } catch (err) {
+      console.error('[pending_action] Failed:', err);
+      localStorage.removeItem('pending_action');
+      return false;
+    }
+  };
+
   // Check if user is already logged in on mount AND handle OAuth callbacks
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -164,6 +222,7 @@ function AppWrapper() {
       // Handle OAuth success - callback from Google/GitHub (web flow)
       if (token && userId && username && email) {
         await applyOAuthToken({ token, userId, username, email });
+        await executePendingAction();
         window.history.replaceState({}, document.title, "/");
         setLoading(false);
         return;
@@ -195,6 +254,9 @@ function AppWrapper() {
   // Handle successful login
   const handleLogin = (userData) => {
     setUser(userData);
+    setTimeout(() => {
+      executePendingAction();
+    }, 500);
   };
 
   // Handle logout
@@ -212,6 +274,7 @@ function AppWrapper() {
       "fuzzTestingState", "regressionTestingState", "contractTestingState",
       "graphqlTestingState", "autoDiscoveryState", "discoveryData",
       "github_redirect_path",
+      "pending_action",
     ].forEach((k) => localStorage.removeItem(k));
     setUser(null);
 
@@ -536,6 +599,21 @@ function AppWrapper() {
     );
   }
 
+  // FullSend public report — no authentication required
+  // IMPORTANT: Check this BEFORE the generic /report/ route to avoid false matches
+  const fullSendReportMatch = window.location.pathname.match(
+    /^\/report\/fullsend\/([a-zA-Z0-9_-]+)/,
+  );
+  if (fullSendReportMatch) {
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <NoIndex>
+          <FullSendReportApp token={fullSendReportMatch[1]} />
+        </NoIndex>
+      </Suspense>
+    );
+  }
+
   // Public report page — no authentication required
   const reportMatch = window.location.pathname.match(
     /^\/report\/([a-zA-Z0-9_-]+)/,
@@ -559,20 +637,6 @@ function AppWrapper() {
       <Suspense fallback={<PageSkeleton />}>
         <NoIndex>
           <SharedDashboardApp token={dashMatch[1]} />
-        </NoIndex>
-      </Suspense>
-    );
-  }
-
-  // FullSend public report — no authentication required
-  const fullSendReportMatch = window.location.pathname.match(
-    /^\/report\/fullsend\/([a-zA-Z0-9_-]+)/,
-  );
-  if (fullSendReportMatch) {
-    return (
-      <Suspense fallback={<PageSkeleton />}>
-        <NoIndex>
-          <FullSendReportApp token={fullSendReportMatch[1]} />
         </NoIndex>
       </Suspense>
     );

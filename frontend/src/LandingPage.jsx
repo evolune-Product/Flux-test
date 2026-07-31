@@ -172,6 +172,33 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
     }
   };
 
+  const handleDownloadClick = () => {
+    // Extract report token from landingReportUrl
+    const token = landingReportUrl?.split('/').pop();
+
+    if (!token) {
+      console.error('[download] No report token found');
+      return;
+    }
+
+    // Save pending action
+    const pendingAction = {
+      type: 'fullsend_download',
+      report_token: token,
+      timestamp: Date.now(),
+      scan_url: landingUrl,
+    };
+
+    try {
+      localStorage.setItem('pending_action', JSON.stringify(pendingAction));
+      console.log('[download] Saved pending action:', pendingAction);
+    } catch (err) {
+      console.error('[download] Failed to save:', err);
+    }
+
+    setShowAuthModal(true);
+  };
+
   return (
     <div
       className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden"
@@ -843,7 +870,7 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
 
                       {/* CTA */}
                       <button
-                        onClick={() => setShowAuthModal(true)}
+                        onClick={handleDownloadClick}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-semibold hover:from-blue-500 hover:to-cyan-500 transition-all"
                       >
                         ⬇ Download Full Report — Sign in free

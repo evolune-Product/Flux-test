@@ -112,7 +112,13 @@
       "Bash(Get-ChildItem -Path \"E:\\\\Evolune_Products\\\\Evo-TFX-main\\\\frontend\\\\src\" -File -Recurse)",
       "Bash(Select-Object FullName)",
       "Bash(Head:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(ssh:*)",
+      "Bash(for i in {1..10})",
+      "Bash(do echo \"Request $i:\")",
+      "Bash(done)",
+      "Bash(do echo -n \"Request $i: \")",
+      "Bash(pip3 list:*)"
     ],
     "deny": [],
     "ask": []
