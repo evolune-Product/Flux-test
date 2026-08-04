@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import DocsButton from "./components/DocsButton.jsx";
 import LaunchButton from "./components/LaunchButton.jsx";
+import ProductHuntBadge from "./components/ProductHuntBadge.jsx";
 import {
   Globe, FileCheck, Zap, Activity, AlertTriangle, Bug, GitCompare,
   FileText, Database, Search, Sparkles, Link2, Workflow,
@@ -814,6 +815,11 @@ function TestingTypesLanding({ user, onLogout }) {
                 />
               </div>
               <div className="h-px w-12 bg-gradient-to-l from-transparent to-purple-500/50" />
+            </div>
+
+            {/* Product Hunt launch badge */}
+            <div className="flex justify-center mt-6">
+              <ProductHuntBadge />
             </div>
           </div>
         </div>

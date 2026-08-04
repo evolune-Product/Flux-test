@@ -18,6 +18,7 @@ import {
   Play,
 } from "lucide-react";
 import AuthModal from "./AuthModal";
+import ProductHuntBadge from "./components/ProductHuntBadge.jsx";
 import Toast from "./Toast";
 import UrlScannerInput from "./components/UrlScannerInput";
 
@@ -960,6 +961,14 @@ const LandingPage = ({ onLoginSuccess, authError }) => {
               <span className="text-slate-600">=</span>
               <span className="text-cyan-300/70">forever</span>
             </div>
+          </div>
+
+          {/* Product Hunt launch badge */}
+          <div
+            className="flex justify-center mb-8"
+            style={{ animation: "fadeInUp 0.8s ease-out 0.9s both" }}
+          >
+            <ProductHuntBadge />
           </div>
         </div>
 
