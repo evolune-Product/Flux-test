@@ -118,7 +118,11 @@
       "Bash(do echo \"Request $i:\")",
       "Bash(done)",
       "Bash(do echo -n \"Request $i: \")",
-      "Bash(pip3 list:*)"
+      "Bash(pip3 list:*)",
+      "Bash(git push *)",
+      "WebFetch(domain:evolune.in)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5174/guides/smoke-testing/)"
     ],
     "deny": [],
     "ask": []
