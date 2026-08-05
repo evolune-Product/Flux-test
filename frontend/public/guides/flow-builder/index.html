@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020617">
+<link rel="icon" type="image/png" href="/icon_svg.png">
+<title>Visual Flow Builder: Drag-and-Drop API Test Workflows</title>
+<meta name="description" content="Build multi-step API test flows visually with Flasqo's drag-and-drop canvas. Chain requests, extract variables, inject data between steps. No code required for complex workflows.">
+<link rel="canonical" href="https://flasqo.com/guides/flow-builder/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
+.site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.logo img{height:30px;width:auto}
+nav.top{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav.top a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+nav.top a:hover{color:#fff}
+nav.top a.cta{background:linear-gradient(90deg,#14b8a6,#06b6d4);color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}
+h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spacing:-.01em;margin:14px 0 10px}
+.byline{color:#64748b;font-size:.85rem;margin-bottom:26px}
+.tldr{border:1px solid rgba(20,184,166,.35);background:rgba(15,118,110,.14);border-radius:14px;padding:18px 20px;margin:0 0 34px}
+.tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5eead4;margin-bottom:8px}
+.tldr p{margin:0;color:#ccfbf1;font-size:.98rem}
+main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
+main h3{color:#e2e8f0;font-size:1.1rem;margin:26px 0 8px}
+main p{margin:0 0 16px;font-size:.98rem}
+main ul{margin:0 0 16px;padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:#5eead4;text-decoration:none}
+code{background:rgba(15,23,42,.6);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:.9em;color:#5eead4}
+.node-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0}
+.node-card{background:rgba(15,23,42,.6);border:1px solid rgba(20,184,166,.2);border-radius:10px;padding:14px;text-align:center}
+.node-card .icon{font-size:1.8rem;margin-bottom:6px}
+.node-card h4{color:#5eead4;margin:0 0 4px;font-size:.9rem}
+.node-card p{color:#94a3b8;font-size:.8rem;margin:0}
+.cta-box{border:1px solid rgba(20,184,166,.4);background:linear-gradient(135deg,rgba(20,184,166,.16),rgba(6,182,212,.10));border-radius:16px;padding:24px;text-align:center;margin:40px 0}
+.cta-box h2{margin:0 0 8px;font-size:1.3rem}
+.cta-box p{color:#94a3b8;margin:0 0 16px;font-size:.95rem}
+.cta-box a{display:inline-block;background:linear-gradient(90deg,#14b8a6,#06b6d4);color:#fff;font-weight:700;padding:12px 28px;border-radius:999px;text-decoration:none}
+.example-flow{background:rgba(15,23,42,.6);border:1px solid rgba(20,184,166,.2);border-radius:12px;padding:20px;margin:20px 0;font-family:monospace;font-size:.85rem;color:#94a3b8}
+.example-flow .flow-step{margin:10px 0;padding-left:20px;border-left:2px solid rgba(20,184,166,.3)}
+.example-flow .flow-step strong{color:#5eead4}
+footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:24px 0 32px}
+.foot-inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#64748b;font-size:.8rem}
+.foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
+.foot-inner a:hover{color:#fff}
+</style>
+</head>
+<body>
+<header class="site"><div class="site-inner">
+<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
+<nav class="top">
+<a href="/guides/api-testing/">Guides</a>
+<a href="/#faq">FAQ</a>
+<a class="cta" href="/">Start Testing Free</a>
+</nav></div></header>
+<div class="wrap">
+<h1>Visual Flow Builder: Drag-and-drop multi-step API testing</h1>
+<p class="byline">By the Flasqo team · August 5, 2026</p>
+<div class="tldr"><span class="tag">TL;DR</span><p>Flow Builder is Flasqo's visual canvas for building complex API test workflows. Drag nodes onto canvas, connect them, extract response variables, and inject them into subsequent requests. No code required for advanced scenarios like signup → login → create resource. <a href='/'>Try Flow Builder free</a>.</p></div>
+<main>
+
+<h2>What is Visual Flow Builder?</h2>
+<p>Flow Builder is a drag-and-drop interface for creating multi-step API test workflows. Instead of writing code or chaining requests manually, you:</p>
+<ul>
+<li>🎨 <strong>Drag nodes onto canvas:</strong> HTTP Request, Extract Variable, Assertion, Delay</li>
+<li>🔗 <strong>Connect nodes:</strong> Draw arrows to define execution order</li>
+<li>💾 <strong>Extract variables:</strong> Pull <code>user_id</code> from response, store for later</li>
+<li>🔄 <strong>Inject variables:</strong> Use <code>{{user_id}}</code> in next request body/headers</li>
+<li>▶️ <strong>Run flow:</strong> Execute entire workflow, see results per node</li>
+</ul>
+<p>Perfect for testing complex workflows that span multiple API calls.</p>
+
+<h2>Why Flow Builder matters</h2>
+<p>Most API testing tools require writing code for multi-step scenarios. Flow Builder solves this by:</p>
+<ul>
+<li>✅ <strong>Visual workflow design:</strong> Non-developers can build complex tests</li>
+<li>✅ <strong>No scripting needed:</strong> Everything is drag-and-drop and forms</li>
+<li>✅ <strong>Easy debugging:</strong> Click any node to see request/response at that step</li>
+<li>✅ <strong>Reusable flows:</strong> Save flows as templates, clone for similar tests</li>
+<li>✅ <strong>Team collaboration:</strong> Share flows via URL, anyone can run them</li>
+</ul>
+
+<h2>Flow Builder node types</h2>
+
+<div class="node-types">
+<div class="node-card">
+<div class="icon">🌐</div>
+<h4>HTTP Request</h4>
+<p>Make API call (GET, POST, PUT, DELETE)</p>
+</div>
+
+<div class="node-card">
+<div class="icon">📤</div>
+<h4>Extract Variable</h4>
+<p>Pull value from response (JSON path, regex)</p>
+</div>
+
+<div class="node-card">
+<div class="icon">✔️</div>
+<h4>Assertion</h4>
+<p>Validate response (status code, body contains)</p>
+</div>
+
+<div class="node-card">
+<div class="icon">⏱️</div>
+<h4>Delay</h4>
+<p>Wait N seconds before next step</p>
+</div>
+
+<div class="node-card">
+<div class="icon">🔀</div>
+<h4>Conditional</h4>
+<p>If/else branching based on response</p>
+</div>
+
+<div class="node-card">
+<div class="icon">🔁</div>
+<h4>Loop</h4>
+<p>Repeat N times or iterate over array</p>
+</div>
+
+<div class="node-card">
+<div class="icon">🧮</div>
+<h4>Transform</h4>
+<p>Modify variable (concat, hash, encode)</p>
+</div>
+
+<div class="node-card">
+<div class="icon">📊</div>
+<h4>Log</h4>
+<p>Print variable value to console</p>
+</div>
+</div>
+
+<h2>How to build a flow in Flasqo</h2>
+
+<h3>Example: E-commerce checkout flow</h3>
+<p>We'll build: Signup → Login → Add to cart → Apply coupon → Checkout</p>
+
+<p><strong>Step 1:</strong> Go to Testing Types → <strong>Visual Flow Builder</strong> → Launch</p>
+
+<p><strong>Step 2:</strong> Create new flow<br>
+Click <strong>"New Flow"</strong>, name it "Checkout Flow"</p>
+
+<p><strong>Step 3:</strong> Add first node (Signup)<br>
+• Drag <strong>"HTTP Request"</strong> node onto canvas<br>
+• Configure:<br>
+  - Method: <code>POST</code><br>
+  - URL: <code>https://api.example.com/auth/signup</code><br>
+  - Body: <code>{"email": "test@example.com", "password": "SecurePass123"}</code></p>
+
+<p><strong>Step 4:</strong> Extract user ID<br>
+• Drag <strong>"Extract Variable"</strong> node onto canvas<br>
+• Connect signup node → extract node<br>
+• Configure:<br>
+  - Variable name: <code>user_id</code><br>
+  - JSON path: <code>$.data.user_id</code></p>
+
+<p><strong>Step 5:</strong> Add login node<br>
+• Drag <strong>"HTTP Request"</strong> node<br>
+• Connect extract node → login node<br>
+• Configure:<br>
+  - Method: <code>POST</code><br>
+  - URL: <code>https://api.example.com/auth/login</code><br>
+  - Body: <code>{"email": "test@example.com", "password": "SecurePass123"}</code></p>
+
+<p><strong>Step 6:</strong> Extract auth token<br>
+• Drag <strong>"Extract Variable"</strong> node<br>
+• Connect login node → extract node<br>
+• Configure:<br>
+  - Variable name: <code>auth_token</code><br>
+  - JSON path: <code>$.token</code></p>
+
+<p><strong>Step 7:</strong> Add to cart (using extracted token)<br>
+• Drag <strong>"HTTP Request"</strong> node<br>
+• Connect previous extract → this node<br>
+• Configure:<br>
+  - Method: <code>POST</code><br>
+  - URL: <code>https://api.example.com/cart/add</code><br>
+  - Headers: <code>Authorization: Bearer {{auth_token}}</code><br>
+  - Body: <code>{"product_id": "12345", "quantity": 2}</code></p>
+
+<p><strong>Step 8:</strong> Apply coupon<br>
+• Drag <strong>"HTTP Request"</strong> node<br>
+• Configure:<br>
+  - Method: <code>POST</code><br>
+  - URL: <code>https://api.example.com/cart/coupon</code><br>
+  - Headers: <code>Authorization: Bearer {{auth_token}}</code><br>
+  - Body: <code>{"code": "SAVE20"}</code></p>
+
+<p><strong>Step 9:</strong> Checkout<br>
+• Drag <strong>"HTTP Request"</strong> node<br>
+• Configure:<br>
+  - Method: <code>POST</code><br>
+  - URL: <code>https://api.example.com/checkout</code><br>
+  - Headers: <code>Authorization: Bearer {{auth_token}}</code><br>
+  - Body: <code>{"payment_method": "card"}</code></p>
+
+<p><strong>Step 10:</strong> Add assertion<br>
+• Drag <strong>"Assertion"</strong> node<br>
+• Connect checkout node → assertion<br>
+• Configure:<br>
+  - Assert: <code>status_code == 200</code><br>
+  - Assert: <code>response.body.order_id exists</code></p>
+
+<p><strong>Step 11:</strong> Run flow<br>
+Click <strong>"Run Flow"</strong> → Flasqo executes all nodes in order → See results per node</p>
+
+<h2>Variable extraction & injection</h2>
+
+<h3>Extract from JSON response</h3>
+<p>Use JSON path syntax:</p>
+<code style="display:block;background:rgba(15,23,42,.8);padding:12px;border-radius:8px;margin:12px 0;font-size:.9em">
+Response: {"data": {"user": {"id": 42}}}<br>
+JSON Path: $.data.user.id<br>
+Extracted: user_id = 42
+</code>
+
+<h3>Extract from headers</h3>
+<code style="display:block;background:rgba(15,23,42,.8);padding:12px;border-radius:8px;margin:12px 0;font-size:.9em">
+Response Header: Set-Cookie: session_id=abc123<br>
+Regex: session_id=([^;]+)<br>
+Extracted: session_id = "abc123"
+</code>
+
+<h3>Inject into next request</h3>
+<code style="display:block;background:rgba(15,23,42,.8);padding:12px;border-radius:8px;margin:12px 0;font-size:.9em">
+Extracted: auth_token = "xyz789"<br>
+Next Request Header: Authorization: Bearer {{auth_token}}<br>
+Actual Sent: Authorization: Bearer xyz789
+</code>
+
+<h2>Advanced features</h2>
+
+<h3>Conditional branching</h3>
+<p>Create if/else logic based on responses:</p>
+<div class="example-flow">
+<div class="flow-step"><strong>1. POST /auth/login</strong></div>
+<div class="flow-step"><strong>2. If status == 200:</strong> → GET /dashboard</div>
+<div class="flow-step"><strong>3. Else:</strong> → Assert "Login failed" appears</div>
+</div>
+
+<h3>Loops</h3>
+<p>Iterate over arrays or repeat N times:</p>
+<div class="example-flow">
+<div class="flow-step"><strong>1. GET /products</strong> → Extract product IDs array</div>
+<div class="flow-step"><strong>2. Loop over each product_id:</strong></div>
+<div class="flow-step" style="padding-left:40px"><strong>→ GET /products/{{product_id}}</strong></div>
+<div class="flow-step" style="padding-left:40px"><strong>→ Assert response contains price</strong></div>
+</div>
+
+<h3>Variable transformations</h3>
+<p>Modify variables before injecting:</p>
+<code style="display:block;background:rgba(15,23,42,.8);padding:12px;border-radius:8px;margin:12px 0;font-size:.9em">
+Extracted: password = "mypass"<br>
+Transform: hash_sha256(password)<br>
+Result: hashed_password = "a665a45..."<br>
+Inject: {"password": "{{hashed_password}}"}
+</code>
+
+<h2>Real-world flow examples</h2>
+
+<h3>User lifecycle test</h3>
+<div class="example-flow">
+<div class="flow-step"><strong>1.</strong> POST /auth/signup → Extract user_id</div>
+<div class="flow-step"><strong>2.</strong> GET /verify-email?token={{email_token}}</div>
+<div class="flow-step"><strong>3.</strong> POST /auth/login → Extract auth_token</div>
+<div class="flow-step"><strong>4.</strong> PATCH /users/{{user_id}} → Update profile</div>
+<div class="flow-step"><strong>5.</strong> DELETE /users/{{user_id}} → Delete account</div>
+<div class="flow-step"><strong>6.</strong> GET /users/{{user_id}} → Assert 404</div>
+</div>
+
+<h3>Multi-service integration</h3>
+<div class="example-flow">
+<div class="flow-step"><strong>1.</strong> POST api.service-a.com/create → Extract resource_id</div>
+<div class="flow-step"><strong>2.</strong> POST api.service-b.com/process → Body: {"resource": "{{resource_id}}"}</div>
+<div class="flow-step"><strong>3.</strong> GET api.service-a.com/status/{{resource_id}} → Assert "processed"</div>
+</div>
+
+<h3>Performance baseline</h3>
+<div class="example-flow">
+<div class="flow-step"><strong>1.</strong> Loop 100 times:</div>
+<div class="flow-step" style="padding-left:40px"><strong>→ GET /api/search?q=test</strong></div>
+<div class="flow-step" style="padding-left:40px"><strong>→ Log response_time</strong></div>
+<div class="flow-step"><strong>2.</strong> Assert average(response_time) < 200ms</div>
+</div>
+
+<h2>Best practices</h2>
+
+<h3>1. Name your variables clearly</h3>
+<p>Use descriptive names: <code>auth_token</code>, not <code>t1</code>. Future you will thank you.</p>
+
+<h3>2. Add assertions between steps</h3>
+<p>Don't wait until the end to validate. Assert after each critical step:</p>
+<code style="display:block;background:rgba(15,23,42,.8);padding:12px;border-radius:8px;margin:12px 0;font-size:.9em">
+POST /login → Assert status == 200<br>
+Extract token → Assert token exists<br>
+GET /dashboard → Assert response contains user data
+</code>
+
+<h3>3. Use delays for rate-limited APIs</h3>
+<p>If your API has rate limits, add <strong>Delay</strong> nodes between requests to avoid 429 errors.</p>
+
+<h3>4. Save flows as templates</h3>
+<p>Create reusable flows for common scenarios (login flow, CRUD flow). Clone and customize for new tests.</p>
+
+<h3>5. Test edge cases with conditional nodes</h3>
+<p>Use <strong>Conditional</strong> nodes to handle both success and failure paths in one flow.</p>
+
+<h2>Flow Builder vs code-based testing</h2>
+
+<table style="width:100%;border-collapse:collapse;margin:20px 0">
+<thead>
+<tr style="background:rgba(20,184,166,.1);border-bottom:2px solid rgba(20,184,166,.3)">
+<th style="padding:12px;text-align:left;color:#5eead4">Aspect</th>
+<th style="padding:12px;text-align:left;color:#5eead4">Code-Based Testing</th>
+<th style="padding:12px;text-align:left;color:#5eead4">Flow Builder</th>
+</tr>
+</thead>
+<tbody style="color:#94a3b8">
+<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+<td style="padding:10px"><strong>Learning curve</strong></td>
+<td style="padding:10px">Requires programming knowledge</td>
+<td style="padding:10px"><strong>No code required</strong></td>
+</tr>
+<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+<td style="padding:10px"><strong>Multi-step workflows</strong></td>
+<td style="padding:10px">Manual chaining with variables</td>
+<td style="padding:10px"><strong>Visual drag-and-drop</strong></td>
+</tr>
+<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+<td style="padding:10px"><strong>Debugging</strong></td>
+<td style="padding:10px">Console logs, breakpoints</td>
+<td style="padding:10px"><strong>Click node → see request/response</strong></td>
+</tr>
+<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+<td style="padding:10px"><strong>Team sharing</strong></td>
+<td style="padding:10px">Git repo, code review</td>
+<td style="padding:10px"><strong>Share URL, run instantly</strong></td>
+</tr>
+<tr>
+<td style="padding:10px"><strong>Non-technical users</strong></td>
+<td style="padding:10px">Cannot create tests</td>
+<td style="padding:10px"><strong>Can build complex flows</strong></td>
+</tr>
+</tbody>
+</table>
+
+<h2>When to use Flow Builder</h2>
+
+<p><strong>Use Flow Builder when:</strong></p>
+<ul>
+<li>Testing multi-step user journeys (signup → onboarding → first action)</li>
+<li>You need to pass data between requests (extract ID, use in next call)</li>
+<li>Non-developers need to create tests</li>
+<li>You want visual documentation of test workflows</li>
+<li>Debugging complex request chains</li>
+</ul>
+
+<p><strong>Use code/scripts when:</strong></p>
+<ul>
+<li>Complex data transformations (custom hashing, encryption)</li>
+<li>Integration with CI/CD pipelines (prefer API/CLI)</li>
+<li>Advanced logic (nested loops, recursion)</li>
+<li>Custom assertions beyond status codes/body checks</li>
+</ul>
+
+<div class="cta-box">
+<h2>Build complex API flows visually</h2>
+<p>Drag nodes, connect steps, extract variables. No code required for advanced multi-step testing.</p>
+<a href="/">Try Flow Builder Free</a>
+</div>
+
+</main>
+</div>
+<footer class="site"><div class="foot-inner">
+<div>&copy; 2026 Flasqo — AI-powered API testing platform</div>
+<div>
+<a href="/guides/api-testing/">Guides</a>
+<a href="/">Start Free</a>
+</div>
+</div></footer>
+</body>
+</html>
