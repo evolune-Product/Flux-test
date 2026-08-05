@@ -91,7 +91,7 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: "/smoke",
       launchHref: "/smoke",
-      docsHref: "https://docs.flasqo.com",
+      docsHref: "/guides/smoke-testing/",
       color: "green",
     },
     {
