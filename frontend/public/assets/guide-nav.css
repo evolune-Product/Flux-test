@@ -1,0 +1,9 @@
+.gnav{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.92)}
+.gnav-inner{max-width:1000px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.gnav-logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;font-family:'Space Grotesk',sans-serif}
+.gnav-logo img{display:block;border-radius:6px}
+.gnav-links{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.gnav-links a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+.gnav-links a:hover{color:#e2e8f0}
+.gnav-cta{background:linear-gradient(90deg,#10b981,#06b6d4);color:#fff!important;font-weight:700;padding:8px 18px;border-radius:999px}
+.gnav-cta:hover{opacity:.92}

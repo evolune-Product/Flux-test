@@ -13,8 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
-.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.7;font-size:17px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 22px}
 header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
 .site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
@@ -29,12 +29,12 @@ h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spaci
 .tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#c4b5fd;margin-bottom:8px}
 .tldr p{margin:0;color:#e9d5ff;font-size:.98rem}
 main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
-main p{margin:0 0 16px;font-size:.98rem}
+main p{margin:0 0 16px;font-size:1.08rem}
 main ul{margin:0 0 16px;padding-left:22px}
 main li{margin-bottom:8px}
 main a{color:#a78bfa;text-decoration:none}
 code{background:rgba(15,23,42,.6);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:.9em;color:#c4b5fd}
-.steps{counter-reset:step}
+.steps{counter-reset:step;list-style:none;margin:0}
 .steps li{counter-increment:step;margin-bottom:18px;position:relative;padding-left:0}
 .steps li::before{content:counter(step);position:absolute;left:-45px;top:0;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:#fff;font-weight:700;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem}
 .cta-box{border:1px solid rgba(139,92,246,.4);background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(236,72,153,.10));border-radius:16px;padding:24px;text-align:center;margin:40px 0}
@@ -46,15 +46,11 @@ footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:2
 .foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
 .foot-inner a:hover{color:#fff}
 </style>
+<link rel="stylesheet" href="/assets/guide-nav.css">
 </head>
 <body>
-<header class="site"><div class="site-inner">
-<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
-<nav class="top">
-<a href="/guides/api-testing/">Guides</a>
-<a href="/#faq">FAQ</a>
-<a class="cta" href="/">Start Testing Free</a>
-</nav></div></header>
+<header id="site-header" class="gnav"><div class="gnav-inner"><a class="gnav-logo" href="/">Flasqo</a></div></header>
+<script src="/assets/guide-nav.js" defer></script>
 <div class="wrap">
 <h1>API integration testing: validate multi-endpoint workflows</h1>
 <p class="byline">By the Flasqo team · August 5, 2026</p>
@@ -165,7 +161,7 @@ Flasqo executes steps sequentially and reports which step failed (if any)
 <div class="cta-box">
 <h2>Test complete user workflows</h2>
 <p>Chain endpoints, validate data flow, catch integration bugs before production.</p>
-<a href="/">Start Integration Testing Free</a>
+<a href="/integration">Start Integration Testing Free</a>
 </div>
 
 </main>

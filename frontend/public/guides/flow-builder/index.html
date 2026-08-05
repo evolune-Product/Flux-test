@@ -13,8 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
-.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.7;font-size:17px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 22px}
 header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
 .site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
@@ -30,7 +30,7 @@ h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spaci
 .tldr p{margin:0;color:#ccfbf1;font-size:.98rem}
 main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
 main h3{color:#e2e8f0;font-size:1.1rem;margin:26px 0 8px}
-main p{margin:0 0 16px;font-size:.98rem}
+main p{margin:0 0 16px;font-size:1.08rem}
 main ul{margin:0 0 16px;padding-left:22px}
 main li{margin-bottom:8px}
 main a{color:#5eead4;text-decoration:none}
@@ -52,15 +52,11 @@ footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:2
 .foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
 .foot-inner a:hover{color:#fff}
 </style>
+<link rel="stylesheet" href="/assets/guide-nav.css">
 </head>
 <body>
-<header class="site"><div class="site-inner">
-<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
-<nav class="top">
-<a href="/guides/api-testing/">Guides</a>
-<a href="/#faq">FAQ</a>
-<a class="cta" href="/">Start Testing Free</a>
-</nav></div></header>
+<header id="site-header" class="gnav"><div class="gnav-inner"><a class="gnav-logo" href="/">Flasqo</a></div></header>
+<script src="/assets/guide-nav.js" defer></script>
 <div class="wrap">
 <h1>Visual Flow Builder: Drag-and-drop multi-step API testing</h1>
 <p class="byline">By the Flasqo team · August 5, 2026</p>
@@ -376,7 +372,7 @@ GET /dashboard → Assert response contains user data
 <div class="cta-box">
 <h2>Build complex API flows visually</h2>
 <p>Drag nodes, connect steps, extract variables. No code required for advanced multi-step testing.</p>
-<a href="/">Try Flow Builder Free</a>
+<a href="/flow-builder">Try Flow Builder Free</a>
 </div>
 
 </main>
