@@ -72,7 +72,7 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: "/functional",
       launchHref: "/functional",
-      docsHref: "https://docs.flasqo.com",
+      docsHref: "/guides/api-testing/",
       color: "blue",
     },
     {
@@ -110,7 +110,7 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: "/performance",
       launchHref: "/performance",
-      docsHref: "https://docs.flasqo.com",
+      docsHref: "/guides/api-load-testing/",
       color: "purple",
     },
     {
@@ -129,7 +129,7 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: "/chaos",
       launchHref: "/chaos",
-      docsHref: "https://docs.flasqo.com",
+      docsHref: "/guides/api-chaos-testing/",
       color: "orange",
     },
     {
@@ -186,7 +186,7 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: "/contract",
       launchHref: "/contract",
-      docsHref: "https://docs.flasqo.com",
+      docsHref: "/guides/api-contract-testing/",
       color: "violet",
     },
     {
@@ -205,7 +205,7 @@ function TestingTypesLanding({ user, onLogout }) {
       ],
       route: "/graphql",
       launchHref: "/graphql",
-      docsHref: "https://docs.flasqo.com",
+      docsHref: "/guides/graphql-api-testing/",
       color: "indigo",
     },
     {
