@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020617">
+<link rel="icon" type="image/png" href="/icon_svg.png">
+<title>API Integration Testing: Validate Multi-Endpoint Workflows</title>
+<meta name="description" content="Integration testing validates that multiple API endpoints work together correctly in real-world workflows. Learn how to test end-to-end user journeys with Flasqo.">
+<link rel="canonical" href="https://flasqo.com/guides/integration-testing/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
+.site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.logo img{height:30px;width:auto}
+nav.top{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav.top a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+nav.top a:hover{color:#fff}
+nav.top a.cta{background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}
+h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spacing:-.01em;margin:14px 0 10px}
+.byline{color:#64748b;font-size:.85rem;margin-bottom:26px}
+.tldr{border:1px solid rgba(139,92,246,.35);background:rgba(76,29,149,.14);border-radius:14px;padding:18px 20px;margin:0 0 34px}
+.tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#c4b5fd;margin-bottom:8px}
+.tldr p{margin:0;color:#e9d5ff;font-size:.98rem}
+main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
+main p{margin:0 0 16px;font-size:.98rem}
+main ul{margin:0 0 16px;padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:#a78bfa;text-decoration:none}
+code{background:rgba(15,23,42,.6);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:.9em;color:#c4b5fd}
+.steps{counter-reset:step}
+.steps li{counter-increment:step;margin-bottom:18px;position:relative;padding-left:0}
+.steps li::before{content:counter(step);position:absolute;left:-45px;top:0;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:#fff;font-weight:700;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.cta-box{border:1px solid rgba(139,92,246,.4);background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(236,72,153,.10));border-radius:16px;padding:24px;text-align:center;margin:40px 0}
+.cta-box h2{margin:0 0 8px;font-size:1.3rem}
+.cta-box p{color:#94a3b8;margin:0 0 16px;font-size:.95rem}
+.cta-box a{display:inline-block;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;font-weight:700;padding:12px 28px;border-radius:999px;text-decoration:none}
+footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:24px 0 32px}
+.foot-inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#64748b;font-size:.8rem}
+.foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
+.foot-inner a:hover{color:#fff}
+</style>
+</head>
+<body>
+<header class="site"><div class="site-inner">
+<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
+<nav class="top">
+<a href="/guides/api-testing/">Guides</a>
+<a href="/#faq">FAQ</a>
+<a class="cta" href="/">Start Testing Free</a>
+</nav></div></header>
+<div class="wrap">
+<h1>API integration testing: validate multi-endpoint workflows</h1>
+<p class="byline">By the Flasqo team · August 5, 2026</p>
+<div class="tldr"><span class="tag">TL;DR</span><p>Integration testing validates that multiple API endpoints work together correctly in real-world workflows. Unlike unit tests (single endpoint) or E2E tests (full UI), integration tests focus on API-to-API interactions: signup → login → create resource → delete. <a href='/'>Flasqo</a> chains endpoint calls and validates data flow between them.</p></div>
+<main>
+
+<h2>What is integration testing?</h2>
+<p>Integration testing verifies that multiple components work together correctly. For APIs, this means testing **complete user workflows** that span multiple endpoints, ensuring data flows correctly between them.</p>
+<p>Example: E-commerce checkout flow</p>
+<ul>
+<li>1. POST /auth/login → Get auth token</li>
+<li>2. POST /cart/add → Add product (use token from step 1)</li>
+<li>3. GET /cart → Verify product in cart</li>
+<li>4. POST /checkout → Complete purchase</li>
+<li>5. GET /orders/:id → Confirm order created</li>
+</ul>
+<p>If any step fails or data doesn't pass correctly between steps, the integration test fails.</p>
+
+<h2>Why integration testing matters</h2>
+<p>Individual endpoints might work perfectly in isolation, but fail when chained together. Integration tests catch:</p>
+<ul>
+<li><strong>State management bugs:</strong> Session expires between steps</li>
+<li><strong>Data consistency issues:</strong> User created in step 1 doesn't exist in step 2</li>
+<li><strong>Authorization failures:</strong> Token from login not accepted by other endpoints</li>
+<li><strong>Race conditions:</strong> Async operations complete out of order</li>
+<li><strong>Database transaction failures:</strong> Partial commits leave data in broken state</li>
+</ul>
+
+<h2>How to run integration tests in Flasqo</h2>
+
+<ol class="steps" style="padding-left:50px">
+<li>
+<strong>Navigate to Integration Testing</strong><br>
+Go to Testing Types → <strong>Integration Testing</strong> → Launch
+</li>
+
+<li>
+<strong>Create a test scenario</strong><br>
+Click "New Scenario" and name it (e.g., "User Signup to First Purchase")
+</li>
+
+<li>
+<strong>Add first endpoint</strong><br>
+• Endpoint: <code>POST /auth/signup</code><br>
+• Body: <code>{"email": "test@example.com", "password": "SecurePass123"}</code><br>
+• Extract: <code>user_id</code> from response
+</li>
+
+<li>
+<strong>Chain second endpoint</strong><br>
+Click "+ Add Step"<br>
+• Endpoint: <code>POST /auth/login</code><br>
+• Body: <code>{"email": "test@example.com", "password": "SecurePass123"}</code><br>
+• Extract: <code>auth_token</code> from response
+</li>
+
+<li>
+<strong>Continue chaining</strong><br>
+Add more steps, using extracted values:<br>
+• Use <code>{{auth_token}}</code> in Authorization header<br>
+• Use <code>{{user_id}}</code> in request body<br>
+Flasqo auto-populates variables from previous steps
+</li>
+
+<li>
+<strong>Add assertions</strong><br>
+For each step, validate:<br>
+• Status code = 200<br>
+• Response contains expected fields<br>
+• Values match expectations
+</li>
+
+<li>
+<strong>Run scenario</strong><br>
+Click "Run Integration Test"<br>
+Flasqo executes steps sequentially and reports which step failed (if any)
+</li>
+</ol>
+
+<h2>Common integration test scenarios</h2>
+
+<h3>User lifecycle</h3>
+<p>Signup → Email verification → Login → Update profile → Delete account</p>
+
+<h3>E-commerce flow</h3>
+<p>Browse products → Add to cart → Apply coupon → Checkout → Payment → Order confirmation</p>
+
+<h3>Content management</h3>
+<p>Create draft → Add media → Publish → Edit → Unpublish → Delete</p>
+
+<h3>Multi-user collaboration</h3>
+<p>User A creates document → User A shares with User B → User B edits → User A views changes</p>
+
+<h2>Best practices</h2>
+
+<h3>1. Test realistic user journeys</h3>
+<p>Don't test random endpoint combinations. Focus on actual workflows users perform.</p>
+
+<h3>2. Clean up test data</h3>
+<p>Add final step to delete created resources. Prevents test data pollution.</p>
+
+<h3>3. Test both happy and sad paths</h3>
+<p>What happens if step 3 fails? Does the system rollback step 1 and 2?</p>
+
+<h3>4. Run in isolated test environment</h3>
+<p>Use test database, not production. Integration tests create/modify data.</p>
+
+<div class="cta-box">
+<h2>Test complete user workflows</h2>
+<p>Chain endpoints, validate data flow, catch integration bugs before production.</p>
+<a href="/">Start Integration Testing Free</a>
+</div>
+
+</main>
+</div>
+<footer class="site"><div class="foot-inner">
+<div>&copy; 2026 Flasqo — AI-powered API testing platform</div>
+<div>
+<a href="/guides/api-testing/">Guides</a>
+<a href="/">Start Free</a>
+</div>
+</div></footer>
+</body>
+</html>

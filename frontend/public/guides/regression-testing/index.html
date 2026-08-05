@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020617">
+<link rel="icon" type="image/png" href="/icon_svg.png">
+<title>API Regression Testing: Prevent Breaking Changes in Production</title>
+<meta name="description" content="Regression testing verifies that new code changes don't break existing functionality. Learn how to automate API regression tests with baseline comparisons and visual diffs using Flasqo.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="https://flasqo.com/guides/regression-testing/">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://flasqo.com/guides/regression-testing/">
+<meta property="og:title" content="API Regression Testing: Prevent Breaking Changes in Production">
+<meta property="og:description" content="Regression testing verifies that new code changes don't break existing functionality. Automate baseline comparisons with Flasqo.">
+<meta property="og:image" content="https://flasqo.com/og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
+.site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.logo img{height:30px;width:auto}
+nav.top{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav.top a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+nav.top a:hover{color:#fff}
+nav.top a.cta{background:linear-gradient(90deg,#06b6d4,#8b5cf6);color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}
+.crumbs{font-size:.8rem;color:#64748b;margin:26px 0 0}
+.crumbs a{color:#64748b;text-decoration:none}
+.crumbs a:hover{color:#cbd5e1}
+h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spacing:-.01em;margin:14px 0 10px}
+.byline{color:#64748b;font-size:.85rem;margin-bottom:26px}
+.tldr{border:1px solid rgba(139,92,246,.35);background:rgba(76,29,149,.14);border-radius:14px;padding:18px 20px;margin:0 0 34px}
+.tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#c4b5fd;margin-bottom:8px}
+.tldr p{margin:0;color:#e9d5ff;font-size:.98rem}
+main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
+main h3{color:#e2e8f0;font-size:1.1rem;margin:26px 0 8px}
+main p{margin:0 0 16px;font-size:.98rem}
+main ul,main ol{margin:0 0 16px;padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:#a78bfa;text-decoration:none}
+main a:hover{text-decoration:underline}
+strong{color:#e2e8f0}
+code{background:rgba(15,23,42,.6);padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:.9em;color:#c4b5fd}
+.steps{counter-reset:step}
+.steps li{counter-increment:step;margin-bottom:20px;position:relative;padding-left:0}
+.steps li::before{content:counter(step);position:absolute;left:-45px;top:0;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-weight:700;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.cta-box{border:1px solid rgba(139,92,246,.4);background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(6,182,212,.10));border-radius:16px;padding:26px;text-align:center;margin:44px 0}
+.cta-box h2{margin:0 0 8px;font-size:1.35rem}
+.cta-box p{color:#94a3b8;margin:0 0 18px}
+.cta-box a{display:inline-block;background:linear-gradient(90deg,#8b5cf6,#06b6d4);color:#fff;font-weight:700;padding:12px 30px;border-radius:999px;text-decoration:none}
+.faq details{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:13px 17px;margin-bottom:10px;background:rgba(15,23,42,.6)}
+.faq summary{color:#e2e8f0;font-weight:600;cursor:pointer}
+.faq p{color:#94a3b8;font-size:.93rem;margin:10px 0 0}
+.more{border-top:1px solid rgba(255,255,255,.07);margin-top:48px;padding-top:28px}
+.more h2{font-size:1rem;color:#e2e8f0;margin:0 0 14px;text-transform:uppercase;letter-spacing:.08em}
+.more-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.more-grid a{display:block;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 14px;color:#94a3b8;text-decoration:none;font-size:.87rem;background:rgba(15,23,42,.5)}
+.more-grid a:hover{color:#fff;border-color:rgba(167,139,250,.5)}
+footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:26px 0 34px}
+.foot-inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#64748b;font-size:.8rem}
+.foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
+.foot-inner a:hover{color:#fff}
+</style>
+</head>
+<body>
+<header class="site"><div class="site-inner">
+<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
+<nav class="top" aria-label="Main">
+<a href="/guides/api-testing/">Guides</a>
+<a href="/#faq">FAQ</a>
+<a class="cta" href="/">Start Testing Free</a>
+</nav></div></header>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/guides/api-testing/">Guides</a> › Regression testing</nav>
+<h1>API regression testing: catch breaking changes before they reach users</h1>
+<p class="byline">By the Flasqo team · Updated August 5, 2026</p>
+<div class="tldr"><span class="tag">TL;DR</span><p>Regression testing verifies that new code changes don't break existing functionality. It compares current API responses against baseline "known-good" results to detect unintended changes. Run regression tests after every deployment to prevent breaking changes. <a href='/'>Flasqo</a> automates baseline capture and diff comparison, free.</p></div>
+<main>
+
+<h2>What is regression testing?</h2>
+<p>Regression testing confirms that recent code changes haven't broken existing features. For APIs, this means:  **Does this endpoint still return the same response structure, status codes, and data after our latest deploy?**</p>
+<p>The test works by comparing current behavior against a baseline ("golden snapshot") captured when the API was known to work correctly. Any unexpected difference triggers a failure.</p>
+
+<h2>Why regression testing matters</h2>
+<p>Feature development creates risk. A seemingly innocent change in one part of your codebase can cascade and break unrelated endpoints. Regression testing catches these accidents before users do.</p>
+
+<h3>Real-world regression failures</h3>
+<ul>
+<li><strong>Knight Capital ($440M loss):</strong> Deployment activated old code, breaking live trading systems.</li>
+<li><strong>AWS S3 outage (2017):</strong> Typo in deployment script took down half the internet for 4 hours.</li>
+<li><strong>Stripe API (2019):</strong> Breaking change in v2 API rollback broke thousands of integrations.</li>
+<li><strong>GitHub (2020):</strong> Database schema change broke OAuth flow for 2 hours.</li>
+</ul>
+
+<h2>What regression tests detect</h2>
+<ul>
+<li><strong>Schema changes:</strong> Field removed, renamed, or type changed</li>
+<li><strong>Status code changes:</strong> Endpoint now returns 500 instead of 200</li>
+<li><strong>Response structure changes:</strong> Array became object, nested field moved</li>
+<li><strong>Performance regressions:</strong> Response time jumped from 100ms to 2s</li>
+<li><strong>Security regressions:</strong> Auth bypass reintroduced after refactor</li>
+<li><strong>Business logic changes:</strong> Calculation formula accidentally modified</li>
+</ul>
+
+<h2>How to run regression tests in Flasqo</h2>
+
+<ol class="steps" style="padding-left:50px">
+<li>
+<strong>Navigate to Regression Testing</strong><br>
+Go to <a href="https://flasqo.com/testing-types">Testing Types</a> → <strong>Regression Testing</strong> → Launch
+</li>
+
+<li>
+<strong>Enter API base URL</strong><br>
+Example: <code>https://api.yourapp.com</code>
+</li>
+
+<li>
+<strong>Select endpoints to test</strong><br>
+Add critical endpoints:<br>
+• <code>GET /users/:id</code><br>
+• <code>POST /auth/login</code><br>
+• <code>GET /products</code><br>
+Flasqo can auto-discover endpoints from OpenAPI spec
+</li>
+
+<li>
+<strong>Capture baseline snapshot</strong><br>
+Click <strong>"Capture Baseline"</strong><br>
+Flasqo calls each endpoint and saves:<br>
+• Response body (JSON structure)<br>
+• Status code<br>
+• Headers<br>
+• Response time<br>
+This becomes your "known-good" reference
+</li>
+
+<li>
+<strong>Make code changes and deploy</strong><br>
+Update your code, deploy to staging/production
+</li>
+
+<li>
+<strong>Run regression test</strong><br>
+Click <strong>"Run Regression Test"</strong><br>
+Flasqo re-calls all endpoints and compares results to baseline
+</li>
+
+<li>
+<strong>Review differences</strong><br>
+• ✅ <span style="color:#4ade80">No changes</span>: API behavior unchanged<br>
+• ⚠️ <span style="color:#facc15">Minor diff</span>: Non-breaking change (new optional field)<br>
+• ❌ <span style="color:#f87171">Breaking change</span>: Field removed, type changed, status code different<br>
+View side-by-side diff of baseline vs current
+</li>
+
+<li>
+<strong>Update baseline or fix bug</strong><br>
+• If change is intentional → Update baseline<br>
+• If change is a bug → Rollback deployment and fix
+</li>
+</ol>
+
+<h2>Types of regression testing</h2>
+
+<h3>1. Response regression (most common)</h3>
+<p>Compares JSON response bodies. Catches schema changes, missing fields, type changes.</p>
+
+<h3>2. Visual regression</h3>
+<p>For HTML/rendered endpoints. Takes screenshots and compares pixel-by-pixel. Detects CSS/layout breaks.</p>
+
+<h3>3. Performance regression</h3>
+<p>Compares response times. Alerts if latency increased significantly (e.g., 200ms → 2s).</p>
+
+<h3>4. Security regression</h3>
+<p>Checks if auth requirements changed. Detects if endpoints became public accidentally.</p>
+
+<h2>Baseline management strategies</h2>
+
+<h3>When to update baselines</h3>
+<ul>
+<li><strong>Intentional API changes:</strong> New field added, deprecating old field</li>
+<li><strong>Version bumps:</strong> v1 → v2 API migration</li>
+<li><strong>After fixing regression bugs:</strong> Re-baseline to lock in correct behavior</li>
+</ul>
+
+<h3>When NOT to update baselines</h3>
+<ul>
+<li><strong>Test failures:</strong> Don't update baseline to make tests pass!</li>
+<li><strong>Production incidents:</strong> Baseline should reflect working state, not broken state</li>
+<li><strong>Flaky responses:</strong> Fix flakiness first, then re-baseline</li>
+</ul>
+
+<h2>Best practices</h2>
+
+<h3>1. Run regression tests before every production deploy</h3>
+<p>Make regression tests a deployment gate. If tests fail, stop deployment automatically.</p>
+
+<h3>2. Test against staging first</h3>
+<p>Run regression tests on staging environment after deploy. Catch issues before production.</p>
+
+<h3>3. Ignore non-deterministic fields</h3>
+<p>Exclude timestamps, UUIDs, and random data from comparison:</p>
+<code style="display:block;background:rgba(15,23,42,.8);padding:12px;border-radius:8px;margin:12px 0;font-size:.9em">{
+  "id": "UUID-IGNORE",
+  "created_at": "TIMESTAMP-IGNORE",
+  "price": 29.99  // Compare this
+}</code>
+
+<h3>4. Version your baselines</h3>
+<p>Store baselines in version control alongside code. When you create a new feature branch, you have a matching baseline.</p>
+
+<h3>5. Test both success and error paths</h3>
+<p>Baseline both 200 responses AND 404/400 errors. Ensure error messages don't change unexpectedly.</p>
+
+<div class="cta-box">
+<h2>Prevent breaking changes</h2>
+<p>Automated baseline comparison for every deployment. Catch regressions in seconds.</p>
+<a href="/">Start Regression Testing Free</a>
+</div>
+
+<div class="faq">
+<h2>Frequently asked questions</h2>
+
+<details>
+<summary>How often should I update my baselines?</summary>
+<p>Update baselines only when you intentionally change API behavior. Treat baselines like unit test assertions — they define correct behavior. If tests fail, fix the bug, don't update the baseline to match broken behavior.</p>
+</details>
+
+<details>
+<summary>What's the difference between regression testing and functional testing?</summary>
+<p>Functional testing validates that features work correctly (does login accept valid credentials?). Regression testing validates that features STILL work after changes (does login still work after we refactored the database?). Run functional tests once; run regression tests after every deploy.</p>
+</details>
+
+<details>
+<summary>Can regression tests catch performance issues?</summary>
+<p>Yes, if you include response time in your baseline. Flasqo can alert if response time increases by more than a threshold (e.g., 50% slower than baseline). This catches performance regressions like N+1 queries or missing indexes.</p>
+</details>
+
+<details>
+<summary>Should I run regression tests in production?</summary>
+<p>Yes, but carefully. Run regression tests immediately after production deployment to verify the deploy succeeded. Use read-only endpoints or test accounts to avoid side effects.</p>
+</details>
+
+</div>
+
+<div class="more">
+<h2>Related guides</h2>
+<div class="more-grid">
+<a href="/guides/api-testing/">Functional API testing</a>
+<a href="/guides/smoke-testing/">Smoke testing</a>
+<a href="/guides/api-load-testing/">Performance testing</a>
+<a href="/guides/integration-testing/">Integration testing</a>
+</div>
+</div>
+
+</main>
+</div>
+<footer class="site"><div class="foot-inner">
+<div>&copy; 2026 Flasqo — AI-powered API testing platform</div>
+<div>
+<a href="/guides/api-testing/">Guides</a>
+<a href="/#faq">FAQ</a>
+<a href="/">Start Free</a>
+</div>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020617">
+<link rel="icon" type="image/png" href="/icon_svg.png">
+<title>Full Send: Zero-Config Complete API Scan | Flasqo</title>
+<meta name="description" content="Full Send runs all 14+ test types automatically with zero configuration. Paste a URL, get a complete security, performance, and functional assessment in minutes.">
+<link rel="canonical" href="https://flasqo.com/guides/full-send/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
+.site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.logo img{height:30px;width:auto}
+nav.top{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav.top a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+nav.top a:hover{color:#fff}
+nav.top a.cta{background:linear-gradient(90deg,#7c3aed,#ec4899);color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}
+h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spacing:-.01em;margin:14px 0 10px}
+.byline{color:#64748b;font-size:.85rem;margin-bottom:26px}
+.tldr{border:1px solid rgba(124,58,237,.35);background:rgba(88,28,135,.14);border-radius:14px;padding:18px 20px;margin:0 0 34px}
+.tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#d8b4fe;margin-bottom:8px}
+.tldr p{margin:0;color:#f3e8ff;font-size:.98rem}
+main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
+main p{margin:0 0 16px;font-size:.98rem}
+main ul{margin:0 0 16px;padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:#c084fc;text-decoration:none}
+code{background:rgba(15,23,42,.6);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:.9em;color:#d8b4fe}
+.cta-box{border:1px solid rgba(124,58,237,.4);background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(236,72,153,.10));border-radius:16px;padding:24px;text-align:center;margin:40px 0}
+.cta-box h2{margin:0 0 8px;font-size:1.3rem}
+.cta-box p{color:#94a3b8;margin:0 0 16px;font-size:.95rem}
+.cta-box a{display:inline-block;background:linear-gradient(90deg,#7c3aed,#ec4899);color:#fff;font-weight:700;padding:12px 28px;border-radius:999px;text-decoration:none}
+footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:24px 0 32px}
+.foot-inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#64748b;font-size:.8rem}
+.foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
+.foot-inner a:hover{color:#fff}
+</style>
+</head>
+<body>
+<header class="site"><div class="site-inner">
+<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
+<nav class="top">
+<a href="/guides/api-testing/">Guides</a>
+<a href="/#faq">FAQ</a>
+<a class="cta" href="/">Start Testing Free</a>
+</nav></div></header>
+<div class="wrap">
+<h1>Full Send: Complete API assessment in one click</h1>
+<p class="byline">By the Flasqo team · August 5, 2026</p>
+<div class="tldr"><span class="tag">TL;DR</span><p><strong>Full Send</strong> is Flasqo's zero-config complete API scan. Paste a URL and get a comprehensive assessment covering functional, security, performance, and visual testing automatically. No setup, no configuration — just instant insights. <a href='/'>Try Full Send free</a>.</p></div>
+<main>
+
+<h2>What is Full Send?</h2>
+<p>Full Send is Flasqo's **most powerful testing mode**: it automatically discovers endpoints, runs 14+ test types in parallel, and generates a unified GPT-4-powered report — all from a single URL.</p>
+<p>Perfect for:</p>
+<ul>
+<li>🚀 <strong>Quick audits:</strong> "Is this API production-ready?"</li>
+<li>🔍 <strong>Competitive analysis:</strong> "How does their API perform?"</li>
+<li>📊 <strong>Pre-migration assessment:</strong> "What are we dealing with?"</li>
+<li>⚡ <strong>CI/CD smoke testing:</strong> "Did this deploy break anything?"</li>
+</ul>
+
+<h2>What Full Send tests</h2>
+<p>One scan runs all test types automatically:</p>
+
+<h3>1. Smoke Testing</h3>
+<p>Verifies critical endpoints respond correctly. Checks health, auth, and core CRUD operations.</p>
+
+<h3>2. Functional Testing</h3>
+<p>AI-generated test cases validate response schemas, status codes, and data types for all discovered endpoints.</p>
+
+<h3>3. Security Testing</h3>
+<p>Checks security headers (CORS, CSP, HSTS), SSL configuration, exposed secrets, and common vulnerabilities.</p>
+
+<h3>4. Performance Testing</h3>
+<p>Measures response times, identifies slow endpoints, tests concurrent request handling.</p>
+
+<h3>5. Visual Testing (for HTML endpoints)</h3>
+<p>Captures screenshots of rendered pages, detects visual regressions, checks mobile responsiveness.</p>
+
+<h3>6. Contract Validation</h3>
+<p>If OpenAPI/Swagger spec exists, validates actual responses match declared schema.</p>
+
+<h2>How to run Full Send in Flasqo</h2>
+
+<p><strong>Step 1:</strong> Go to <a href="https://flasqo.com/testing-types">Testing Types</a> → <strong>Full Send</strong></p>
+
+<p><strong>Step 2:</strong> Paste any URL:</p>
+<ul>
+<li><code>https://api.yourapp.com</code> (API root)</li>
+<li><code>https://api.yourapp.com/v1/users</code> (specific endpoint)</li>
+<li><code>https://yourapp.com</code> (website - crawls for API endpoints)</li>
+</ul>
+
+<p><strong>Step 3:</strong> Click <strong>"Full Send"</strong></p>
+
+<p>Flasqo automatically:</p>
+<ul>
+<li>🔍 Crawls the site to discover all endpoints</li>
+<li>📖 Checks for OpenAPI/Swagger documentation</li>
+<li>🧪 Generates and runs tests for each endpoint</li>
+<li>🤖 Analyzes results with GPT-4</li>
+<li>📄 Creates shareable report with findings</li>
+</ul>
+
+<p><strong>Step 4:</strong> Review unified report</p>
+<p>Get AI-powered insights:</p>
+<ul>
+<li>✅ What's working well</li>
+<li>⚠️ Issues found (security, performance, bugs)</li>
+<li>💡 Recommendations for improvement</li>
+<li>📊 Overall health score (0-100)</li>
+</ul>
+
+<h2>Full Send report includes</h2>
+<ul>
+<li><strong>Executive summary:</strong> GPT-4 analysis in plain English</li>
+<li><strong>Endpoints discovered:</strong> Complete list with methods and paths</li>
+<li><strong>Security findings:</strong> Missing headers, vulnerabilities, misconfigurations</li>
+<li><strong>Performance metrics:</strong> Response times, slow endpoints, bottlenecks</li>
+<li><strong>Functional issues:</strong> Broken endpoints, validation errors, schema problems</li>
+<li><strong>Visual screenshots:</strong> Rendered pages (for HTML endpoints)</li>
+<li><strong>Public share link:</strong> Share results with team (no login required)</li>
+<li><strong>PDF export:</strong> Download professional report</li>
+</ul>
+
+<h2>Use cases</h2>
+
+<h3>Pre-launch audit</h3>
+<p>"Before we go live, is the API ready?" → Full Send finds issues before users do.</p>
+
+<h3>Competitive analysis</h3>
+<p>"How does their public API work?" → Understand competitors' API design and performance.</p>
+
+<h3>Post-deployment verification</h3>
+<p>"Did the deploy break anything?" → Quick health check after releases.</p>
+
+<h3>Due diligence</h3>
+<p>"Should we integrate with this API?" → Assess quality before committing.</p>
+
+<h2>When to use Full Send vs individual test types</h2>
+
+<p><strong>Use Full Send when:</strong></p>
+<ul>
+<li>You want a complete assessment quickly</li>
+<li>You're auditing an unfamiliar API</li>
+<li>You need a report to share with stakeholders</li>
+<li>Time is limited (Full Send runs in 5-10 minutes)</li>
+</ul>
+
+<p><strong>Use individual test types when:</strong></p>
+<ul>
+<li>You need deep testing of specific functionality</li>
+<li>You're debugging a known issue</li>
+<li>You want fine-grained control over test parameters</li>
+<li>You're integrating testing into CI/CD pipelines</li>
+</ul>
+
+<div class="cta-box">
+<h2>Complete API audit in minutes</h2>
+<p>Zero configuration. Just paste a URL and get instant security, performance, and functional insights.</p>
+<a href="/">Run Full Send Free</a>
+</div>
+
+</main>
+</div>
+<footer class="site"><div class="foot-inner">
+<div>&copy; 2026 Flasqo — AI-powered API testing platform</div>
+<div>
+<a href="/guides/api-testing/">Guides</a>
+<a href="/">Start Free</a>
+</div>
+</div></footer>
+</body>
+</html>

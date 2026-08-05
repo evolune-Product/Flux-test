@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020617">
+<link rel="icon" type="image/png" href="/icon_svg.png">
+<title>API Fuzz Testing: Find Security Vulnerabilities with Malformed Input</title>
+<meta name="description" content="Fuzz testing sends malformed, unexpected, and random data to API endpoints to uncover security vulnerabilities, crashes, and edge cases. Learn how to run automated fuzz tests with Flasqo.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="https://flasqo.com/guides/fuzzing/">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://flasqo.com/guides/fuzzing/">
+<meta property="og:title" content="API Fuzz Testing: Find Security Vulnerabilities with Malformed Input">
+<meta property="og:description" content="Fuzz testing sends malformed, unexpected, and random data to API endpoints to uncover security vulnerabilities, crashes, and edge cases.">
+<meta property="og:image" content="https://flasqo.com/og-image.png">
+<meta property="og:site_name" content="Flasqo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="API Fuzz Testing: Find Security Vulnerabilities with Malformed Input">
+<meta name="twitter:description" content="Fuzz testing sends malformed, unexpected, and random data to API endpoints to uncover security vulnerabilities, crashes, and edge cases.">
+<meta name="twitter:image" content="https://flasqo.com/og-image.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Home",
+     "item": "https://flasqo.com/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Guides",
+     "item": "https://flasqo.com/guides/api-testing/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "API fuzz testing",
+     "item": "https://flasqo.com/guides/fuzzing/"
+    }
+   ]
+  },
+  {
+   "@type": "Article",
+   "@id": "https://flasqo.com/guides/fuzzing/#article",
+   "headline": "API fuzz testing: break your API before attackers do",
+   "description": "Fuzz testing sends malformed, unexpected, and random data to API endpoints to uncover security vulnerabilities, crashes, and edge cases.",
+   "url": "https://flasqo.com/guides/fuzzing/",
+   "datePublished": "2026-08-05",
+   "dateModified": "2026-08-05",
+   "image": "https://flasqo.com/og-image.png",
+   "author": {
+    "@type": "Organization",
+    "name": "Flasqo",
+    "url": "https://flasqo.com/"
+   },
+   "publisher": {
+    "@type": "Organization",
+    "name": "Flasqo",
+    "logo": {
+     "@type": "ImageObject",
+     "url": "https://flasqo.com/flasqo-logo.png"
+    }
+   }
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://flasqo.com/guides/fuzzing/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is the difference between fuzz testing and penetration testing?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Fuzz testing is automated and focuses on finding crashes and unexpected behavior by sending malformed input. Penetration testing is manual, strategic exploitation by security experts who chain vulnerabilities together. Fuzzing finds the bugs; pentesters exploit them."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can fuzz testing break my production environment?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes, if you run it against production. Fuzzing can trigger DoS conditions, fill databases with garbage, or crash services. Always fuzz in staging or test environments. Use rate limiting and monitoring if you must test production."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How long should a fuzz testing campaign run?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Most critical bugs surface within the first hour. Run fuzzing for at least 24 hours per API endpoint to catch deeper edge cases. Security-critical APIs should run continuous fuzzing as part of CI/CD."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#020617;color:#cbd5e1;font-family:'Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header.site{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(2,6,23,.9)}
+.site-inner{max-width:1080px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.logo img{height:30px;width:auto}
+nav.top{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav.top a{color:#94a3b8;text-decoration:none;font-size:.88rem}
+nav.top a:hover{color:#fff}
+nav.top a.cta{background:linear-gradient(90deg,#dc2626,#ea580c);color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}
+.crumbs{font-size:.8rem;color:#64748b;margin:26px 0 0}
+.crumbs a{color:#64748b;text-decoration:none}
+.crumbs a:hover{color:#cbd5e1}
+h1{color:#fff;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;letter-spacing:-.01em;margin:14px 0 10px}
+.byline{color:#64748b;font-size:.85rem;margin-bottom:26px}
+.tldr{border:1px solid rgba(220,38,38,.35);background:rgba(127,29,29,.14);border-radius:14px;padding:18px 20px;margin:0 0 34px}
+.tldr .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fca5a5;margin-bottom:8px}
+.tldr p{margin:0;color:#fecaca;font-size:.98rem}
+main h2{color:#fff;font-size:1.45rem;margin:40px 0 12px}
+main h3{color:#e2e8f0;font-size:1.1rem;margin:26px 0 8px}
+main p{margin:0 0 16px;font-size:.98rem}
+main ul,main ol{margin:0 0 16px;padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:#f87171;text-decoration:none}
+main a:hover{text-decoration:underline}
+strong{color:#e2e8f0}
+code{background:rgba(15,23,42,.6);padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:.9em;color:#fca5a5}
+.tblwrap{overflow-x:auto;border:1px solid rgba(255,255,255,.09);border-radius:14px;margin:0 0 20px}
+table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:540px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+th{color:#e2e8f0;background:rgba(30,41,59,.65);font-size:.84rem}
+tr:last-child td{border-bottom:0}
+td.c,th.c{text-align:center}
+.yes{color:#4ade80}.part{color:#facc15}.no{color:#64748b}
+.callout{border-left:3px solid #dc2626;background:rgba(127,29,29,.25);padding:14px 18px;border-radius:0 12px 12px 0;margin:0 0 20px;font-size:.94rem;color:#fecaca}
+.steps{counter-reset:step}
+.steps li{counter-increment:step;margin-bottom:20px;position:relative;padding-left:0}
+.steps li::before{content:counter(step);position:absolute;left:-45px;top:0;background:linear-gradient(135deg,#dc2626,#ea580c);color:#fff;font-weight:700;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.cta-box{border:1px solid rgba(220,38,38,.4);background:linear-gradient(135deg,rgba(220,38,38,.16),rgba(234,88,12,.10));border-radius:16px;padding:26px;text-align:center;margin:44px 0}
+.cta-box h2{margin:0 0 8px;font-size:1.35rem}
+.cta-box p{color:#94a3b8;margin:0 0 18px}
+.cta-box a{display:inline-block;background:linear-gradient(90deg,#dc2626,#ea580c);color:#fff;font-weight:700;padding:12px 30px;border-radius:999px;text-decoration:none}
+.faq details{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:13px 17px;margin-bottom:10px;background:rgba(15,23,42,.6)}
+.faq summary{color:#e2e8f0;font-weight:600;cursor:pointer}
+.faq p{color:#94a3b8;font-size:.93rem;margin:10px 0 0}
+.more{border-top:1px solid rgba(255,255,255,.07);margin-top:48px;padding-top:28px}
+.more h2{font-size:1rem;color:#e2e8f0;margin:0 0 14px;text-transform:uppercase;letter-spacing:.08em}
+.more-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.more-grid a{display:block;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 14px;color:#94a3b8;text-decoration:none;font-size:.87rem;background:rgba(15,23,42,.5)}
+.more-grid a:hover{color:#fff;border-color:rgba(248,113,113,.5)}
+footer.site{border-top:1px solid rgba(255,255,255,.07);margin-top:40px;padding:26px 0 34px}
+.foot-inner{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#64748b;font-size:.8rem}
+.foot-inner a{color:#7d8aa0;text-decoration:none;margin-right:14px}
+.foot-inner a:hover{color:#fff}
+</style>
+</head>
+<body>
+<header class="site"><div class="site-inner">
+<a class="logo" href="/"><img src="/flasqo-logo.png" alt="Flasqo logo" width="30" height="30"> Flasqo</a>
+<nav class="top" aria-label="Main">
+<a href="/guides/api-testing/">Guides</a>
+<a href="/#faq">FAQ</a>
+<a class="cta" href="/">Start Testing Free</a>
+</nav></div></header>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/guides/api-testing/">Guides</a> › Fuzz testing</nav>
+<h1>API fuzz testing: break your API before attackers do</h1>
+<p class="byline">By the Flasqo team · Updated August 5, 2026</p>
+<div class="tldr"><span class="tag">TL;DR</span><p>Fuzz testing (fuzzing) sends malformed, unexpected, and random input to API endpoints to uncover crashes, memory leaks, injection vulnerabilities, and edge cases that manual testing misses. Automate fuzzing in CI/CD to catch security bugs early. <a href='/'>Flasqo</a> generates thousands of fuzz test payloads automatically, free.</p></div>
+<main>
+
+<h2>What is fuzz testing?</h2>
+<p>Fuzz testing (fuzzing) is an automated testing technique that sends invalid, unexpected, or random data to an API and monitors for crashes, hangs, memory leaks, or security violations. The goal: **find bugs that humans wouldn't think to test for**.</p>
+<p>While functional tests validate expected behavior, fuzzing explores the chaos zone — what happens when you send 10MB of data to a field expecting 50 characters? SQL injection in the email field? Unicode emojis in a numeric field? Fuzzing finds these edge cases automatically.</p>
+
+<h2>Why fuzzing matters for API security</h2>
+<p>Most security vulnerabilities don't come from missing features — they come from **unexpected input handling**. A single unvalidated field can enable SQL injection, command injection, or buffer overflow attacks.</p>
+
+<h3>Real-world fuzzing discoveries</h3>
+<ul>
+<li><strong>Heartbleed (OpenSSL):</strong> Found by fuzzing. Allowed attackers to read server memory.</li>
+<li><strong>Cloudflare Cloudbleed:</strong> HTML parser crashed on malformed input, leaking customer data.</li>
+<li><strong>Google Chrome:</strong> Over 16,000 bugs found via continuous fuzzing.</li>
+<li><strong>Microsoft Edge:</strong> Found 3,000+ security bugs before release using fuzzing.</li>
+</ul>
+
+<h2>Types of fuzz testing</h2>
+<div class="tblwrap"><table>
+<thead><tr><th>Fuzzing Type</th><th>What It Does</th><th>Use Case</th></tr></thead>
+<tbody>
+<tr><td><strong>Random fuzzing</strong></td><td>Completely random data (gibberish)</td><td>Catch basic crashes and validation gaps</td></tr>
+<tr><td><strong>Mutation-based</strong></td><td>Takes valid input, mutates it slightly</td><td>Test edge cases near valid boundaries</td></tr>
+<tr><td><strong>Generation-based</strong></td><td>Generates data based on schema/grammar</td><td>Protocol-aware testing (JSON, XML)</td></tr>
+<tr><td><strong>Smart fuzzing</strong></td><td>Uses feedback loops to guide inputs</td><td>Deep code path exploration (AFL, libFuzzer)</td></tr>
+<tr><td><strong>Security fuzzing</strong></td><td>Injects known attack patterns (SQLi, XSS)</td><td>Simulate real attack vectors</td></tr>
+</tbody></table></div>
+
+<h2>What fuzzing finds in APIs</h2>
+
+<h3>1. Input validation failures</h3>
+<ul>
+<li>Missing length checks → buffer overflow</li>
+<li>Type confusion → integer overflow</li>
+<li>Missing sanitization → injection attacks</li>
+</ul>
+
+<h3>2. Injection vulnerabilities</h3>
+<ul>
+<li><strong>SQL injection:</strong> <code>' OR '1'='1</code></li>
+<li><strong>NoSQL injection:</strong> <code>{"$gt": ""}</code></li>
+<li><strong>Command injection:</strong> <code>; rm -rf /</code></li>
+<li><strong>LDAP injection:</strong> <code>*)(uid=*))(|(uid=*</code></li>
+</ul>
+
+<h3>3. Memory safety issues</h3>
+<ul>
+<li>Null pointer dereferences</li>
+<li>Use-after-free bugs</li>
+<li>Buffer overflows</li>
+<li>Memory leaks from malformed requests</li>
+</ul>
+
+<h3>4. Business logic bypasses</h3>
+<ul>
+<li>Price manipulation (<code>price: -100</code>)</li>
+<li>Authorization bypass via ID tampering</li>
+<li>Rate limit evasion</li>
+</ul>
+
+<h2>How to fuzz test APIs in Flasqo</h2>
+
+<ol class="steps" style="padding-left:50px">
+<li>
+<strong>Navigate to Fuzz Testing</strong><br>
+Go to <a href="https://flasqo.com/testing-types">Testing Types</a> → <strong>Fuzz Testing</strong> → Launch
+</li>
+
+<li>
+<strong>Enter API endpoint</strong><br>
+Example: <code>https://api.yourapp.com/users</code><br>
+Select HTTP method: <code>POST</code>, <code>PUT</code>, or <code>PATCH</code>
+</li>
+
+<li>
+<strong>Define request schema</strong><br>
+Paste example valid request body:<br>
+<code style="display:block;margin:8px 0">{
+  "email": "user@example.com",
+  "age": 25,
+  "role": "user"
+}</code>
+Flasqo auto-detects field types (string, number, boolean)
+</li>
+
+<li>
+<strong>Configure fuzzing parameters</strong><br>
+• <strong>Intensity:</strong> Low (100 tests), Medium (1000 tests), High (10,000 tests)<br>
+• <strong>Fuzz types:</strong> Random, SQL injection, XSS, buffer overflow, type confusion<br>
+• <strong>Fields to fuzz:</strong> All fields or specific ones
+</li>
+
+<li>
+<strong>Set safety limits</strong><br>
+• <strong>Max payload size:</strong> Prevent DoS (default: 1MB)<br>
+• <strong>Rate limit:</strong> Requests per second (default: 10/sec)<br>
+• <strong>Timeout:</strong> Stop if response takes too long
+</li>
+
+<li>
+<strong>Run fuzz campaign</strong><br>
+Click <strong>"Start Fuzzing"</strong><br>
+Flasqo sends thousands of malformed payloads and monitors responses
+</li>
+
+<li>
+<strong>Review discovered bugs</strong><br>
+• ❌ <span style="color:#f87171">Crashes</span> (500 errors, timeouts)<br>
+• ⚠️ <span class="part">Unexpected behavior</span> (wrong status code)<br>
+• 🔓 <span style="color:#f87171">Security issues</span> (SQL errors, stack traces)<br>
+• Click any issue to see the exact payload that triggered it
+</li>
+
+<li>
+<strong>Export findings</strong><br>
+• Download PDF report with all vulnerabilities<br>
+• Share with security team<br>
+• Integrate with bug tracker (Jira, GitHub Issues)
+</li>
+</ol>
+
+<h2>Common fuzzing payloads</h2>
+
+<h3>String fuzzing</h3>
+<code style="display:block;background:rgba(15,23,42,.8);padding:16px;border-radius:8px;margin:16px 0;overflow-x:auto;white-space:pre">""                          # Empty string
+null                        # Null value
+" ".repeat(10000)           # Extremely long string
+"<script>alert(1)</script>" # XSS attempt
+"' OR '1'='1"               # SQL injection
+"\x00\x00\x00"              # Null bytes
+"../../../../etc/passwd"    # Path traversal
+"${7*7}"                    # Template injection
+</code>
+
+<h3>Number fuzzing</h3>
+<code style="display:block;background:rgba(15,23,42,.8);padding:16px;border-radius:8px;margin:16px 0;overflow-x:auto;white-space:pre">-1                # Negative number
+0                 # Zero
+2147483647        # Max 32-bit int
+2147483648        # Overflow 32-bit int
+999999999999999   # Huge number
+0.00000001        # Tiny float
+NaN               # Not a number
+Infinity          # Infinite value
+</code>
+
+<h3>Boolean fuzzing</h3>
+<code style="display:block;background:rgba(15,23,42,.8);padding:16px;border-radius:8px;margin:16px 0;overflow-x:auto;white-space:pre">"true"      # String instead of boolean
+1            # Number instead of boolean
+null         # Null instead of boolean
+[]           # Array instead of boolean
+{}           # Object instead of boolean
+</code>
+
+<div class="callout">
+<strong>Security warning:</strong> Never run fuzzing against production without explicit permission. Fuzzing can trigger rate limits, fill databases with garbage data, or cause service disruption. Always test in staging environments.
+</div>
+
+<h2>Fuzzing in CI/CD pipelines</h2>
+<p>Automate fuzzing to catch vulnerabilities before deployment:</p>
+
+<h3>GitHub Actions example</h3>
+<code style="display:block;background:rgba(15,23,42,.8);padding:16px;border-radius:8px;margin:16px 0;overflow-x:auto;white-space:pre">name: Security Fuzzing
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run API fuzz tests
+        run: |
+          curl -X POST https://api.flasqo.com/fuzz \
+            -H "Authorization: Bearer ${{ secrets.FLASQO_API_KEY }}" \
+            -d '{
+              "base_url": "https://staging.api.yourapp.com",
+              "endpoints": ["/users", "/payments", "/auth/login"],
+              "intensity": "medium"
+            }'
+
+      - name: Check for critical vulnerabilities
+        run: |
+          if grep -q "CRITICAL" fuzz-report.json; then
+            echo "Critical vulnerabilities found - blocking merge"
+            exit 1
+          fi
+</code>
+
+<h2>Best practices for API fuzzing</h2>
+
+<h3>1. Start small, scale up</h3>
+<p>Begin with 100-1000 test cases per endpoint. If no bugs surface, increase to 10,000+. Don't fuzz everything at once — focus on high-risk endpoints first (auth, payments, user input).</p>
+
+<h3>2. Combine fuzzing with validation</h3>
+<p>Fuzzing finds crashes. Manual review determines if they're exploitable. Not every 500 error is a security issue, but every SQL error message is.</p>
+
+<h3>3. Monitor server health during fuzzing</h3>
+<p>Watch CPU, memory, and disk usage. A gradual memory increase suggests a memory leak. Sudden CPU spikes might indicate algorithmic complexity attacks.</p>
+
+<h3>4. Fuzz authentication and authorization separately</h3>
+<p>Test both authenticated and unauthenticated requests. Many APIs crash differently when auth headers are malformed.</p>
+
+<h3>5. Save payloads that trigger bugs</h3>
+<p>Create regression tests from discovered bugs. If fuzzing finds that <code>email: null</code> crashes your API, add that as a permanent test case.</p>
+
+<div class="cta-box">
+<h2>Find vulnerabilities before hackers do</h2>
+<p>Run automated fuzz tests on your API in minutes. No security expertise required.</p>
+<a href="/">Start Fuzzing Free</a>
+</div>
+
+<h2>Fuzzing vs other security testing</h2>
+<div class="tblwrap"><table>
+<thead><tr><th>Method</th><th>Speed</th><th>Coverage</th><th>Expertise Required</th></tr></thead>
+<tbody>
+<tr><td><strong>Fuzz testing</strong></td><td>Fast (automated)</td><td>Broad (random inputs)</td><td>Low</td></tr>
+<tr><td><strong>Penetration testing</strong></td><td>Slow (manual)</td><td>Deep (strategic)</td><td>High</td></tr>
+<tr><td><strong>Static analysis</strong></td><td>Fast (automated)</td><td>Code-level only</td><td>Medium</td></tr>
+<tr><td><strong>Vulnerability scanning</strong></td><td>Fast (automated)</td><td>Known CVEs only</td><td>Low</td></tr>
+</tbody></table></div>
+
+<div class="faq">
+<h2>Frequently asked questions</h2>
+
+<details>
+<summary>What is the difference between fuzz testing and penetration testing?</summary>
+<p>Fuzz testing is automated and focuses on finding crashes and unexpected behavior by sending malformed input. Penetration testing is manual, strategic exploitation by security experts who chain vulnerabilities together. Fuzzing finds the bugs; pentesters exploit them.</p>
+</details>
+
+<details>
+<summary>Can fuzz testing break my production environment?</summary>
+<p>Yes, if you run it against production. Fuzzing can trigger DoS conditions, fill databases with garbage, or crash services. Always fuzz in staging or test environments. Use rate limiting and monitoring if you must test production.</p>
+</details>
+
+<details>
+<summary>How long should a fuzz testing campaign run?</summary>
+<p>Most critical bugs surface within the first hour. Run fuzzing for at least 24 hours per API endpoint to catch deeper edge cases. Security-critical APIs should run continuous fuzzing as part of CI/CD.</p>
+</details>
+
+<details>
+<summary>Does fuzzing find all security vulnerabilities?</summary>
+<p>No. Fuzzing finds input validation bugs, crashes, and injection vulnerabilities. It won't find business logic flaws (e.g., "users can view other users' data") or authentication bypasses that require multi-step workflows. Combine fuzzing with manual pentesting.</p>
+</details>
+
+<details>
+<summary>What should I do when fuzzing finds a crash?</summary>
+<p>1) Reproduce the crash with the exact payload. 2) Check logs for stack traces or error messages. 3) Determine if it's exploitable (does it leak data? allow code execution?). 4) Fix the validation bug. 5) Add the payload as a permanent regression test.</p>
+</details>
+
+</div>
+
+<div class="more">
+<h2>Related guides</h2>
+<div class="more-grid">
+<a href="/guides/api-testing/">Functional API testing</a>
+<a href="/guides/smoke-testing/">Smoke testing</a>
+<a href="/guides/api-chaos-testing/">Chaos testing</a>
+<a href="/guides/api-contract-testing/">Contract testing</a>
+</div>
+</div>
+
+</main>
+</div>
+<footer class="site"><div class="foot-inner">
+<div>&copy; 2026 Flasqo — AI-powered API testing platform</div>
+<div>
+<a href="/guides/api-testing/">Guides</a>
+<a href="/#faq">FAQ</a>
+<a href="/">Start Free</a>
+</div>
+</div></footer>
+</body>
+</html>
